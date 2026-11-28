@@ -63,6 +63,13 @@ export const canAddPlace = (providers: readonly PlaceProvider[], text: string) =
   return !providers.some((p) => !p.deletedAt && fold(p.name.trim()) === name);
 };
 
-/** What the chosen place's chip says: its name, "(removed)" once deleted, "(new)" before it's saved. */
+/** What a deleted place reads: a delete scrubs its name, so never the name (data-rights). */
+export const REMOVED_PLACE = "Removed place";
+
+/** What a period's place reads: its name, or "Removed place" once deleted from the directory. */
+export const placeName = (place: { name: string; deletedAt: string | null }) =>
+  place.deletedAt ? REMOVED_PLACE : place.name;
+
+/** What the chosen place's chip says: its name, "Removed place" once deleted, "(new)" before it's saved. */
 export const placeChipLabel = (name: string, { deleted = false, isNew = false } = {}) =>
-  isNew ? `${name} (new)` : deleted ? `${name} (removed)` : name;
+  isNew ? `${name} (new)` : deleted ? REMOVED_PLACE : name;

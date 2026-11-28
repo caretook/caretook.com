@@ -18,7 +18,7 @@ import { medicationQuery, toMedication } from "~/lib/medications/medications.syn
 import { providerQuery, toProvider } from "~/lib/providers/providers.sync";
 import { ROW_CHIPS } from "~/lib/tags/tagPicker";
 import { membersQuery, toMember } from "~/lib/timeline/timeline.sync";
-import { EntryLinkRow, RemoveLink } from "./TodoEntryLinks";
+import { EntryLinkRow, RemovedLinkRow, RemoveLink } from "./TodoEntryLinks";
 import { useEntryLinking, useTodoEntries } from "./useTodoEntryLinks";
 import { isTodoWriter } from "@caretook/data/domain";
 import { formatDate, medicationTitle } from "@caretook/data/schema";
@@ -44,7 +44,7 @@ type LinkRowProps = {
   onRemove?: () => void;
 };
 
-/** The provider as its `ProviderCard` (condensed, with every quick contact action); greyed "(removed)" once deleted. */
+/** The provider as its `ProviderCard` (condensed, with every quick contact action); "Removed item" once deleted. */
 function ProviderLink({
   groupId,
   id,
@@ -58,13 +58,13 @@ function ProviderLink({
   const rows = useLiveQuery<ProviderRow>(q.sql, q.params, loaded);
   const provider = rows[0] ? toProvider(rows[0]) : null;
   if (!provider || provider.groupId !== groupId) return null;
+  if (provider.deletedAt) return <RemovedLinkRow kind="provider" label="Provider" onRemove={onRemove} />;
   return (
     <ProviderCard
       provider={provider}
       look="condensed"
       label="Provider"
       open={linked ? undefined : null}
-      removed={!!provider.deletedAt}
       actions={<ContactActions actions={quickActions(provider)} />}
       trailing={onRemove && <RemoveLink name={provider.name} onRemove={onRemove} />}
       tags={tags}
@@ -74,7 +74,7 @@ function ProviderLink({
   );
 }
 
-/** The medication as its `MedicationCard`, with its tags; greyed "(removed)" once deleted. */
+/** The medication as its `MedicationCard`, with its tags; "Removed item" once deleted. */
 function MedicationLink({
   groupId,
   id,
@@ -88,7 +88,8 @@ function MedicationLink({
   const rows = useLiveQuery<MedicationRow>(q.sql, q.params, loaded);
   const medication = rows[0] ? toMedication(rows[0]) : null;
   if (!medication || medication.groupId !== groupId) return null;
-  const removed = !!medication.deletedAt;
+  if (medication.deletedAt)
+    return <RemovedLinkRow kind="medication" label="Medication" onRemove={onRemove} />;
   const stopped = medication.status !== "current";
   const title = medicationTitle(medication);
   return (
@@ -96,28 +97,25 @@ function MedicationLink({
       medication={medication}
       groupId={groupId}
       stopped={stopped}
-      removed={removed}
       open={linked ? undefined : null}
       label="Medication"
       trailing={onRemove && <RemoveLink name={title} onRemove={onRemove} />}
       data-todo-link="medication"
       data-medication-id={medication.id}
     >
-      {stopped && medication.stoppedOn && !removed && (
+      {stopped && medication.stoppedOn && (
         <p className="text-muted text-sm">Stopped {formatDate(medication.stoppedOn)}</p>
       )}
-      {!removed && (
-        <QuickTags
-          target="medication"
-          recordId={medication.id}
-          label={title}
-          createdBy={medication.createdBy}
-          max={ROW_CHIPS}
-          tags={tags ?? NO_TAGS}
-          readOnly={tagsReadOnly}
-          className="mt-1"
-        />
-      )}
+      <QuickTags
+        target="medication"
+        recordId={medication.id}
+        label={title}
+        createdBy={medication.createdBy}
+        max={ROW_CHIPS}
+        tags={tags ?? NO_TAGS}
+        readOnly={tagsReadOnly}
+        className="mt-1"
+      />
     </MedicationCard>
   );
 }

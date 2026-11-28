@@ -39,15 +39,17 @@ describe("eventWhen", () => {
 });
 
 describe("chosenLinkChip", () => {
-  it("names the link, greyed when removed or cancelled, or a fallback while it isn't on the device", () => {
+  it("names the link, Removed item once deleted, greyed when deleted or cancelled, or a fallback while it isn't on the device", () => {
     expect(chosenLinkChip({ label: "Dr. Lark" }, "Chosen provider")).toEqual({
       label: "Dr. Lark",
       muted: false,
     });
     expect(chosenLinkChip({ label: "Dr. Lark", deleted: true }, "x")).toEqual({
-      label: "Dr. Lark (removed)",
+      label: "Removed item",
       muted: true,
     });
+    // A scrubbed row has no name left: still the removed wording.
+    expect(chosenLinkChip({ label: "", deleted: true }, "x")).toEqual({ label: "Removed item", muted: true });
     expect(chosenLinkChip({ label: "Eye doctor", cancelled: true }, "x").label).toBe(
       "Eye doctor (cancelled)",
     );
