@@ -2,7 +2,7 @@ import type { TodoTree, TodoTreeNode, TreeTodo } from "./todoTreeView";
 
 import { describe, expect, it } from "vitest";
 import { todoSections } from "./todoList";
-import { ancestorChain, splitTrees, todoDayOf, todoDayTrees, todoTrees } from "./todoTreeView";
+import { ancestorChain, doneTreePage, splitTrees, todoDayOf, todoDayTrees, todoTrees } from "./todoTreeView";
 
 // Fictional todos; "now" is Monday 2026-11-23 at noon in Los Angeles.
 const ZONE = "America/Los_Angeles";
@@ -263,5 +263,59 @@ describe("todoDayTrees", () => {
       { matches: (t) => t.id === "sitter" },
     );
     expect(todoDayTrees(other, FRIDAY, NOW, ZONE)).toEqual([]);
+  });
+});
+
+describe("doneTreePage", () => {
+  const at = (minute: number) => `2026-11-23T18:${String(minute).padStart(2, "0")}:00.000Z`;
+  const page = (todos: TreeTodo[], more: Partial<Parameters<typeof doneTreePage>[1]> = {}) =>
+    doneTreePage(todos, { now: NOW, timeZone: ZONE, limit: 20, ...more });
+  const done = [
+    todo("stay", { doneAt: at(30) }),
+    todo("bag", { parentId: "stay", doneAt: at(10) }),
+    todo("socks", { parentId: "bag", doneAt: at(5) }),
+    todo("list", { parentId: "stay", doneAt: at(30) }),
+    todo("exam", { doneAt: at(20) }),
+    todo("cake", { doneAt: at(40) }),
+  ];
+
+  it("builds whole done trees, newest completion first", () => {
+    const { trees, more } = page(done);
+    expect(order(trees)).toEqual(["cake", "stay", "exam"]);
+    expect(shape(trees)).toEqual({ cake: {}, stay: { bag: { socks: {} }, list: {} }, exam: {} });
+    expect(more).toBe(false);
+  });
+
+  it("pages by tree: a page holds whole trees, with more when others are left", () => {
+    const first = page(done, { limit: 2 });
+    expect(order(first.trees)).toEqual(["cake", "stay"]);
+    expect(shape(first.trees).stay).toEqual({ bag: { socks: {} }, list: {} });
+    expect(first.more).toBe(true);
+    expect(page(done, { limit: 3 }).more).toBe(false);
+  });
+
+  it("leaves out a done subtask under an open parent, and its branch", () => {
+    const { trees } = page([
+      ...done,
+      // "party" is open: its done step and that step's done child show in the open tree.
+      todo("invites", { parentId: "party", doneAt: at(50) }),
+      todo("stamps", { parentId: "invites", doneAt: at(50) }),
+    ]);
+    expect(order(trees)).toEqual(["cake", "stay", "exam"]);
+  });
+
+  it("keeps a match's tree, its ancestors as context, placed by the match's completion", () => {
+    const { trees } = page(done, { matches: (t) => t.id === "socks" || t.id === "exam" });
+    expect(shape(trees)).toEqual({ exam: {}, "~stay": { "~bag": { socks: {} } } });
+    expect(order(trees)).toEqual(["exam", "stay"]);
+  });
+
+  it("split: every done match its own tree, in doneOrder", () => {
+    const { trees } = page([...done, todo("invites", { parentId: "party", doneAt: at(50) })], {
+      split: true,
+      limit: 3,
+    });
+    expect(order(trees)).toEqual(["invites", "cake", "list"]);
+    expect(trees.every((t) => !t.children.length && !t.context)).toBe(true);
   });
 });

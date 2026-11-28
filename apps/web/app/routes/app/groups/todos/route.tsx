@@ -3,25 +3,21 @@ import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { LocalTodo, SubtaskProgressRow, TodoRow } from "~/lib/todos/todos.sync";
 import type { MemberRow } from "~/lib/timeline/timeline.sync";
-import type { TagRow } from "~/lib/tags/tags.sync";
 
 import { useCallback, useState } from "react";
 import { Outlet, useLocation } from "react-router";
 import { TodoUndoStatus, useTodoTick } from "~/components/todos";
-import { getGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
-import { tagFilterOf } from "~/lib/tags/tagFilter";
-import { tagsQuery } from "~/lib/tags/tags.sync";
 import { subtaskProgressQuery, todosQuery, todoTreesQuery } from "~/lib/todos/todos.sync";
 import { membersQuery, readRows } from "~/lib/timeline/timeline.sync";
-import { emptyTodosText, todoQueryOf, whoOf } from "~/lib/todos/todoList";
+import { emptyTodosText, todoQueryOf } from "~/lib/todos/todoList";
 import { todoViewOf } from "~/lib/todos/todoView";
 import { PlannerHeader } from "../planner/PlannerHeader";
 import { DoneTodos } from "./DoneTodos";
 import { todoFilterBar } from "./TodoFilters";
 import { TodoSections } from "./TodoSections";
 import { onlyTodoSheetChanged } from "~/lib/todos/todoSheets";
-import { DONE_PAGE, useTodoList } from "./useTodoList";
+import { useTodoList } from "./useTodoList";
 
 // Shared by web + native. The Planner section's Todos tab: the group's
 // todos, read from the device's local copy (live, so it works offline and
@@ -29,14 +25,13 @@ import { DONE_PAGE, useTodoList } from "./useTodoList";
 // to shows (Everyone, or `?who=` Mine / Unassigned) and the search box's text
 // (`?q=`) keeps, as trees (todo-subtasks-3: a subtask shows only in its tree,
 // with a quick add on each row for writers; or, with `?subtasks=own`, each on
-// its own row with "Part of": todo-links-2) in sections by due, then Done. A tick
+// its own row with "Part of": todo-links-2) in sections by due, then Done (trees too). A tick
 // completes a todo on the device, with Undo. The add and edit sheets render
 // over it (the header's Add menu opens the add sheet).
 
 export const meta = () => [{ title: "Todos · Caretook" }];
 
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
-  const group = getGroup(context);
   const { db } = context.get(sessionContext);
   const [openRows, memberRows, progressRows] = await Promise.all([
     readRows<TodoRow>(db, todoTreesQuery(params.groupId)),
@@ -44,18 +39,9 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
     readRows<SubtaskProgressRow>(db, subtaskProgressQuery(params.groupId)),
   ]);
   const search = new URL(request.url).search;
-  const who = whoOf(search);
-  const tag = tagFilterOf(search, await readRows<TagRow>(db, tagsQuery(params.groupId)));
   const doneRows = await readRows<TodoRow>(
     db,
-    todosQuery(params.groupId, {
-      done: true,
-      doneListed: todoViewOf(search) === "tree",
-      who,
-      userId: group.userId,
-      tagId: tag?.id,
-      limit: DONE_PAGE,
-    }),
+    todosQuery(params.groupId, { done: true, doneListed: todoViewOf(search) === "tree" }),
   );
   return { openRows, doneRows, memberRows, progressRows };
 }
@@ -121,7 +107,7 @@ export default function Todos({ loaderData, params }: Route.ComponentProps) {
         empty={emptyTodosText(list.who, text, list.tag?.name)}
         {...row}
       />
-      <DoneTodos todos={list.done} more={list.moreDone} onMore={list.showMoreDone} {...row} />
+      <DoneTodos trees={list.done} more={list.moreDone} onMore={list.showMoreDone} {...row} />
 
       {/* The add and edit sheets render here, over the list. */}
       <Outlet />

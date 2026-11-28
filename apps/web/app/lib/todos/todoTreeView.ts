@@ -1,5 +1,5 @@
 import type { TodoRuleFields } from "@caretook/data/domain";
-import { MAX_TODO_DEPTH, siblingOrder, todoOrder, todoState } from "@caretook/data/domain";
+import { doneOrder, MAX_TODO_DEPTH, siblingOrder, todoOrder, todoState } from "@caretook/data/domain";
 
 // The one tree display's shape (todo-subtasks-3; pure, web:unit tests it):
 // every list of todos shows a subtask only inside its tree. `todoTrees`
@@ -114,6 +114,63 @@ export const splitTrees = <T extends TreeTodo>(
     now,
     timeZone,
   ).map((todo) => ({ todo, context: false, children: [], lead: todo }));
+
+/** The newest `doneAt` among a node's shown (not context) todos, "" if none. */
+const newestDone = <T extends TreeTodo>(node: TodoTreeNode<T>): string =>
+  node.children.reduce(
+    (newest, child) => {
+      const at = newestDone(child);
+      return at > newest ? at : newest;
+    },
+    node.context ? "" : (node.todo.doneAt ?? ""),
+  );
+
+/**
+ * The Done list's page (B-1016): `todos` are done rows, built into the one
+ * tree display like the open list (`todoTrees`, with the same `matches`), a
+ * done top-level todo with its done subtasks under it. A done subtask whose
+ * parent isn't in `todos` (still open: it shows struck in its open tree) is
+ * left out, and so is its branch. Trees go newest completion first (the
+ * newest `doneAt` they show; ties by id) and a page holds whole trees: the
+ * first `limit`, with `more` when there are others. With `split` (subtasks
+ * on their own, todo-links-2) every done todo that matches is its own tree,
+ * in `doneOrder`.
+ */
+export const doneTreePage = <T extends TreeTodo>(
+  todos: readonly T[],
+  {
+    now,
+    timeZone,
+    matches,
+    split = false,
+    limit,
+  }: Omit<Options<T>, "rootId"> & { split?: boolean; limit: number },
+): { trees: TodoTree<T>[]; more: boolean } => {
+  const live = todos.filter((t) => !t.deletedAt && t.doneAt);
+  let trees: TodoTree<T>[];
+  if (split) {
+    trees = doneOrder(live.filter((t) => !matches || matches(t))).map((todo) => ({
+      todo,
+      context: false,
+      children: [],
+      lead: null,
+    }));
+  } else {
+    const byId = new Map(live.map((t) => [t.id, t]));
+    // Listed when its whole chain up to a top-level todo is here (and done).
+    const listed = (todo: T, depth = 0): boolean =>
+      !todo.parentId ||
+      (depth < MAX_TODO_DEPTH && !!byId.get(todo.parentId) && listed(byId.get(todo.parentId)!, depth + 1));
+    const rank = todoTrees(
+      live.filter((t) => listed(t)),
+      { now, timeZone, matches },
+    ).map((tree) => ({ tree, at: newestDone(tree) }));
+    trees = rank
+      .sort((a, b) => (a.at !== b.at ? (a.at < b.at ? 1 : -1) : a.tree.todo.id < b.tree.todo.id ? -1 : 1))
+      .map(({ tree }) => tree);
+  }
+  return { trees: trees.slice(0, limit), more: trees.length > limit };
+};
 
 /**
  * A todo's ancestor chain (its parent, the parent's parent, …, up to the
