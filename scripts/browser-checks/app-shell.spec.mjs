@@ -37,11 +37,17 @@
 //    admin.settings.set, a real staff action, which writes one audit row that
 //    the server-loaded /admin/audit lists; and the banner reaches member@'s
 //    /app. Put back through the API.
+// 6. Deleting a group (data-rights): member@ owns a fresh group (made in SQL,
+//    its setup dismissed) with caretaker@ in it; once it reaches caretaker@'s device, member@
+//    deletes it from Details (its confirm and the move to /app are
+//    groupSettings.browser.test.tsx's), and the next sync takes it off
+//    caretaker@'s device.
 //
 // Every device has its own client IP (fixtures.mjs): Better Auth limits
 // sign-ins and session checks per IP. Each test signs its own devices in, so
 // the tests are independent; the seeds are put back before and after the file
 // (and by the tests that change them).
+import { randomUUID } from "node:crypto";
 import {
   DEV_FAMILY,
   DEV_FAMILY_TIMELINE,
@@ -438,4 +444,71 @@ test("staff: /admin is staff only, an action is audited, the banner reaches /app
     });
   }
   await noErrors(dA, dMember);
+});
+
+// ── 6. Deleting a group leaves a member's device ─────────────────────────────
+test("deleting a group: it leaves another member's device on the next sync", async ({ device }) => {
+  test.setTimeout(120_000);
+  const GROUP = randomUUID();
+  const NAME = `Delete Check ${GROUP.slice(0, 6)}`;
+  const userId = (email) => `(SELECT id FROM "user" WHERE email = '${email}')`;
+  const owner = userId("member@example.com");
+  psql(
+    `INSERT INTO care_group (id, name, created_by, updated_by) SELECT '${GROUP}', '${NAME}', ${owner}, ${owner}`,
+  );
+  psql(
+    `INSERT INTO care_recipient (group_id, name, time_zone, created_by, updated_by) SELECT '${GROUP}', 'Pat Delete', 'America/Los_Angeles', ${owner}, ${owner}`,
+  );
+  for (const [email, role] of [
+    ["member@example.com", "owner"],
+    ["caretaker@example.com", "caretaker"],
+  ])
+    psql(
+      `INSERT INTO care_group_member (group_id, user_id, role, created_by, updated_by) SELECT '${GROUP}', ${userId(email)}, '${role}', ${owner}, ${owner}`,
+    );
+  // member@ is the group's setter: setup dismissed, so Details opens as it is.
+  const setupDismissed = (change) =>
+    psql(
+      `UPDATE "user" SET preferences = jsonb_set(coalesce(preferences, '{}'::jsonb), '{setupDismissed}', ${change}) WHERE email = 'member@example.com'`,
+    );
+  setupDismissed(`coalesce(preferences->'setupDismissed', '[]'::jsonb) || to_jsonb('${GROUP}'::text)`);
+  const dM = await device("delete-owner");
+  const dO = await device("delete-member");
+  const M = dM.page;
+  const O = dO.page;
+  const onDevice = (p) =>
+    p
+      .evaluate(
+        (group) =>
+          window.caretookSync.powersync
+            .getAll("SELECT count(*) AS n FROM care_group WHERE id = ?", [group])
+            .then((r) => r[0].n),
+        GROUP,
+      )
+      .catch(() => -1);
+  try {
+    await signIn(O, "caretaker@example.com", PASSWORD, { home: true });
+    await expect
+      .poll(() => onDevice(O), { timeout: 45_000, message: "the group reaches caretaker@" })
+      .toBe(1);
+    await signIn(M, "member@example.com", PASSWORD, { home: true });
+
+    await test.step("the owner deletes it; the member's next sync takes it off their device", async () => {
+      await M.goto(`/app/groups/${GROUP}/settings/details`);
+      const card = M.locator('main [data-section="delete-group"]');
+      await card.getByRole("button", { name: "Delete care group" }).click({ timeout: 45_000 });
+      await M.getByRole("textbox", { name: `Type ${NAME} to confirm` }).fill(NAME);
+      await M.locator("dialog[open]").getByRole("button", { name: "Delete care group" }).click();
+      await M.waitForURL((u) => u.pathname === "/app", { timeout: 30_000 });
+      expect(psql(`SELECT count(*) FROM care_group WHERE id = '${GROUP}'`)).toBe("0");
+      await expect
+        .poll(() => onDevice(O), { timeout: 30_000, message: "the group leaves caretaker@" })
+        .toBe(0);
+    });
+  } finally {
+    psql(`DELETE FROM care_group WHERE id = '${GROUP}'`);
+    psql(`DELETE FROM admin_audit_log WHERE target_group_id = '${GROUP}'`);
+    setupDismissed(`coalesce(preferences->'setupDismissed', '[]'::jsonb) - '${GROUP}'`);
+  }
+  await noErrors(dM, dO);
 });

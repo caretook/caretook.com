@@ -43,6 +43,7 @@ export const AUDIT_ACTIONS = [
   "mail.suppressionCleared",
   "auth.jwksRotated",
   "user.setGroupLimit",
+  "group.deleted",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
@@ -73,6 +74,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "mail.suppressionCleared": "Cleared an email suppression",
   "auth.jwksRotated": "Rotated the JWT signing keys",
   "user.setGroupLimit": "Changed the care group limit",
+  "group.deleted": "Deleted a care group",
 };
 
 /** A JSON value as `changes` stores it. */

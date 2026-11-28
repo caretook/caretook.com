@@ -2,8 +2,9 @@ import type { Route } from "./+types/route";
 import type { ActionResult } from "~/lib/core/api";
 
 import { EASY_TILE_COUNT } from "@caretook/data/schema";
+import { ORPCError } from "@orpc/client";
 import { UserRound } from "lucide-react";
-import { Link } from "react-router";
+import { Link, redirect } from "react-router";
 import { Detail, Details, SettingsCard, SettingsPage } from "~/components/settings";
 import { EmptyState } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -12,8 +13,10 @@ import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { rpc } from "~/lib/core/rpc";
 import { sessionContext } from "~/lib/auth/session";
 import { loadDetailsAllowed, useDetailsAllowed } from "~/lib/calendars/detailsAllowed.sync";
+import { waitForMembershipGone } from "~/lib/care-groups/members.sync";
 import { failedSave, loadRecipientProfile } from "../api";
 import { GroupNameForm, RecipientTimeZoneForm } from "./DetailsForms";
+import { DeleteGroupCard } from "./DeleteGroupCard";
 import { DetailsOutsideCard } from "./DetailsOutsideCard";
 import { EasyTilesCard } from "./EasyTilesCard";
 import {
@@ -32,7 +35,8 @@ import {
 // online only. The rest of the recipient is edited on their profile
 // (`appUrls.profile`), linked from here. Easy mode's tiles card is the
 // group's too (`careGroup.update`'s `easyTiles`). Owners also get the
-// "Details outside Caretook" switch (calendars), read from the device.
+// "Details outside Caretook" switch (calendars), read from the device, and
+// the "Delete care group" card (data-rights), last.
 
 export const meta = () => [{ title: "Details · Group settings · Caretook" }];
 
@@ -47,7 +51,11 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
   return { online, allowedRows };
 }
 
-export async function clientAction({ request, params }: Route.ClientActionArgs): Promise<ActionResult> {
+export async function clientAction({
+  request,
+  params,
+  context,
+}: Route.ClientActionArgs): Promise<ActionResult> {
   const { groupId } = params;
   const form = await request.formData();
   const intent = formString(form, "intent");
@@ -79,11 +87,25 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
       await rpc.calendars.group.setDetailsAllowed({ groupId, allowed: allowed === "on" });
       return { ok: true };
     }
+    if (intent === "deleteGroup") {
+      const { db } = context.get(sessionContext);
+      await rpc.careGroup.delete({ groupId, confirmName: formString(form, "confirmName") });
+      // `/app` reads the local copy: wait for the group to leave it first, as leaving does.
+      await waitForMembershipGone(db, { groupId, userId: db.userId });
+      throw redirect(appUrls.home());
+    }
     return { ok: false, error: "Unknown action.", issues: [] };
   } catch (e) {
-    return failedSave(e);
+    return failedSave(e, groupRefusal);
   }
 }
+
+/** A refused delete's reason: the care group rules' messages are written for people. */
+const groupRefusal = (e: unknown): string | null => {
+  if (!(e instanceof ORPCError)) return null;
+  const code = (e.data as { code?: unknown } | undefined)?.code;
+  return typeof code === "string" && code.startsWith("careGroupService:") ? e.message : null;
+};
 
 export default function GroupDetails({ loaderData }: Route.ComponentProps) {
   const { online, allowedRows } = loaderData;
@@ -143,6 +165,8 @@ export default function GroupDetails({ loaderData }: Route.ComponentProps) {
       />
 
       {group.role === "owner" && <DetailsOutsideCard allowed={detailsAllowed ?? true} editable={online} />}
+
+      {group.role === "owner" && <DeleteGroupCard name={group.name} editable={online} />}
     </SettingsPage>
   );
 }
