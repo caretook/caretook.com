@@ -5,6 +5,7 @@ import type { ServiceContext } from "../src/services";
 import { randomBytes } from "node:crypto";
 import { createInterface } from "node:readline/promises";
 import { and, eq, isNull } from "drizzle-orm";
+import { isWriterRole } from "../src/constants";
 import { endClient, getDb } from "../src/db/client";
 import {
   careGroupMemberSchema,
@@ -144,7 +145,7 @@ if (!membership)
       : `${parsed.email} is in ${memberships.length} groups: pass --group (one of ${memberships.map((m) => m.groupId).join(", ")})`,
   );
 const { groupId, role } = membership!;
-if (role === "viewer")
+if (!isWriterRole(role))
   await fail("Use a writer (owner, admin or caretaker): a viewer's changes are put back");
 const ctx: ServiceContext = {
   authUser: { id: user!.id, roleNames: ["member"], groupRoles: { [groupId]: role } },
