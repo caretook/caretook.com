@@ -13,6 +13,12 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | Slice | Item | State | Merge |
 | ----- | ---- | ----- | ----- |
 
+Idle hand-over: no slice in flight.
+
+**Wave 28 landed** (2026-11-28): PR #354 (dev 1c2b872), Codex clean, CI components flake (run 46186862084; todayCard, filed B-1065); to-test `2026-11-28-1540-fixes-bug.md`; landing report filed. B-1056, B-1058 done; worktrees removed; docs folded into assistant.
+
+**Next (wave 29):** `risa sync`, then plan a slice for B-1046 as decided (ask a430, skeptic s105, the user may veto): stop `content-visibility: auto` (`lib/timeline/offscreenRows.ts`, from B-139) on WebKit or for the newest days, keeping `timelineBlank.browser.test.tsx` (slice 96, no repro in Chromium). B-1046 stays open after it for report 2 (empty after the logo until reopened: likely the local database not answering after an iOS resume). Plus any newly triaged `fixes-bug` items. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: prettier pads the Status table, so match rows by number, not text.
+
 ## Wave 1
 
 Each item's backlog notes (`pnpm backlog show B-<n>`) carry the reviewer's file references; they came from a reading, so **first confirm the bug with a failing test**. If it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code.
