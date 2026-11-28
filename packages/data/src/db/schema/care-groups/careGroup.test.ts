@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { careGroupInsertZSchema, careGroupNameZSchema } from "./careGroup";
+import { careGroupInsertZSchema, careGroupNameZSchema, confirmsGroupName } from "./careGroup";
 
 describe("careGroupNameZSchema (B-872)", () => {
   // Plain zod, so the web app doesn't carry drizzle-zod: it parses as the
@@ -21,5 +21,21 @@ describe("careGroupNameZSchema (B-872)", () => {
     { name: 3 },
   ])("parses %o as the insert schema's name did", (input) => {
     expect(outcome(careGroupNameZSchema, input)).toEqual(outcome(picked, input));
+  });
+});
+
+describe("confirmsGroupName (data-rights)", () => {
+  it.each([
+    ["Moreno Family", true],
+    ["  moreno   FAMILY ", true],
+    ["Moreno Famil", false],
+    ["Moreno Family 2", false],
+    ["", false],
+  ])("%j confirms Moreno Family: %s", (typed, expected) => {
+    expect(confirmsGroupName(typed, "Moreno Family")).toBe(expected);
+  });
+
+  it("never confirms a blank name", () => {
+    expect(confirmsGroupName("", "  ")).toBe(false);
   });
 });
