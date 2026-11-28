@@ -4,6 +4,7 @@ import {
   readAvatarChoice,
   resolveDaySummaryMode,
   resolveEasyModeSetting,
+  resolveGroupSetup,
   resolveProvidersView,
   resolveSetupDismissed,
   resolveTimelineView,
@@ -37,10 +38,15 @@ export const me = {
       easyMode: resolveEasyModeSetting(user.preferences),
       daySummary: resolveDaySummaryMode(user.preferences),
       setupDismissed: resolveSetupDismissed(user.preferences),
+      /** Each care group's setup record, per group id; none is `{}`. */
+      groupSetup: resolveGroupSetup(user.preferences),
     };
   }),
 
-  /** Change your own settings. Fields left out keep their current value. */
+  /**
+   * Change your own settings. Fields left out keep their current value;
+   * `setupDismissed` and `groupSetup` are added to, never replaced.
+   */
   updatePreferences: authedProcedure.input(userPreferencesZSchema).handler(async ({ context, input }) => {
     const preferences = unwrap(await userService.updateOwnPreferences(context, input));
     if (!preferences) throw new ORPCError("UNAUTHORIZED");
