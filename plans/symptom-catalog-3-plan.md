@@ -9,7 +9,7 @@
 | 1     | 1    | landed | a84e4d658 (b74850034); wave 1 landed via PR #287    |
 | 2     | 2    | landed | 3ca82c624 (7a584c4cd, aa5ef7fcc); slice check green |
 | 3     | 2    | landed | 82766a2a1 (075716d6c); slice check green            |
-| 4     | 3    | merged | 692385602 (75e0681fa); slice check green            |
+| 4     | 3    | landed | 692385602 (75e0681fa); wave 3 landed via PR #291    |
 
 - **Landing mode: run everything through** (started run-through; land each green wave, ask only real questions via `risa ask`).
 - 2026-11-27, session 3: slice 4 (opus) merged as 692385602; CI green at components (run 46084805349); no dev sync needed; timeline and care-groups docs folded and trimmed under budget; Codex clean. **Wave 3 landed** through PR #291 (dev at e94e0be, an unsynced tip, typecheck only); to-test/2026-11-27-1904-symptom-catalog-3.md. Slice worktree removed. **All waves landed**; the PRD isn't marked done only because B-992 is still triaged here (see below).
