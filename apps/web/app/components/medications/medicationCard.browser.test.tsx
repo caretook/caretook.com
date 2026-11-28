@@ -24,7 +24,7 @@ import { MedicationCard } from "./MedicationCard";
 // medication reads the same on a provider's page and in search (its name
 // linking to its page, its summary, its tags' chips), a stopped one is
 // muted with its marker, an easy role's search result opens its read-only
-// sheet rather than the page, a removed one reads "(removed)" with no link,
+// sheet rather than the page, a removed one reads "Removed medication" (never its name) with no link,
 // and `open={null}` is a plain name.
 
 const HEART = tag("Heart");
@@ -121,7 +121,7 @@ describe("the one medication card", () => {
     expect(device.location()).toBe(searchUrl("lisinopril"));
   });
 
-  test('a removed one reads "(removed)" with no link or actions; open={null} is a plain name', async () => {
+  test('a removed one reads "Removed medication", never its name, with no link or actions; open={null} is a plain name', async () => {
     await renderWithDevice({
       url: `/app/groups/${GROUP}/medications`,
       element: (
@@ -138,7 +138,7 @@ describe("the one medication card", () => {
       ),
     });
     const removed = card("", "removed")!;
-    expect(nameOf(removed)?.textContent).toBe("Lisinopril 10 mg (removed)");
+    expect(nameOf(removed)?.textContent).toBe("Removed medication");
     expect(removed.hasAttribute("data-removed")).toBe(true);
     expect(removed.querySelector("a, button")).toBeNull();
 
