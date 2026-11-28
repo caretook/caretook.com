@@ -15,7 +15,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `connectors-3` | done | `planner-3` | `packages/api/src/connectors/tools/`, `packages/api/src/connectors/links`, `packages/api/src/connectors/readTools.int.test.ts`, `packages/api/src/connectors/mcp.int.test.ts`, `packages/api/src/connectors/protocol.test.ts`, `packages/data/src/db/schema/medications/doseRecord`, `packages/data/src/db/schema/medications/dueDoses.ts`, `packages/data/src/db/schema/medications/index.ts`, `packages/data/src/services/assistantActionService.ts`, `packages/data/src/services/medicationService.ts`, `packages/data/src/db/schema/assistant/quickEntryNewItem.ts`, `apps/web/app/components/quick-entry/quickEntryCards.ts` | to write (B-252: a connector tool to read the dosing schedule beyond today; B-253: `add_todo` can make a repeating todo) · Depends on: B-253 after `planner-2` in `dev` (last item B-248); B-252 has none · Hot files: `packages/api/src/connectors/tools/` (`todaysDoses.ts` or a new schedule tool, `writes.ts`), the server instructions |
 | `orchestration-split-4` | done | `orchestration-split-3` | `scripts/loops/`, `scripts/ci/`, `scripts/project/project-data.test.mjs`, `vitest.config.ts`, `docs/agents/project-config.md` | Stage 1d of B-543, before the Risa move: the core's tests stand alone in a copy holding only the core files |
 | `orchestration-split-3` | done | `orchestration-split-2` | `scripts/loops/`, `scripts/backlog/`, `scripts/ci/`, `scripts/project/`, `scripts/deploy/workflows`, `.githooks/`, `package.json`, `vitest.config.ts`, `.github/workflows/`, `docs/`, `apps/web/test/`, `risa.json` | — |
-| `fixes-ui` | standing | — | — | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
+| `fixes-ui` | standing | — | `apps/web/app/routes/marketing/`, `apps/web/app/components/todos/TodoRow` | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
 | `todo-subtasks-2` | done | `todo-subtasks` | `apps/web/app/lib/todos/todoList.ts`, `apps/web/app/lib/todos/plannerTodos.ts`, `apps/web/app/lib/todos/todoStrip.ts`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/timeline/` | — |
 | `fixes-nit` | standing | — | — | plan: plans/fixes-nit-plan.md, rules: plans/fixes-rules.md |
 | `test-time-gates` | done | `orchestration-split-2` | `scripts/loops/check-`, `scripts/loops/metrics`, `scripts/loops/land.test.mjs`, `scripts/loops/recover.test.mjs`, `scripts/loops/rotate.test.mjs`, `scripts/loops/dispatch.test.mjs`, `scripts/project/check-body`, `scripts/ci/`, `.github/workflows/ci.yml`, `vitest.config.ts`, `risa.json` | to write (B-837): time limit gates for component tests, unit tests and the local quick check (aim 5 min, warn past 5, fail past 6, slowest files on a breach), with B-772 (trim slow component tests), B-781 (check time apart from waits) and B-370 (guards the quick check always runs). Cut from fixes-tooling by the user 2026-11-26 to run first |
@@ -258,14 +258,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-950 | change | triaged | fixes-nit |  | Move TimelineEntryRow (and useOpenTodoCounts) out of routes/app/groups/timeline into components/entry, so the provider page's LinkedEntries and QuickEntryCard stop importing another route's folder |
 | B-954 | bug | triaged | fixes-tooling |  | Browser checks and prd serve run on a stack whose applied migrations are behind the repo's, so a missing column fails a check far from its cause |
 | B-961 | change | triaged | shared-displays |  | Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down |
-| B-964 | feature | in-progress | todo-links-2 | prd/todo-links-2 | View option to split todo trees into individual due todos (trees stay the default) |
+| B-964 | feature | ready | todo-links-2 | prd/todo-links-2 | View option to split todo trees into individual due todos (trees stay the default) |
 | B-965 | change | triaged | fixes-perf |  | Group the tiny shared app helper chunks on the first /app load |
 | B-966 | change | triaged | fixes-perf |  | Marketing and sign-in pages load the whole shared icons chunk (~5-10.5 KB gz) since slice 11 grouped lucide icons |
 | B-967 | bug | triaged | fixes-tooling |  | Browser check layout-offline fails at 'offline: a row's edit link opens its edit sheet': the row's tag chips cover the Edit link's centre |
 | B-972 | feature | triaged | tags-4 |  | Tags tab on the planner: a unified view listing all tags and the items tagged with each |
-| B-975 | change | triaged | fixes-ui |  | Marketing home: AI providers 'will not' keep your data or train on it, not 'may not' (apps/web/app/routes/marketing/home/content.ts, the AI answer) |
+| B-975 | change | in-progress | fixes-ui | prd/fixes-ui | Marketing home: AI providers 'will not' keep your data or train on it, not 'may not' (apps/web/app/routes/marketing/home/content.ts, the AI answer) |
 | B-977 | feature | triaged | fixes-tooling |  | Human deploy path run from GitHub: a workflow_dispatch 'Deploy to staging' (cut a release candidate from dev, run the candidate tier, promote on green) and 'Deploy to production' (staging to main PR, release gate, merge), today only the local risa ci candidate cut / promote and pnpm prd ci release |
-| B-980 | bug | triaged | fixes-ui |  | Subtask add button in the nested todo tree sits under the title; put it right-aligned on the title's line |
+| B-980 | bug | in-progress | fixes-ui | prd/fixes-ui | Subtask add button in the nested todo tree sits under the title; put it right-aligned on the title's line |
 | B-981 | feature | triaged | med-intervals-2 |  | Interval Med times: a Med time every N hours (from due or given) so a group's frequency changes in one edit, and as-needed Med times (B-938 part 2) |
 | B-983 | bug | triaged | fixes-tooling |  | Browser-check flake: ui.spec.mjs 'add sheet: the full screen' measured the Symptom sheet's surface at height 0 (expected 900) at 420px light and dark under load; passed alone |
 | B-988 | bug | landed | todo-links | prd/todo-links | Link to box: many matching doses, vitals, symptoms or cancelled events crowd out matching notes and events (entry hits are capped before the linkable-kind filter) |
@@ -274,7 +274,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-991 | bug | landed | todo-links | prd/todo-links | Todo sheet chips name an offline-edited untitled note 'Note' or its old first line (chosenEntriesQuery ignores pending Yjs updates) |
 | B-992 | bug | landed | fixes-bug | prd/fixes-bug | A symptom entry edited on the server while an owner's replace runs can be written back onto the deleted symptom (the edit's read isn't locked against replace) |
 | B-993 | bug | landed | fixes-bug | prd/fixes-bug | Link to box suggestions: many all-day events from the last two days can crowd every upcoming event out of the suggestions (upcomingEvents limits before upcomingItems filters) |
-| B-994 | bug | in-progress | todo-links-2 | prd/todo-links-2 | Subtasks on their own: a split row at the depth limit offers Add subtask, which always fails (the quick add gets no ancestors) |
+| B-994 | bug | ready | todo-links-2 | prd/todo-links-2 | Subtasks on their own: a split row at the depth limit offers Add subtask, which always fails (the quick add gets no ancestors) |
 
 ## Items
 
@@ -1559,10 +1559,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-964 · feature · View option to split todo trees into individual due todos (trees stay the default)
 
-- status: in-progress
+- status: ready
 - prd: todo-links-2
 - owner: prd/todo-links-2
-- commit:
+- commit: 8d0947497
 
 - 2026-11-27 (Robert Bo Davis): From the todo-subtasks-3 approval (2026-11-27): the user wants trees everywhere for now; this toggle comes later, after todo-subtasks-3.
 - 2026-11-27 (Robert Bo Davis): Backlog session 2026-11-27: triaged to todo-links, the next todos topic, which runs after todo-subtasks-3 as the note asks.
@@ -1607,9 +1607,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-975 · change · Marketing home: AI providers 'will not' keep your data or train on it, not 'may not' (apps/web/app/routes/marketing/home/content.ts, the AI answer)
 
-- status: triaged
+- status: in-progress
 - prd: fixes-ui
-- owner:
+- owner: prd/fixes-ui
 - commit:
 
 ### B-977 · feature · Human deploy path run from GitHub: a workflow_dispatch 'Deploy to staging' (cut a release candidate from dev, run the candidate tier, promote on green) and 'Deploy to production' (staging to main PR, release gate, merge), today only the local risa ci candidate cut / promote and pnpm prd ci release
@@ -1621,9 +1621,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-980 · bug · Subtask add button in the nested todo tree sits under the title; put it right-aligned on the title's line
 
-- status: triaged
+- status: in-progress
 - prd: fixes-ui
-- owner:
+- owner: prd/fixes-ui
 - commit:
 
 - 2026-11-27 (Robert Bo Davis): User report. TodoRow.tsx renders the addSubtask slot (TodoTree's per-row compact TodoQuickAdd) under the row's text (lines ~159, 205, 245). Move it to the end of the title line, right-aligned, keeping its tap target room. TodoRow.tsx is a tags-3 hot file: small edit, sync dev first. fixes-ui: layout.
@@ -1706,9 +1706,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-994 · bug · Subtasks on their own: a split row at the depth limit offers Add subtask, which always fails (the quick add gets no ancestors)
 
-- status: in-progress
+- status: ready
 - prd: todo-links-2
 - owner: prd/todo-links-2
-- commit:
+- commit: 8d0947497
 
 - 2026-11-27 (prd/todo-links-2): Codex P2 on PR #294 (todoTreeView.ts:117, thread PRRT_kwDOVx-WLM68-Qqy). splitTrees rows render through TodoTree with an empty ancestor chain, so TodoQuickAdd shows on todos at MAX_TODO_DEPTH; createTodo's parentRefusal refuses. Fix: pass each split row's real ancestor chain (or depth) to the quick add. Folded into slice 2 (wave 2), which covers both tabs.
