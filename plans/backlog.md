@@ -24,7 +24,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `todo-subtasks-2` | done | `todo-subtasks` | `apps/web/app/lib/todos/todoList.ts`, `apps/web/app/lib/todos/plannerTodos.ts`, `apps/web/app/lib/todos/todoStrip.ts`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/timeline/` | — |
 | `fixes-nit` | standing | — | — | plan: plans/fixes-nit-plan.md, rules: plans/fixes-rules.md |
 | `test-time-gates` | done | `orchestration-split-2` | `scripts/loops/check-`, `scripts/loops/metrics`, `scripts/loops/land.test.mjs`, `scripts/loops/recover.test.mjs`, `scripts/loops/rotate.test.mjs`, `scripts/loops/dispatch.test.mjs`, `scripts/project/check-body`, `scripts/ci/`, `.github/workflows/ci.yml`, `vitest.config.ts`, `risa.json` | to write (B-837): time limit gates for component tests, unit tests and the local quick check (aim 5 min, warn past 5, fail past 6, slowest files on a breach), with B-772 (trim slow component tests), B-781 (check time apart from waits) and B-370 (guards the quick check always runs). Cut from fixes-tooling by the user 2026-11-26 to run first |
-| `test-time-gates-2` | — | `test-time-gates` | `.github/workflows/ci.yml`, `scripts/ci/tiers`, `scripts/ci/component-durations.json`, `scripts/ci/ci.test.mjs`, `scripts/ci/shards.test.mjs`, `scripts/ci/verdict.test.mjs`, `scripts/ci/browser-job.test.mjs`, `scripts/deploy/workflows.test.mjs`, `scripts/loops/time-gate`, `scripts/loops/recover.test`, `scripts/loops/recover-`, `scripts/loops/rotate.test`, `scripts/loops/rotate-` | — |
+| `test-time-gates-2` | done | `test-time-gates` | `.github/workflows/ci.yml`, `scripts/ci/tiers`, `scripts/ci/component-durations.json`, `scripts/ci/ci.test.mjs`, `scripts/ci/shards.test.mjs`, `scripts/ci/verdict.test.mjs`, `scripts/ci/browser-job.test.mjs`, `scripts/deploy/workflows.test.mjs`, `scripts/loops/time-gate`, `scripts/loops/recover.test`, `scripts/loops/recover-`, `scripts/loops/rotate.test`, `scripts/loops/rotate-` | — |
 | `tags` | done | `symptom-catalog` | `packages/data/src/db/schema/tags/`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/tags/`, `apps/web/app/lib/timeline/timelineFilters.ts`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/routes/app/groups/timeline/FilterSheet.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/providers/`, `apps/web/app/routes/app/groups/medications/`, `apps/web/app/routes/app/groups/search/`, `scripts/browser-checks/sync-matrix.mjs` | to write (B-548): group-wide tags on every record, filterable on each list and in search; adds a migration |
 | `todo-subtasks` | done | `planner-3`, `tags` | `packages/data/src/db/schema/todos/`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `packages/api/src/connectors/tools/listTodos.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/app-shell/unsavedChanges.ts`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `scripts/browser-checks/sync-matrix.mjs` | **On hold 2026-11-24: planning paused by the user to save credits while away (nothing wrong with the topic).** to write (B-550): nested todos, 3 levels in code, parent auto-completes |
 | `tags-2` | done | `todo-subtasks` | `packages/data/src/db/schema/tags/`, `packages/data/src/services/tagService.ts`, `packages/data/src/db/seeds/tags`, `packages/api/src/syncRegistry.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/tags/`, `apps/web/app/components/tags/`, `apps/web/app/components/ui/tagLook`, `apps/web/app/routes/app/groups/entry/EntryPageHeader.tsx`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/edit/`, `apps/web/app/routes/app/groups/provider/`, `apps/web/app/routes/app/groups/providers/edit/`, `apps/web/app/routes/app/groups/medication/MedicationHeader.tsx`, `apps/web/app/routes/app/groups/medications/MedicationTags.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineEntry`, `apps/web/app/routes/app/groups/timeline/edit/` | — |
@@ -212,7 +212,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-752 | bug | triaged | fixes-tooling | prd/fixes-bug | timelineJump.browser.test.tsx can hang a components shard in CI |
 | B-757 | chore | triaged | fixes-tooling |  | Slice check runs a slice's own component files only in Los Angeles: add web:components:ny for files in its include list |
 | B-759 | feature | triaged | onboarding-3 |  | Install-the-app tip on mobile browsers: a step in onboarding, then a dismissable tip at sign-in until installed or 'never show again' |
-| B-772 | chore | ready | test-time-gates-2 | prd/test-time-gates-2 | Lighten the components tier: trim the New York zone run and slow component tests |
+| B-772 | chore | landed | test-time-gates-2 | prd/test-time-gates-2 | Lighten the components tier: trim the New York zone run and slow component tests |
 | B-776 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U… |
 | B-778 | bug | triaged | fixes-tooling |  | CI flake: packages/data/src/services/accountAdmin.int.test.ts: accountAdminService.setRole makes an account support, ad… |
 | B-782 | bug | triaged | fixes-tooling |  | CI flake: packages/api/src/admin/usersAdmin.int.test.ts: admin.users.get shows the account, its sessions, groups and ma… |
@@ -225,7 +225,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-829 | question | triaged | marketing-3 |  | Research: compare Care Book to Caring Village |
 | B-831 | feature | triaged | data-rights-2 |  | Inactive group scrub: a care group with no member sign-in for X days gets a cycle of reminder emails, then its data is scrubbed automatically |
 | B-836 | feature | triaged | marketing-3 |  | Marketing site visual refresh to modern design standards (split from B-417; no screenshots or videos) |
-| B-837 | change | ready | test-time-gates-2 | prd/test-time-gates-2 | Time limit gates for component tests, unit tests and the local quick check |
+| B-837 | change | landed | test-time-gates-2 | prd/test-time-gates-2 | Time limit gates for component tests, unit tests and the local quick check |
 | B-839 | bug | triaged | fixes-tooling |  | Search rebuild timing test flaked on CI (2,000 entries under 2 s) |
 | B-851 | chore | triaged | fixes-tooling |  | Check plan: a rule for scripts/build/ (hand-run build scripts such as share-image.mjs), so a new one doesn't push the proposed tier to full |
 | B-852 | bug | triaged | fixes-tooling |  | Marketing banned-phrase test misses competitor names and the contact, header and footer strings |
@@ -233,7 +233,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-854 | chore | triaged | marketing |  | Confirm Google OAuth verification before the marketing link is shared (Google Calendar connect works only for test users until then) |
 | B-855 | change | triaged | marketing-3 |  | Home hero: cut the remaining marketing speak (follow-up to the full-logo hero hotfix) |
 | B-858 | feature | triaged | onboarding-3 |  | Connect your AI assistant setup nudge: the last onboarding toast, opening group settings Assistants |
-| B-859 | change | ready | test-time-gates-2 | prd/test-time-gates-2 | Test time limits, part 2: component shard fallback, quick check under 5 minutes, arm the components and quick gates |
+| B-859 | change | landed | test-time-gates-2 | prd/test-time-gates-2 | Test time limits, part 2: component shard fallback, quick check under 5 minutes, arm the components and quick gates |
 | B-863 | chore | triaged | fixes-tooling |  | CI's unit shards balance by file count: widen shards.mjs's SHARD_JOB to the unit-N jobs and refresh component-durations.json from a unit run (predicted 344/288 s of file time against 316/316 balanced) |
 | B-887 | change | triaged | marketing-3 |  | Features page "Type it the way you'd say it" section should highlight more that users can just say… |
 | B-888 | change | triaged | marketing-3 |  | Features page should highlight easy mode |
@@ -1037,7 +1037,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-772 · chore · Lighten the components tier: trim the New York zone run and slow component tests
 
-- status: ready
+- status: landed
 - prd: test-time-gates-2
 - owner: prd/test-time-gates-2
 - commit: fddbf56d1
@@ -1170,7 +1170,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-837 · change · Time limit gates for component tests, unit tests and the local quick check
 
-- status: ready
+- status: landed
 - prd: test-time-gates-2
 - owner: prd/test-time-gates-2
 - commit: fddbf56d1
@@ -1251,7 +1251,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-859 · change · Test time limits, part 2: component shard fallback, quick check under 5 minutes, arm the components and quick gates
 
-- status: ready
+- status: landed
 - prd: test-time-gates-2
 - owner: prd/test-time-gates-2
 - commit: fddbf56d1
