@@ -6,7 +6,9 @@ import { appUrls } from "~/lib/app-shell/appUrls";
 import { PROVIDER_TYPE_META } from "~/lib/providers/providerDirectory";
 import type { ParsedSearch } from "@caretook/data/domain";
 import { notesSnippet } from "@caretook/data/domain";
-import { STRETCHED, ROW, OpenName, Marked, NotesSnippet, NamedTags } from "./resultParts";
+import { QuickTags } from "~/components/tags";
+import { ROW_CHIPS } from "~/lib/tags/tagPicker";
+import { STRETCHED, ROW, OpenName, Marked, NotesSnippet } from "./resultParts";
 
 /**
  * A provider as a result: name, type, specialty and practice; a past
@@ -18,12 +20,16 @@ export function ProviderResultItem({
   notes,
   search,
   onOpen,
-  namedTags,
+  tags,
+  tagsReadOnly,
 }: {
   provider: ProviderResult;
   notes?: string;
   search: ParsedSearch;
-  namedTags?: readonly NamedTag[];
+  /** Its tags, live (`SearchResults`' one query per kind), the ones the text names first. */
+  tags: readonly NamedTag[];
+  /** Chips only, whoever's looking (the easy roles, as on the Planner). */
+  tagsReadOnly: boolean;
   /** Opens its read-only sheet instead of its page (the easy roles). */
   onOpen?: () => void;
 }) {
@@ -60,7 +66,16 @@ export function ProviderResultItem({
           <Marked text={line} search={search} />
         </p>
         <NotesSnippet snippet={snippet} />
-        <NamedTags tags={namedTags} />
+        <QuickTags
+          target="provider"
+          recordId={provider.id}
+          label={provider.name}
+          createdBy={provider.createdBy}
+          max={ROW_CHIPS}
+          tags={tags}
+          readOnly={tagsReadOnly}
+          className="mt-1"
+        />
       </div>
     </li>
   );

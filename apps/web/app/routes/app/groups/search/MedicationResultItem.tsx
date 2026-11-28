@@ -9,7 +9,9 @@ import { useMedicationLinkState } from "~/lib/medications/medicationOrigin";
 import type { ParsedSearch } from "@caretook/data/domain";
 import { notesSnippet } from "@caretook/data/domain";
 import { medicationSummaryLine, medicationTitle, STATUS_LABELS } from "@caretook/data/schema";
-import { STRETCHED, ROW, OpenName, Marked, NotesSnippet, NamedTags } from "./resultParts";
+import { QuickTags } from "~/components/tags";
+import { ROW_CHIPS } from "~/lib/tags/tagPicker";
+import { STRETCHED, ROW, OpenName, Marked, NotesSnippet } from "./resultParts";
 
 /**
  * A medication as a result: name and strength, dose and schedule; a stopped
@@ -22,10 +24,14 @@ export function MedicationResultItem({
   notes,
   search,
   onOpen,
-  namedTags,
+  tags,
+  tagsReadOnly,
 }: {
   medication: LocalMedication;
-  namedTags?: readonly NamedTag[];
+  /** Its tags, live (`SearchResults`' one query per kind), the ones the text names first. */
+  tags: readonly NamedTag[];
+  /** Chips only, whoever's looking (the easy roles, as on the Planner). */
+  tagsReadOnly: boolean;
   /** The group's passes, deleted ones too: the schedule reads by pass name. */
   passes: readonly SchedulePass[];
   notes?: string;
@@ -72,7 +78,16 @@ export function MedicationResultItem({
           <Marked text={summary} search={search} />
         </p>
         <NotesSnippet snippet={snippet} />
-        <NamedTags tags={namedTags} />
+        <QuickTags
+          target="medication"
+          recordId={medication.id}
+          label={title}
+          createdBy={medication.createdBy}
+          max={ROW_CHIPS}
+          tags={tags}
+          readOnly={tagsReadOnly}
+          className="mt-1"
+        />
       </div>
     </li>
   );

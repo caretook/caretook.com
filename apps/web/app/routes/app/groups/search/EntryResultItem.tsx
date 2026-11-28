@@ -8,7 +8,9 @@ import { entryOpen, SHEET_LINK_STATE } from "~/lib/timeline/entryOpen";
 import { formatTime, localTimeZone } from "~/lib/core/format";
 import type { ParsedSearch } from "@caretook/data/domain";
 import { dayLabel } from "@caretook/data/domain";
-import { STRETCHED, ROW, NamedTags } from "./resultParts";
+import { QuickTags } from "~/components/tags";
+import { ROW_CHIPS } from "~/lib/tags/tagPicker";
+import { STRETCHED, ROW } from "./resultParts";
 
 /**
  * A timeline entry as a result: its kind, what it says (as on the timeline),
@@ -23,7 +25,8 @@ export function EntryResultItem({
   units,
   now,
   search,
-  namedTags,
+  tags,
+  tagsReadOnly,
 }: {
   entry: EntryResult;
   groupId: string;
@@ -31,7 +34,13 @@ export function EntryResultItem({
   units: UnitChoices;
   now: Date;
   search: ParsedSearch;
-  namedTags?: readonly NamedTag[];
+  /** Its tags, live (`SearchResults`' one query per kind), the ones the text names first. */
+  tags: readonly NamedTag[];
+  /** Chips only, whoever's looking (the easy roles, as on the Planner). */
+  tagsReadOnly: boolean;
+  /** A member's name and picture by user id (the group's members, read once by the list; slice 5's rows use them). */
+  nameOf: (userId: string) => string;
+  imageOf: (userId: string) => string | null;
 }) {
   const open = entryOpen({ groupId, entry, canWrite, search: "" });
   const day = dayLabel(entry.occurredAt, localTimeZone(), now);
@@ -67,7 +76,16 @@ export function EntryResultItem({
               </time>{" "}
               · {entry.authorName}
             </p>
-            <NamedTags tags={namedTags} />
+            <QuickTags
+              target="entry"
+              recordId={entry.id}
+              label={name}
+              createdBy={entry.createdBy}
+              max={ROW_CHIPS}
+              tags={tags}
+              readOnly={tagsReadOnly}
+              className="mt-1"
+            />
           </>
         }
       />

@@ -7,7 +7,9 @@ import { Badge, STATUS_TONE } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import type { ParsedSearch } from "@caretook/data/domain";
 import { notesSnippet, dueText } from "@caretook/data/domain";
-import { STRETCHED, ROW, Marked, NotesSnippet, NamedTags } from "./resultParts";
+import { QuickTags } from "~/components/tags";
+import { ROW_CHIPS } from "~/lib/tags/tagPicker";
+import { STRETCHED, ROW, Marked, NotesSnippet } from "./resultParts";
 
 /**
  * A todo as a result: its title and its due line, or a "Done" marker for a
@@ -20,10 +22,17 @@ export function TodoResultItem({
   now,
   timeZone,
   search,
-  namedTags,
+  tags,
+  tagsReadOnly,
 }: {
   todo: LocalTodo;
-  namedTags?: readonly NamedTag[];
+  /** Its tags, live (`SearchResults`' one query per kind), the ones the text names first. */
+  tags: readonly NamedTag[];
+  /** Chips only, whoever's looking (the easy roles, as on the Planner). */
+  tagsReadOnly: boolean;
+  /** A member's name and picture by user id (the group's members, read once by the list; slice 5's rows use them). */
+  nameOf: (userId: string) => string;
+  imageOf: (userId: string) => string | null;
   notes?: string;
   now: Date;
   /** The recipient's zone: due days and times are theirs. */
@@ -63,7 +72,16 @@ export function TodoResultItem({
         </p>
         {due && <p className="text-muted text-sm">{due}</p>}
         <NotesSnippet snippet={snippet} />
-        <NamedTags tags={namedTags} />
+        <QuickTags
+          target="todo"
+          recordId={todo.id}
+          label={todo.title}
+          createdBy={todo.createdBy}
+          max={ROW_CHIPS}
+          tags={tags}
+          readOnly={tagsReadOnly}
+          className="mt-1"
+        />
       </div>
     </li>
   );
