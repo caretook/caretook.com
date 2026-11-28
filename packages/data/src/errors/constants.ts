@@ -175,6 +175,9 @@ export const MODEL_ERRORS = {
   "noteDocumentModel:lock": {
     message: "Failed to lock the live document",
   },
+  "noteDocumentModel:lockOwner": {
+    message: "Failed to lock the live document's owner",
+  },
   "noteDocumentModel:pending": {
     message: "Failed to count the live document's pending updates",
   },

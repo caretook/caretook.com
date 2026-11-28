@@ -451,11 +451,16 @@ describe("an append racing its owner's delete (B-1053)", () => {
   });
 
   it("lands first when it holds the lock, and the delete then scrubs it", async () => {
-    const { u, addDocument, append } = await setup();
+    const { u, group, addDocument } = await setup();
     const { entry, doc } = await addDocument();
+    const data = typeParagraph(new Y.Doc(), "Just in time");
 
     const { first, second } = await racing(
-      (tx) => append({ ...u.caretaker.ctx, tx }, doc.id, typeParagraph(new Y.Doc(), "Just in time")),
+      (tx) =>
+        noteDocumentService.appendUpdate(
+          { ...u.caretaker.ctx, tx },
+          { id: randomUUID(), groupId: group.id, documentId: doc.id, data },
+        ),
       () => timelineEntryService.remove(u.owner.ctx, entry.id),
     );
     ok(first);
