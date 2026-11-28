@@ -23,10 +23,10 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 - **Watch:** wait on a check with `risa wait check`; confirm any failure alone 3x before calling it a flake. Agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`).
 
-| Slice | Item   | State                | Merge |
-| ----- | ------ | -------------------- | ----- |
-| 110   | B-1054 | agent spawned (opus) |       |
-| 111   | B-1057 | agent spawned (opus) |       |
+| Slice | Item   | State                | Merge     |
+| ----- | ------ | -------------------- | --------- |
+| 110   | B-1054 | merged               | 97cf59f34 |
+| 111   | B-1057 | agent spawned (opus) |           |
 
 ## Wave 1
 
