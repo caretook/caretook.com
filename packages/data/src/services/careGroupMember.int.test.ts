@@ -1,8 +1,11 @@
 import type { GroupRoleName } from "../constants";
+import type { Tx } from "../db";
 
-import { describe, expect, it } from "vitest";
+import { sql } from "drizzle-orm";
+import { describe, expect, it, vi } from "vitest";
 import { createUser, createWorld, ok, system } from "../../test/fixtures";
 import { GROUP_ROLE_NAMES } from "../constants";
+import { getDb, withTransaction } from "../db";
 import { isError } from "../errors";
 import { careGroupMemberModel } from "../models";
 import { careGroupMemberService, careGroupService } from ".";
@@ -210,5 +213,85 @@ describe("careGroupMemberService.create: the matrix", () => {
       const joined = ok(await careGroupService.getById(newcomer.ctx, w.groupId));
       expect(joined?.id ?? null, `${actor} adds a ${role}`).toBe(want === "ok" ? w.groupId : null);
     }
+  });
+});
+
+/** Sessions in this test database waiting on a lock (a row another transaction holds). */
+const lockWaiters = async () => {
+  const res = await getDb().execute<{ n: number }>(
+    sql`SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'`,
+  );
+  return res.rows[0]?.n ?? 0;
+};
+
+/**
+ * Two role changes at once: `first` runs in a transaction held open;
+ * `second` starts on another connection, and once it waits on a lock, the
+ * first commits and the second finishes after it.
+ */
+const racing = async <A, B>(first: (tx: Tx) => Promise<A>, second: () => Promise<B>) => {
+  let release = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  let ran = () => {};
+  const firstRan = new Promise<void>((resolve) => (ran = resolve));
+  const committed = withTransaction(async (tx) => {
+    const res = await first(tx);
+    ran();
+    if (!isError(res)) await held;
+    return res;
+  });
+  try {
+    await firstRan;
+    const later = second();
+    await vi.waitFor(async () => expect(await lockWaiters()).toBeGreaterThan(0), {
+      timeout: 10_000,
+      interval: 10,
+    });
+    release();
+    return { first: await committed, second: await later };
+  } finally {
+    release();
+  }
+};
+
+// The target row is locked before its role is read (account-security slice
+// 1, B-336), so a change that waited on another sees the committed role.
+describe("careGroupMemberService.updateRole: two changes at once", () => {
+  it("refuses an admin's demotion of a member an owner is promoting meanwhile", async () => {
+    const w = await matrixWorld();
+    const { first, second } = await racing(
+      (tx) =>
+        careGroupMemberService.updateRole({ ...w.u.owner.ctx, tx }, { id: w.ids.caretaker, role: "owner" }),
+      () => careGroupMemberService.updateRole(w.u.admin.ctx, { id: w.ids.caretaker, role: "viewer" }),
+    );
+    expect(codeOf(first)).toBe("ok");
+    expect(codeOf(second)).toBe("careGroupMemberService:ownerOnly");
+    expect(await w.roles()).toEqual({ ...w.SEEDED, caretaker: "owner" });
+  });
+
+  it("lets an owner's promotion that waited on an admin's demotion land after it", async () => {
+    const w = await matrixWorld();
+    const { first, second } = await racing(
+      (tx) =>
+        careGroupMemberService.updateRole({ ...w.u.admin.ctx, tx }, { id: w.ids.caretaker, role: "viewer" }),
+      () => careGroupMemberService.updateRole(w.u.owner.ctx, { id: w.ids.caretaker, role: "owner" }),
+    );
+    expect(codeOf(first)).toBe("ok");
+    expect(codeOf(second)).toBe("ok");
+    expect(await w.roles()).toEqual({ ...w.SEEDED, caretaker: "owner" });
+  });
+
+  it("keeps an owner when two owners demote each other at once", async () => {
+    const w = await matrixWorld();
+    ok(await careGroupMemberService.updateRole(w.u.owner.ctx, { id: w.ids.admin, role: "owner" }));
+    const { first, second } = await racing(
+      (tx) =>
+        careGroupMemberService.updateRole({ ...w.u.owner.ctx, tx }, { id: w.ids.admin, role: "viewer" }),
+      () => careGroupMemberService.updateRole(w.u.admin.ctx, { id: w.ids.owner, role: "viewer" }),
+    );
+    expect(codeOf(first)).toBe("ok");
+    // The second actor is no longer an owner by the time it reads the target.
+    expect(codeOf(second)).toBe("careGroupMemberService:ownerOnly");
+    expect(await w.roles()).toEqual({ ...w.SEEDED, admin: "viewer" });
   });
 });
