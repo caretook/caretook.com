@@ -300,6 +300,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1063 | chore | triaged | contract-migrations-3 |  | Drop the todo.event_id column and take todo off REPLICATION_WHOLE_TABLES |
 | B-1064 | change | triaged | fixes-nit |  | The group invite, join request and staff group change emails each write out role labels ('an owner', 'a caretaker'…) by hand: one label per role from the role module |
 | B-1065 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/todayCard.browser.test.tsx: the Today card's rows every row but vital… |
+| B-1066 | bug | triaged | data-rights-2 |  | Deleting a care group leaves a pending joinDeclined email unskipped: its key is joinDeclined:<requestId>:<userId> and it links only to /app, so skipGroupMail misses it |
 
 ## Items
 
@@ -1845,3 +1846,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (Robert Bo Davis): [ci-key 99624022e8e6] Flaked (passed on its rerun); found by prd/fixes-bug. First failure: Error: Cannot find element with locator: getByRole('heading', { name: 'Probe /app/groups/7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f1b01/todos?who=everyone' }) ARIA tree: - main: - heading "Timeline" [level=1] - button "Easy mode" - region "Today": - heading "Today" [level=2]: - button "Today" [expanded] - list: - listitem: - text: "Needs attention: Latest vitals: BP 130/85 mmHg" - time: 2d ago - listitem: - text: "Coming up soon:" - link "N…
+
+### B-1066 · bug · Deleting a care group leaves a pending joinDeclined email unskipped: its key is joinDeclined:<requestId>:<userId> and it links only to /app, so skipGroupMail misses it
+
+- status: triaged
+- prd: data-rights-2
+- owner:
+- commit:
+
+- 2026-11-28 (prd/data-rights): Codex on PR #353 (careGroupService.ts:145, skipGroupMail). Fix: collect the group's join-request ids before the cascade and match joinDeclined:<id>:% (and any other join-request keys) in the skip. data-rights-2 reuses deleteGroup, so it fits there.
