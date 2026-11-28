@@ -13,6 +13,8 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Features page "Type it the way you'd say it" section should highlight more that users can just say it with their phone's built-in dictation (B-887)
   Move this section so it's the first item after the timeline on the features page.
 - Features page should highlight easy mode (B-888)
+- Rate-limit audit: list every public, signed-in, sync, connector and email-sending call with its limit, and give each one a reasonable per-user and per-IP limit
+  Builds on B-334 (no signed-in oRPC procedure is rate limited) and B-337 (/mcp limits, shared unknown IP bucket) in account-security. Output: a table in docs/domain/api.md and tests that each call is limited.
 
 ## Feature requests
 
