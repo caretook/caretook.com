@@ -36,7 +36,7 @@ import {
   savedText,
   withSymptomGates,
 } from "./quickEntryCards";
-import { GO_TO_AHEAD } from "./quickEntryCopy";
+import { GO_TO_AHEAD, READER_REFUSAL } from "./quickEntryCopy";
 import { useQuickEntryData } from "./useQuickEntryData";
 import { useQuickEntryPasses } from "./useQuickEntryPasses";
 import { readGoTo } from "@caretook/data/domain";
@@ -124,20 +124,25 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
   }, [units, medications, providers, passes, members, group.userId, timeZone]);
   const titleOf = useCallback((r: QuickEntryReading) => preview(r).title, [preview]);
 
+  // A reader (a viewer, an Easy viewer) gets the box for what writes nothing: their line shows no cards.
+  const reader = !group.canLog;
   const cards = useMemo(
     () =>
-      isGoTo
+      isGoTo || reader
         ? []
         : markDraft(
             withSymptomGates(buildCards(parts, { chosen, removed }, titleOf), symptoms, symptomChoices),
           ),
-    [isGoTo, parts, chosen, removed, titleOf, symptoms, symptomChoices],
+    [isGoTo, reader, parts, chosen, removed, titleOf, symptoms, symptomChoices],
   );
+
+  /** Why a reader's line has no Save. */
+  const refusal = reader && !isGoTo && parts.length > 0 ? READER_REFUSAL : "";
 
   // Announce the cards once typing settles, not on every keystroke.
   const spoken = goTo
     ? `Go to ${jumpDayText(goTo.day)}${goTo.ahead ? `. ${GO_TO_AHEAD}` : ""}`
-    : cardsAnnouncement(cards, titleOf);
+    : refusal || cardsAnnouncement(cards, titleOf);
   useEffect(() => {
     const timer = setTimeout(() => setAnnouncement(spoken), ANNOUNCE_DELAY_MS);
     return () => clearTimeout(timer);
@@ -312,6 +317,7 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
     draftLine,
     errors,
     status,
+    refusal,
     busy,
     announcement,
     canSave: canSaveCards(cards) && !busy,
@@ -324,7 +330,7 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
     medications,
     providers,
     passes,
-    dueNow,
+    dueNow: reader ? [] : dueNow,
     givePass,
     passError: passLog.error,
     passBusy: passLog.busy,

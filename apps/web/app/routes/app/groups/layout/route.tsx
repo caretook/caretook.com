@@ -2,6 +2,7 @@ import type { Route } from "./+types/route";
 
 import { useEffect } from "react";
 import { Outlet, redirect, useLocation, useNavigate } from "react-router";
+import { QuickEntrySheet } from "~/components/quick-entry";
 import { getGroup, GroupProvider, setGroup, useGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
 import { MemberLooksProvider } from "~/lib/care-groups/useMemberLooks";
@@ -28,6 +29,9 @@ import { useSetupNudges } from "./useSetupNudges";
 // The person who sets the group up is sent to its setup pages on their first
 // open of it, from any group page (`setupRedirect`), and gets its setup
 // nudges here, over every group page but the setup pages (`useSetupNudges`).
+//
+// The quick entry sheet is mounted here, once, for every group page; the
+// frame's header button opens it (`openQuickEntry`).
 
 export const clientMiddleware: Route.ClientMiddlewareFunction[] = [
   async ({ request, params, context }) => {
@@ -62,6 +66,7 @@ export default function GroupLayout({ loaderData }: Route.ComponentProps) {
         <EasyRoleRedirect />
         <SetupNudges />
         <Outlet />
+        <QuickEntrySheet />
       </MemberLooksProvider>
     </GroupProvider>
   );
