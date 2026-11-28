@@ -1084,3 +1084,13 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/live-notes.md, docs/domain
 
 - Lock the owner row (`FOR SHARE`) inside `appendUpdate`'s transaction and recheck `deleted_at` under the lock; a deleted owner refuses the append with the same returned error a deleted owner gets today.
 - Integration test: an append racing a delete of the owning entry (two connections, the delete committing first under the lock) leaves no `note_update` row and no text on the scrubbed document.
+
+### Slice 102: yjs leaves the app shell's bundle again (B-1071)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md, docs/domain/app-shell.md, docs/domain/components.md · Tests: unit, component
+
+Dev's build job fails its budget (`pnpm build && pnpm build:budget`; CI run 46189953770): `assets/noteYjs-*.js contains yjs/dist/yjs.mjs (forbidden: yjs)` in the `app` group, and the app group's gzip is about 488 KB against a 374604 B ceiling (`scripts/build/budget.json`). code-health-4 bisected it (`risa backlog show B-1071`): good at f8b7daa59 (app about 350 KB), first bad 9741f478a (quick-entry-3 wave 1: the quick entry sheet mounted in `routes/app/groups/layout/route.tsx` and `routes/app/layout/route.tsx`). In the built client noteYjs is reached from the entry chunk, `notes.sync`, `mentionProviders.sync`, `dueDoses.sync` and `sync`; the sheet probably reaches `notes.sync` (or the `@caretook/data/domain` barrel, which re-exports live-notes) statically.
+
+- Find the static path from the app shell to yjs (the build's chunk graph or a `vite build` with the module ids), and cut it: load the quick entry sheet's heavy part lazily (`React.lazy` or a dynamic `import()` on open), or import the pure helper from its own module instead of a barrel that drags live-notes in. Keep quick entry working from every group page, opening as fast as it does now on a warm cache.
+- `pnpm build && pnpm build:budget` passes locally: no forbidden module in `entry` or `app`, and the app group back under its ceiling. Don't raise the ceiling or edit the forbidden list.
+- Tests: keep the quick entry component tests green; add a unit test only if you add a helper. Say the app group's gzip before and after in the hand-off.
