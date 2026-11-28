@@ -17,7 +17,7 @@
 | 1     | 1    | respawned   |                                              |
 | 2     | 1    | merged      | `288ff6273` (2677eadb0, e4cf04280)           |
 | 3     | 1    | respawned   |                                              |
-| 4     | 1    | respawned   |                                              |
+| 4     | 1    | merged      | `9a7856062` (4b511c986)                      |
 | 5     | 2    | not started |                                              |
 | 6     | 3    | not started |                                              |
 
