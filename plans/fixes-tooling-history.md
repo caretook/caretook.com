@@ -4,6 +4,18 @@ Finished-wave history moved out of [the plan](fixes-tooling-plan.md)'s _Status_ 
 
 ## Trimmed 2026-11-28
 
+| Slice | Item  | State                                                                                             | Merge     |
+| ----- | ----- | ------------------------------------------------------------------------------------------------- | --------- |
+| 108   | B-667 | merged                                                                                            | 3428db815 |
+| 107   | B-757 | merged                                                                                            | 50769fb60 |
+| 106   | B-852 | merged                                                                                            | d8619fb78 |
+| 105   | B-375 | merged                                                                                            | b2604ca66 |
+| 104   | B-802 | merged                                                                                            | dfcad98c1 |
+| 103   | B-782 | no change: already fixed by 273ba77a0 (B-332); item done; its quarantine line stays for `risa ci` | —         |
+| 102   | B-778 | merged                                                                                            | 762a318ab |
+
+## Trimmed 2026-11-28
+
 | Slice | Item                        | State  | Merge    |
 | ----- | --------------------------- | ------ | -------- |
 | 101   | B-749, B-851                | merged | 01fe040c |
