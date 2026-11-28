@@ -8,17 +8,17 @@
 
 **Landing mode:** run everything through (dispatcher start, 2026-11-28): start every ready slice, land each green wave, ask only real questions.
 
-**Now (2026-11-28):** wave 1 running: slices 1, 3, 4 on opus; watch running. Slice 1 merged; slice 2 (unblocked by 1) started early, opus. Slice 4 handed off, merges after 3.
+**Now (2026-11-28):** wave 1 (1, 3, 4) all merged; its components CI run requested on 4a31039bc+status (wave gate). Slices 2 and 5 started (both opus, ready early); watch running.
 
-**Notes from hand-offs:** slice 1 added a reader refusal in the box (`!canLog` → no cards, `READER_REFUSAL` message), since `partsForRole` didn't refuse a reader's vital; fold into assistant.md at landing. Check `headerFit.browser.test.tsx` at the gate (new header button, ~36px). Slice 4's page keys and suggested URL map are in its hand-off for slice 5 (planner, medicationSchedule, profileAllergies, groupSettings for members/tags, account settings, periods). Backlog at the boundary: nothing new for this topic.
+**Notes from hand-offs:** slice 1 added a reader refusal in the box (`!canLog` → no cards, `READER_REFUSAL` message), since `partsForRole` didn't refuse a reader's vital; fold into assistant.md at landing. Check `headerFit.browser.test.tsx` at the gate (new header button, ~36px). Slice 4's page keys and suggested URL map are in its hand-off for slice 5 (planner, medicationSchedule, profileAllergies, groupSettings for members/tags, account settings, periods). Slice 3: `useQuickEntrySuggestions` gets no page context (left alone). Backlog at the boundary: nothing new for this topic.
 
 | Slice | Wave | State   | Merge into `prd/quick-entry-3` (slice commits) |
 | ----- | ---- | ------- | ---------------------------------------------- |
 | 1     | 1    | merged  | 918598d63 (ac658e785)                          |
 | 2     | 2    | started |                                                |
-| 3     | 1    | started |                                                |
-| 4     | 1    | handed off (f9cd16008), awaits merge after 1, 3 |
-| 5     | 2    | planned |                                                |
+| 3     | 1    | merged  | 5dd34f0d8 (d81c8c54e, 6e4c09790, 19c9d74ae)    |
+| 4     | 1    | merged  | 4a31039bc (f9cd16008)                          |
+| 5     | 2    | started |                                                |
 
 **Backlog:** claim a slice's item when it starts; `risa backlog done` an item when its last slice merges.
 

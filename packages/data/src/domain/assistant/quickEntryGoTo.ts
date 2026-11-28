@@ -3,10 +3,72 @@ import type { DaySpec } from "./quickEntryTime";
 import { addDays, localDate } from "../core/entryTiming";
 import { findTime, resolveTime } from "./quickEntryTime";
 
-// "go to Nov 3", "jump to last Tuesday", "show yesterday": a whole line asking
-// to open the timeline on a day. It isn't an assistant action: it saves
-// nothing and never reaches the runner or the connector. Anything else on the
-// line, or a time of day, leaves it an ordinary log line. Pure and client-safe.
+// Commands: a whole line asking to open a page ("go to meds", "open the
+// planner in a new tab") or the timeline on a day ("go to Nov 3", "jump to
+// last Tuesday", "show yesterday"). A command isn't an assistant action: it
+// saves nothing, runs on the device, and never reaches the runner, the
+// connector or recent lines. Anything else on the line, or a time of day,
+// leaves it an ordinary log line. Read before the line is split. Pure and
+// client-safe; English only.
+
+/** A page a command opens. The app maps each to its URL. */
+export type QuickEntryPage =
+  | "timeline"
+  | "todos"
+  | "planner"
+  | "medications"
+  | "medicationSchedule"
+  | "providers"
+  | "carePeriods"
+  | "profile"
+  | "allergies"
+  | "settings"
+  | "members"
+  | "tags"
+  | "search";
+
+/**
+ * The page names a command takes, matched whole after the verb (and an
+ * optional "the", "my" or "our"; a closing "page" is dropped). A name that
+ * isn't read is a row here and a test row in quickEntryGoTo.test.ts.
+ */
+export const QUICK_ENTRY_PAGES: readonly { phrase: string; page: QuickEntryPage }[] = [
+  { phrase: "timeline", page: "timeline" },
+  { phrase: "todos", page: "todos" },
+  { phrase: "to-dos", page: "todos" },
+  { phrase: "to dos", page: "todos" },
+  { phrase: "todo list", page: "todos" },
+  { phrase: "planner", page: "planner" },
+  { phrase: "upcoming", page: "planner" },
+  { phrase: "calendar", page: "planner" },
+  { phrase: "medications", page: "medications" },
+  { phrase: "meds", page: "medications" },
+  { phrase: "schedule", page: "medicationSchedule" },
+  { phrase: "med schedule", page: "medicationSchedule" },
+  { phrase: "medication schedule", page: "medicationSchedule" },
+  { phrase: "providers", page: "providers" },
+  { phrase: "doctors", page: "providers" },
+  { phrase: "care periods", page: "carePeriods" },
+  { phrase: "profile", page: "profile" },
+  { phrase: "allergies", page: "allergies" },
+  { phrase: "settings", page: "settings" },
+  { phrase: "members", page: "members" },
+  { phrase: "tags", page: "tags" },
+  { phrase: "search", page: "search" },
+];
+
+/**
+ * Wording that opens the command in a new tab: closing the line ("open meds
+ * in a new tab") or opening it ("pop out the planner", "new tab go to
+ * tuesday"), where the verb may be left out.
+ */
+export const NEW_TAB_PHRASES: readonly { phrase: string; at: "start" | "end" }[] = [
+  { phrase: "in a new tab", at: "end" },
+  { phrase: "in new tab", at: "end" },
+  { phrase: "in a new window", at: "end" },
+  { phrase: "new tab", at: "start" },
+  { phrase: "pop out", at: "start" },
+];
 
 export type GoToDay = {
   /** The calendar day, YYYY-MM-DD, in the viewer's zone. */
@@ -43,24 +105,21 @@ const dayOf = (spec: { day: DaySpec }, now: Date, timeZone: string, today: strin
   return localDate(resolveTime(spec, { now, timeZone, direction: "past" }).at, timeZone);
 };
 
-/**
- * The day a whole line asks to go to, or null. The words after the verb read
- * as if they followed "on" (so "11/10" and "3 Nov" are dates) and every one
- * has to be part of a day, with no clock or part of the day. Read before the
- * line is split, so "go to Nov 3, 2025" stays whole.
- */
-export const readGoTo = (
-  line: string,
-  { now, timeZone }: { now: Date; timeZone: string },
-): GoToDay | null => {
+/** A line folded for reading: lower case, single spaces, no closing punctuation; null across lines. */
+const folded = (line: string) => {
   const text = line
     .trim()
     .toLowerCase()
     .replace(/[.!?]+$/, "");
-  if (text.includes("\n")) return null;
-  const phrase = GO_TO_LINE.exec(text.replace(/\s+/g, " "))?.[1];
-  if (!phrase) return null;
+  return text.includes("\n") ? null : text.replace(/\s+/g, " ");
+};
 
+/**
+ * The day words name, or null. They read as if they followed "on" (so "11/10"
+ * and "3 Nov" are dates) and every one has to be part of a day, with no clock
+ * or part of the day.
+ */
+const dayFrom = (phrase: string, { now, timeZone }: { now: Date; timeZone: string }): GoToDay | null => {
   const { words, year } = withoutYear(phrase.split(" "));
   const found = findTime(["on", ...words]);
   if (!found || "relativeMinutes" in found.spec) return null;
@@ -77,4 +136,65 @@ export const readGoTo = (
   const today = localDate(now, timeZone);
   const key = dayOf({ day }, now, timeZone, today);
   return { day: key, ahead: key > today };
+};
+
+/**
+ * The day a whole line asks to go to, or null. Read before the line is split,
+ * so "go to Nov 3, 2025" stays whole. `readCommand` reads this and more.
+ */
+export const readGoTo = (line: string, context: { now: Date; timeZone: string }): GoToDay | null => {
+  const text = folded(line);
+  const phrase = text === null ? undefined : GO_TO_LINE.exec(text)?.[1];
+  return phrase ? dayFrom(phrase, context) : null;
+};
+
+/** A whole line that opens a page or the timeline on a day, here or in a new tab. */
+export type QuickEntryCommand =
+  ({ kind: "day"; newTab: boolean } & GoToDay) | { kind: "page"; page: QuickEntryPage; newTab: boolean };
+
+const COMMAND_VERB = /^(go to|jump to|open|show) (.+)$/;
+/** "open" takes a page only: "open wound looks better" is a note, and no day reads "open". */
+const DAY_VERBS = new Set(["go to", "jump to", "show"]);
+const PAGE_LEAD = /^(?:the|my|our) /;
+const PAGE_TAIL = / page$/;
+
+/** The line without its new-tab wording, and whether it had some. */
+const withoutNewTab = (text: string) => {
+  for (const { phrase, at } of NEW_TAB_PHRASES) {
+    if (at === "end" && text.endsWith(` ${phrase}`))
+      return { rest: text.slice(0, -phrase.length - 1), newTab: true };
+    if (at === "start" && text.startsWith(`${phrase} `))
+      return { rest: text.slice(phrase.length + 1), newTab: true };
+  }
+  return { rest: text, newTab: false };
+};
+
+const pageOf = (words: string) => {
+  const name = words.replace(PAGE_LEAD, "").replace(PAGE_TAIL, "");
+  return QUICK_ENTRY_PAGES.find((row) => row.phrase === name)?.page ?? null;
+};
+
+/**
+ * The command a whole line is, or null: go to, jump to, open or show (left
+ * out after opening new-tab wording) plus a page from `QUICK_ENTRY_PAGES`, or
+ * a day as `readGoTo` reads it (not after "open"). Read before the line is
+ * split; null leaves it an ordinary line.
+ */
+export const readCommand = (
+  line: string,
+  context: { now: Date; timeZone: string },
+): QuickEntryCommand | null => {
+  const text = folded(line);
+  if (!text) return null;
+  const { rest, newTab } = withoutNewTab(text);
+  const said = COMMAND_VERB.exec(rest);
+  const verb = said?.[1];
+  const target = said?.[2] ?? (newTab ? rest : undefined);
+  if (!target) return null;
+
+  const page = pageOf(target);
+  if (page) return { kind: "page", page, newTab };
+  if (verb !== undefined && !DAY_VERBS.has(verb)) return null;
+  const day = dayFrom(target, context);
+  return day ? { kind: "day", ...day, newTab } : null;
 };

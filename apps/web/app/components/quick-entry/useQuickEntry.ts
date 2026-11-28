@@ -2,7 +2,7 @@ import type { QuickEntryReading, UnitChoices, DuePass } from "@caretook/data/sch
 import type { QuickEntryCard, SymptomChoice } from "./quickEntryCards";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { useLocation, useNavigate, useParams } from "react-router";
 import { parseQuickEntry, symptomKey } from "@caretook/data/schema";
 import { usePassLog } from "~/components/medications";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -39,7 +39,7 @@ import {
 import { GO_TO_AHEAD, READER_REFUSAL } from "./quickEntryCopy";
 import { useQuickEntryData } from "./useQuickEntryData";
 import { useQuickEntryPasses } from "./useQuickEntryPasses";
-import { readGoTo } from "@caretook/data/domain";
+import { pageContextFor, readGoTo } from "@caretook/data/domain";
 import { actionPreview } from "@caretook/data/schema";
 
 /** Where quick entry's Undo is shown (`PassUndoStatus`'s `place`): in the box, under what was saved. */
@@ -77,6 +77,9 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
   const [announcement, setAnnouncement] = useState("");
 
   const timeZone = group.recipient?.timeZone ?? deviceZone();
+  // The provider's or medication's page the box is on (none on the timeline): what a line naming none is about.
+  const params = useParams();
+  const page = useMemo(() => pageContextFor(params), [params]);
   const parts = useMemo(
     () =>
       partsForRole(
@@ -89,10 +92,11 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
           passes,
           members,
           symptoms,
+          page,
         }).parts,
         group.canWrite,
       ),
-    [text, timeZone, units, medications, providers, passes, members, symptoms, group.canWrite],
+    [text, timeZone, units, medications, providers, passes, members, symptoms, page, group.canWrite],
   );
 
   // A whole line asking for a day is a Go to: it has no save cards, so nothing can reach the runner.
