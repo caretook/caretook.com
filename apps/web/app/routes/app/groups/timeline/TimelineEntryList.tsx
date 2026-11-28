@@ -48,7 +48,6 @@ import { OFFSCREEN_ROWS, ROW_SIZE, settledDays } from "./offscreenRows";
 import { summariesByDay } from "./daySummary";
 import { DaySummaryLine } from "./DaySummaryLine";
 import { SHEET_LINK_STATE } from "./sheet";
-import { TimelineEntryCard } from "./TimelineEntryCard";
 import { dayKeyIn, shortDayLabel, withMarkers } from "~/lib/timeline/timelineDays";
 import { QuickAddPrefetch } from "./QuickAddMenu";
 import { useEntryRemoval } from "./useEntryRemoval";
@@ -90,7 +89,8 @@ export type TimelineEntryListFilters = {
 
 /**
  * The entries, a section per day under a sticky heading (with the care
- * period that covers the day: `DayHeader`), as rows or cards,
+ * period that covers the day: `DayHeader`), each entry a `TimelineEntryRow`
+ * in the view's look (cards: Full; rows: Condensed),
  * with the care periods' boundary markers at their moments (filters on or
  * off; a day with only a marker gets its own section), each day's summary
  * line in its sticky header while no filter or search is on, then `OlderEntries`,
@@ -191,7 +191,8 @@ export function TimelineEntryList({
             only: () => void navigate(appUrls.entry(groupId, entry.id), { state: ONLY_THIS_VISIT_STATE }),
           })
       : undefined;
-  const Entry = view === "cards" ? TimelineEntryCard : TimelineEntryRow;
+  // One display in both views: Full spaces the entries apart, Condensed sits them close (B-1015).
+  const look = view === "cards" ? "full" : "condensed";
   const group = useGroup();
   // The open-todo marks: one live query for the group (none in easy mode).
   const openTodos = useOpenTodoCounts(groupId, !easy);
@@ -303,8 +304,9 @@ export function TimelineEntryList({
   const item = (entry: TimelineEntry, marked = false) => {
     const open = entryOpen({ groupId, entry, canWrite: mayChange(entry.createdBy), search });
     return (
-      <Entry
+      <TimelineEntryRow
         key={entry.id}
+        look={look}
         entry={entry}
         authorName={data.nameOf(entry.createdBy)}
         authorImage={data.imageOf(entry.createdBy)}
@@ -333,7 +335,7 @@ export function TimelineEntryList({
         }
         liveLabel={data.liveLabelOf(entry.id)}
         providers={data.providersOf(entry.id)}
-        richText={view === "cards" && canHaveNoteDocument(entry.kind) ? data.richTextOf(entry.id) : undefined}
+        richText={look === "full" && canHaveNoteDocument(entry.kind) ? data.richTextOf(entry.id) : undefined}
         search={marked ? parsed : undefined}
         easy={easy}
         openTodos={canHaveNoteDocument(entry.kind) ? openTodos.get(entry.id) : undefined}

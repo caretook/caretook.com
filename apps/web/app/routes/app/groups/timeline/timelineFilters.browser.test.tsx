@@ -217,11 +217,12 @@ describe("the author filter", () => {
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?author=${SAM.id}`);
   });
 
-  test("cards: the author's name is the control", async () => {
+  test("cards: the author's avatar is the control, as on rows", async () => {
     const device = await openTimeline();
     await waitUntil(() => rows().length > 0);
     await setView("Full");
-    expect(samLink().textContent?.trim()).toBe("Sam Okafor");
+    expect(samLink().getAttribute("aria-label")).toBe("Show only Sam Okafor's entries");
+    expect(samLink().closest("[data-entry-aside]")).not.toBeNull();
     await userEvent.click(samLink());
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?author=${SAM.id}`);
     expect(currentChips()).toBe(BY_SAM);

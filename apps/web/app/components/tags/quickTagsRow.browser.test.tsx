@@ -19,6 +19,9 @@ import { openOf, openTimeline, rowWith } from "../../routes/app/groups/timeline/
 
 const NOTE = fx.note({ occurredAt: at(new Date(Date.now() - 5 * 60_000)), text: "Walked to the mailbox" });
 const URGENT = tag("Urgent");
+// Long enough that a 420px header wraps them onto a second line.
+const MOVE = tag("Care home move planning");
+const PAPERWORK = tag("Insurance paperwork");
 
 const ENTRY_ROUTES = [{ path: "/app/groups/:groupId/entries/:entryId", module: entryRoute }];
 const LINK = recordTag(URGENT.id, NOTE.id);
@@ -33,6 +36,18 @@ const expectIconOnlyAdd = (add: HTMLElement) => {
   expect(add.getAttribute("title")).toBe("Add tag");
   expect(add.textContent?.trim()).toBe("");
   expect(add.querySelector("svg.lucide-tag-plus")).not.toBeNull();
+};
+
+/** The add-tag button's vertical centre less each chip's, in px (B-1021: both on one centre line). */
+const centreOffsets = (control: HTMLElement) => {
+  const mid = (el: Element) => {
+    const r = el.getBoundingClientRect();
+    return r.top + r.height / 2;
+  };
+  const add = control.querySelector("[data-quick-tag-add]")!;
+  const chips = [...control.querySelectorAll("[data-tag-chip], [data-tag-more]")];
+  expect(chips.length).toBeGreaterThan(0);
+  return chips.map((c) => Math.abs(mid(add) - mid(c)));
 };
 
 const quickTagsOf = (text: string) => rowWith(text)?.querySelector<HTMLElement>("[data-quick-tags]") ?? null;
@@ -64,6 +79,44 @@ describe("a row's quick tags", () => {
       () => document.querySelector("h1")?.textContent === `Entry page ${NOTE.id}`,
       "the entry page",
     );
+  });
+});
+
+describe("Add tag lines up with the chips (B-1021)", () => {
+  test("its centre is the chips' centre on a row and in a record's header", async () => {
+    const device = await openTimeline({ role: "owner", fixtures: world() });
+    const row = await found(() => quickTagsOf("Walked to the mailbox"));
+    for (const off of centreOffsets(row)) expect(off).toBeLessThanOrEqual(1);
+    await device.screen.unmount();
+
+    await renderWithDevice({
+      route: ENTRY_ROUTES,
+      url: `/app/groups/${TEST_GROUP.id}/entries/${NOTE.id}`,
+      fixtures: world(),
+      role: "owner",
+    });
+    const header = await found(() =>
+      document.querySelector<HTMLElement>('[data-region="tags"] [data-quick-tags]:has([data-tag-chip])'),
+    );
+    for (const off of centreOffsets(header)) expect(off).toBeLessThanOrEqual(1);
+  });
+
+  test("when the chips wrap, it sits beside the last chip, not on a line of its own", async () => {
+    await renderWithDevice({
+      route: ENTRY_ROUTES,
+      url: `/app/groups/${TEST_GROUP.id}/entries/${NOTE.id}`,
+      fixtures: [...world(), MOVE, PAPERWORK, recordTag(MOVE.id, NOTE.id), recordTag(PAPERWORK.id, NOTE.id)],
+      role: "owner",
+    });
+    const header = await found(() => {
+      const control = document.querySelector<HTMLElement>('[data-region="tags"] [data-quick-tags]');
+      return control?.querySelectorAll("[data-tag-chip]").length === 3 ? control : null;
+    });
+    const tops = new Set(
+      [...header.querySelectorAll("[data-tag-chip]")].map((c) => c.getBoundingClientRect().top),
+    );
+    expect(tops.size).toBeGreaterThan(1);
+    expect(centreOffsets(header).at(-1)).toBeLessThanOrEqual(1);
   });
 });
 
