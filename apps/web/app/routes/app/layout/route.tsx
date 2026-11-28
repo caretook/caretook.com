@@ -76,7 +76,8 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
   const quickEntry = !!useRouteLoaderData<GroupContext>("group") && !!groupFrame;
   return (
     <>
-      <header className="navbar h-16 min-h-16 gap-2 border-b border-base-300 bg-base-100/95 px-4 backdrop-blur sm:px-6 print:hidden">
+      {/* The phone's 16px gutter up to `lg`: at 640 the section links, search and quick entry need the room (headerFit). */}
+      <header className="navbar h-16 min-h-16 gap-2 border-b border-base-300 bg-base-100/95 px-4 backdrop-blur lg:px-6 print:hidden">
         <div data-region="group" className="flex min-w-0 flex-1 items-center gap-2">
           <Link to={appUrls.home()} className="shrink-0 rounded-field">
             <FullLogo wordHiddenBelow={groupId ? "sm" : undefined} />
