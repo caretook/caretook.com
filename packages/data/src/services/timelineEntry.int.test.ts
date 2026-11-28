@@ -436,7 +436,7 @@ describe("deleting", () => {
       ),
     ).toBe(true);
 
-    ok(await careGroupService.remove(u.owner.ctx, { filter: { id: { type: "eq", value: group.id } } }));
+    ok(await careGroupService.remove(u.owner.ctx, { groupId: group.id, confirmName: group.name }));
     expect(await timelineEntryService.getById(system, entry.id, { includeDeleted: true })).toBeNull();
   });
 });

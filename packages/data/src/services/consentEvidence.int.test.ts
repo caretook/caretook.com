@@ -225,7 +225,7 @@ describe("deleting an account or a group", () => {
     await connect(s.owner, s.groupId);
     const [before] = await consentsOf(joiner.user.id);
 
-    ok(await careGroupService.remove(system, { filter: { id: { type: "eq", value: s.groupId } } }));
+    ok(await careGroupService.remove(system, { groupId: s.groupId, confirmName: "Test Family" }));
 
     const db = getDb();
     const kept = await db
@@ -261,7 +261,7 @@ describe("deleting an account or a group", () => {
     const groupFilter = { filter: { groupId: { type: "eq" as const, value: s.groupId } } };
     expect(ok(await careGroupConsentService.list(s.owner.ctx, groupFilter)).count).toBe(1);
 
-    ok(await careGroupService.remove(system, { filter: { id: { type: "eq", value: s.groupId } } }));
+    ok(await careGroupService.remove(system, { groupId: s.groupId, confirmName: "Test Family" }));
 
     // The group's former managers no longer match a group rule.
     for (const who of [s.owner, s.admin, s.caretaker, s.staff]) {
@@ -284,9 +284,8 @@ describe("deleting an account or a group", () => {
     // The audit log: staff with audit.read still find the entry by the bare id; members are refused.
     const page = { page: 1, limit: 10 };
     const found = ok(await adminAuditService.list(s.staff.ctx, { target: s.groupId }, page));
-    expect(found.data).toEqual([
-      expect.objectContaining({ action: "group.view", targetGroup: { id: s.groupId, name: null } }),
-    ]);
+    expect(found.data.map((entry) => entry.action).sort()).toEqual(["group.deleted", "group.view"]);
+    for (const entry of found.data) expect(entry.targetGroup).toEqual({ id: s.groupId, name: null });
     expect(isError(await adminAuditService.list(s.owner.ctx, { target: s.groupId }, page))).toBe(true);
   });
 });

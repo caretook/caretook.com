@@ -282,6 +282,7 @@ const SCHEMA_EXPORTS = [
   "conditionManagerSchema",
   "conditionSearchDocument",
   "conditionSinceWords",
+  "confirmsGroupName",
   "connectorClientName",
   "connectorGrantSchema",
   "contactMessageSchema",

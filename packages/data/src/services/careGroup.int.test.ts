@@ -274,14 +274,4 @@ describe("invites", () => {
   });
 });
 
-describe("deleting a group", () => {
-  it("is for owners only and cascades", async () => {
-    const { u } = await setup();
-    const { group, recipient } = await createGroup(u.owner, [{ user: u.admin.user, role: "admin" }]);
-    expect(codeOf(await careGroupService.remove(u.admin.ctx, byId(group.id)))).toBe(
-      "baseModel:remove:nothingRemoved",
-    );
-    expect(codeOf(await careGroupService.remove(u.owner.ctx, byId(group.id)))).toBe("ok");
-    expect(await careRecipientService.getById(system, recipient.id)).toBeNull();
-  });
-});
+// Deleting a group: groupDelete.int.test.ts.
