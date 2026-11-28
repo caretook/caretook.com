@@ -270,6 +270,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1018 | bug | triaged | account-security |  | Within the 7-day re-ask cooldown a join request answers 'requested' with the old declined or withdrawn request's id: joinRequest.mine doesn't list it and withdrawing it gives notFound |
 | B-1019 | bug | triaged | account-security |  | Staff Change role and Remove read the member's role before the membership lock, so a racing owner change makes the staffGroupChange email skip a demoted owner and name the wrong previous role |
 | B-1020 | bug | triaged | account-security |  | Membership locks use two orders (lockForChange by id, lockGroupMembers by createdAt), so a role change racing an emergency-contact save can deadlock and abort one |
+| B-1021 | bug | triaged | fixes-ui |  | The add-tag icon button doesn't line up vertically with the tag chips beside it |
 
 ## Items
 
@@ -1628,3 +1629,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (prd/account-security): Codex on PR #327 (wave 1, slice 1): use one deterministic order in both helpers. https://github.com/caretook/caretook.com/pull/327#discussion_r4727344931
+
+### B-1021 · bug · The add-tag icon button doesn't line up vertically with the tag chips beside it
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): From the user 2026-11-28: 'add tag icon button doesn't align vertically with the tags next to it like it should'. Screen not named; the add-tag control is shared (components/tags/QuickTags.tsx, used on TimelineEntryRow, TodoRow, ProviderCard), so fix it once in the shared control and check every place it appears. fixes-ui: look and layout.
