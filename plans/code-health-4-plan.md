@@ -16,7 +16,7 @@
 | 2     | 1    | merged         | 7dadcc354 (0a14230d1)                          |
 | 3     | 2    | working (opus) |                                                |
 | 4     | 2    | handed off 362ee84d8 (opus); adds isOwnerRole to the permissions re-exports |                                                |
-| 5     | 2    | working (opus) |                                                |
+| 5     | 2    | handed off fef308324 (opus); same isOwnerRole re-export line as 4 |                                                |
 | 6     | 3    | planned        |                                                |
 
 **Backlog:** claim B-363 when slice 1 starts; run `risa backlog done B-363` when slice 6 has merged.
