@@ -23,6 +23,7 @@ import { z } from "zod";
 import { defineTool, READ_ANNOTATIONS } from "../registry";
 import { zonedIso, zonedIsoOrNull } from "../time";
 import { asMember, loadGroup, loadMembers } from "./shared";
+import { tagsByRecord, tagsOf, tagsSuffix } from "./tagSupport";
 
 /** At most this many entries a page. */
 export const TIMELINE_PAGE_MAX = 50;
@@ -65,8 +66,13 @@ const input = z.object({
 
 type Author = { id: string; name: string | null };
 
-/** One entry as the assistant sees it: what happened, when, who wrote it, and a note's or event's text. */
-const toEntry = (entry: TimelineEntryModel, timeZone: string, authors: Map<string, Author>) => ({
+/** One entry as the assistant sees it: what happened, when, who wrote it, a note's or event's text, and its tags. */
+const toEntry = (
+  entry: TimelineEntryModel,
+  timeZone: string,
+  authors: Map<string, Author>,
+  tags: string[],
+) => ({
   id: entry.id,
   kind: entry.kind,
   occurredAt: zonedIso(entry.occurredAt, timeZone),
@@ -81,6 +87,7 @@ const toEntry = (entry: TimelineEntryModel, timeZone: string, authors: Map<strin
     : null,
   author: authors.get(entry.createdBy) ?? { id: entry.createdBy, name: null },
   via: entry.via,
+  tags,
 });
 
 type Passes = readonly SchedulePass[];
@@ -129,7 +136,7 @@ const line = (entry: ReturnType<typeof toEntry>, medications: Map<string, string
     entry.kind === "dose" && entry.details ? doseLine(entry.details as DoseDetails, medications) : null;
   const what = [entry.title, change ?? dose ?? condition, entry.text].filter(Boolean).join(": ");
   const by = entry.author.name ? ` (${entry.author.name})` : "";
-  return `- ${entry.occurredAt} ${entry.kind}${what ? ` ${what}` : ""}${by}`;
+  return `- ${entry.occurredAt} ${entry.kind}${what ? ` ${what}` : ""}${by}${tagsSuffix(entry.tags)}`;
 };
 
 const authorsOf = async (ctx: ToolContext) => {
@@ -146,7 +153,7 @@ const authorsOf = async (ctx: ToolContext) => {
 export const listTimeline = defineTool({
   name: "list_timeline",
   title: "List timeline entries",
-  description: `The care group's timeline, newest first: notes, events (appointments), symptoms, vitals, doses, medication changes and condition changes, with notes' and events' text and who wrote each. Filter by time range, kinds or author. At most ${TIMELINE_PAGE_MAX} a page; pass nextCursor back for more. Without from, the last ${TIMELINE_DEFAULT_DAYS} days.`,
+  description: `The care group's timeline, newest first: notes, events (appointments), symptoms, vitals, doses, medication changes and condition changes, with notes' and events' text, who wrote each and its tags. Filter by time range, kinds or author. At most ${TIMELINE_PAGE_MAX} a page; pass nextCursor back for more. Without from, the last ${TIMELINE_DEFAULT_DAYS} days.`,
   scope: "read",
   input,
   annotations: READ_ANNOTATIONS,
@@ -168,8 +175,12 @@ export const listTimeline = defineTool({
       limit: args.limit ?? TIMELINE_PAGE_MAX,
     });
     if (isError(page)) return page;
+    const byRecord = await tagsByRecord(ctx);
+    if (isError(byRecord)) return byRecord;
 
-    const entries = page.data.map((entry) => toEntry(entry, loaded.timeZone, authors));
+    const entries = page.data.map((entry) =>
+      toEntry(entry, loaded.timeZone, authors, tagsOf(byRecord, entry.id)),
+    );
     // Only medication changes and doses need the medications and passes (deleted ones too, for their names).
     const medications = new Map<string, string>();
     let passes: Passes = [];

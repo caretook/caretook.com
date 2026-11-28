@@ -4,6 +4,7 @@ import { defineTool, READ_ANNOTATIONS } from "../registry";
 import { zonedIso, zonedIsoOrNull } from "../time";
 import { DEFAULT_DAYS_BACK, daysAgo, LIST_PAGE_MAX, pageOf, pagingInput } from "./readSupport";
 import { asMember, loadGroup, loadMembers } from "./shared";
+import { tagsByRecord, tagsOf, tagsSuffix } from "./tagSupport";
 import { assigneeOf, doneOrder, todoOrder, todoRepeatText, todoState } from "@caretook/data/domain";
 
 const input = z.object({
@@ -21,7 +22,7 @@ const input = z.object({
 export const listTodos = defineTool({
   name: "list_todos",
   title: "List todos",
-  description: `The care group's to-do list. Open todos by default, overdue first, then by due day and time, undated last; done ones from the last ${DEFAULT_DAYS_BACK} days with status done or all. Each has its assignee, due day and time (in the care recipient's zone), repeats (the rule in words, or null), the linked event (eventId, the first) and every linked note and event (linkedEntryIds), state (overdue, today, upcoming, undated, done), who finished it, and parentId (the todo it's a step of, or null; a todo with steps is done once they all are). At most ${LIST_PAGE_MAX} a page; pass nextCursor back for more.`,
+  description: `The care group's to-do list. Open todos by default, overdue first, then by due day and time, undated last; done ones from the last ${DEFAULT_DAYS_BACK} days with status done or all. Each has its assignee, due day and time (in the care recipient's zone), repeats (the rule in words, or null), the linked event (eventId, the first) and every linked note and event (linkedEntryIds), state (overdue, today, upcoming, undated, done), who finished it, and parentId (the todo it's a step of, or null; a todo with steps is done once they all are), and its tags. At most ${LIST_PAGE_MAX} a page; pass nextCursor back for more.`,
   scope: "read",
   input,
   annotations: READ_ANNOTATIONS,
@@ -54,6 +55,8 @@ export const listTodos = defineTool({
       page.items.map((t) => t.id),
     );
     if (isError(linked)) return linked;
+    const byRecord = await tagsByRecord(ctx);
+    if (isError(byRecord)) return byRecord;
 
     const todos = page.items.map((t) => {
       const assignee = assigneeOf(t);
@@ -79,11 +82,12 @@ export const listTodos = defineTool({
         eventId: entries.find((e) => e.kind === "event")?.entryId ?? null,
         linkedEntryIds: entries.map((e) => e.entryId),
         createdAt: zonedIso(t.createdAt, timeZone),
+        tags: tagsOf(byRecord, t.id),
       };
     });
 
     const line = (t: (typeof todos)[number]) =>
-      `- ${t.title} [${t.state}]${t.dueOn ? ` due ${t.dueOn}${t.dueTime ? ` ${t.dueTime}` : ""}` : ""}${t.assignee?.name ? ` (${t.assignee.name})` : ""}`;
+      `- ${t.title} [${t.state}]${t.dueOn ? ` due ${t.dueOn}${t.dueTime ? ` ${t.dueTime}` : ""}` : ""}${t.assignee?.name ? ` (${t.assignee.name})` : ""}${tagsSuffix(t.tags)}`;
     const text = todos.length
       ? [
           `${todos.length} todo${todos.length === 1 ? "" : "s"} (${timeZone}):`,
