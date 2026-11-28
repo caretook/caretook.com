@@ -9,9 +9,9 @@ import type {
   QueryUpdateArgs,
 } from "../base/queryHelpers";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, gt, sql } from "drizzle-orm";
 import { dbMayFail, getDb } from "../../db";
-import { careGroupMemberSchema, userSchema } from "../../db/schema";
+import { careGroupMemberSchema, sessionSchema, userSchema } from "../../db/schema";
 import { isError, newError } from "../../errors";
 import * as baseModel from "../base";
 
@@ -128,9 +128,12 @@ export type AuthFacts = {
 /**
  * The account and its memberships in one query (B-140), for resolving a
  * session's AuthUser on every authed /rpc call; null when there's no such
- * user. Unscoped: only the auth package calls it, for the session's own user.
+ * user, or session `sessionId` isn't the account's live session row (B-339:
+ * a session revoked elsewhere is signed out at once, even while Better
+ * Auth's cookie cache still holds a copy). Unscoped: only the auth package
+ * calls it, for the session's own user.
  */
-export const getAuthFacts = async (id: string): Promise<AuthFacts | null | AppError> => {
+export const getAuthFacts = async (id: string, sessionId: string): Promise<AuthFacts | null | AppError> => {
   const res = await dbMayFail(
     () =>
       getDb()
@@ -144,6 +147,14 @@ export const getAuthFacts = async (id: string): Promise<AuthFacts | null | AppEr
             '{}'::jsonb)`,
         })
         .from(userSchema)
+        .innerJoin(
+          sessionSchema,
+          and(
+            eq(sessionSchema.id, sessionId),
+            eq(sessionSchema.userId, userSchema.id),
+            gt(sessionSchema.expiresAt, sql`now()`),
+          ),
+        )
         .leftJoin(careGroupMemberSchema, eq(careGroupMemberSchema.userId, userSchema.id))
         .where(eq(userSchema.id, id))
         .groupBy(userSchema.id),

@@ -8,6 +8,7 @@ import {
   getDb,
   isError,
   notificationOutboxSchema,
+  sessionSchema,
   userSchema,
   userService,
   verificationSchema,
@@ -73,6 +74,23 @@ describe("signing in", () => {
     expect(authUser).toMatchObject({ id: login.user.id });
   });
 
+  it("refuses the raw stored token as a bearer: only the signed one works (B-330)", async () => {
+    const login = await createLogin();
+    const res = await signIn(login.email);
+    const signed = res.headers.get("set-auth-token");
+    const { token: raw } = (await res.json()) as { token: string };
+    // The body's token is the session table's own column.
+    const stored = await getDb().select().from(sessionSchema).where(eq(sessionSchema.token, raw));
+    expect(stored).toHaveLength(1);
+    expect(signed).not.toBe(raw);
+
+    expect(await getAuthUser(new Headers({ authorization: `Bearer ${raw}` }))).toBeNull();
+    expect(await getAuthUser(new Headers({ authorization: `Bearer ${raw}` }), { live: true })).toBeNull();
+    expect(await getAuthUser(new Headers({ authorization: `Bearer ${signed}` }))).toMatchObject({
+      id: login.user.id,
+    });
+  });
+
   it("rejects a wrong password and unknown emails alike", async () => {
     const login = await createLogin();
     const wrong = await signIn(login.email, "not the password at all");
@@ -91,10 +109,10 @@ describe("signing in", () => {
     const login = await createLogin();
     const headers = cookieHeaders(await signIn(login.email));
     await getAuth().api.signOut({ headers });
-    // The live session is gone. The old cookies, kept past sign-out (the
-    // browser drops them), still read from the cookie cache: the tradeoff
-    // rpcAuth.int.test.ts in @caretook/api pins.
+    // The session row is gone, so the old cookies (kept past sign-out; the
+    // browser drops them) sign no one in, cookie cache or not (B-339).
     expect(await getAuthUser(headers, { live: true })).toBeNull();
+    expect(await getAuthUser(headers)).toBeNull();
   });
 });
 

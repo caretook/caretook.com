@@ -88,10 +88,12 @@ async function otherDevice() {
       },
       body: body ? JSON.stringify(body) : undefined,
     });
-    return { status: r.status, json: await r.json().catch(() => null) };
+    return { status: r.status, headers: r.headers, json: await r.json().catch(() => null) };
   };
   const signedIn = await call("sign-in/email", { body: { email: EMAIL, password: PASSWORD } });
-  const token = signedIn.json?.token;
+  // The signed token from the header, as the native app keeps it: the bearer
+  // plugin refuses the body's raw token (requireSignature, B-330).
+  const token = signedIn.headers.get("set-auth-token");
   if (!token) throw new Error(`the other device couldn't sign in: ${signedIn.status}`);
   return {
     call: (path, body) => call(path, { token, body }),
@@ -193,9 +195,9 @@ test("the device copy ends with the session", { tag: "@smoke" }, async ({ device
   });
   await other.call("sign-out", {});
 
-  // A change written now can't upload: without the cache cookie (B-140) the
-  // server checks the revoked session and refuses the upload.
-  await page.context().clearCookies({ name: /session_data/ });
+  // A change written now can't upload: the server checks the session's row
+  // on every call (B-339), so the cache cookie (B-140) it still carries
+  // doesn't help, and the upload is refused.
   const groupId = timeline.split("/")[3];
   const unsentId = await page.evaluate(async (groupId) => {
     const { liveEntry } = await window.caretookModules();
