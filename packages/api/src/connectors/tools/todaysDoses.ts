@@ -1,8 +1,6 @@
 import type { DueDose, DueMedication } from "@caretook/data";
 
 import {
-  addDays,
-  dayInZone,
   doseText,
   dueDoses,
   duePasses,
@@ -13,7 +11,6 @@ import {
   normalizeSchedule,
   passTitle,
   slotStateText,
-  startOfDay,
   timelineEntryService,
 } from "@caretook/data";
 import { z } from "zod";
@@ -21,6 +18,7 @@ import { defineTool, READ_ANNOTATIONS } from "../registry";
 import { zonedIso } from "../time";
 import { entriesBetween } from "./readSupport";
 import { asMember, loadGroup, loadMembers } from "./shared";
+import { addDays, dayInZone, startOfDay } from "@caretook/data/domain";
 
 /** One slot as the assistant sees it, in the recipient's zone. */
 const toSlot = (

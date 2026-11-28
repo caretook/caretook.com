@@ -1,8 +1,6 @@
 import type { MedicationChangeDetails } from "@caretook/data";
 
 import {
-  addDays,
-  dayInZone,
   doseSlotIdFor,
   dueDoses,
   medicationChangeId,
@@ -11,12 +9,12 @@ import {
   OWN_DOSE_COPY_METADATA,
   providerService,
   timelineEntryService,
-  zonedInstant,
 } from "@caretook/data";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../data/test/fixtures";
 import { clientFor, sqliteTime, upload } from "./testing";
+import { addDays, dayInZone, zonedInstant } from "@caretook/data/domain";
 
 // sync.upload for the medication list: rows as a device's SQLite holds them
 // (snake_case, JSON as text, dates as "YYYY-MM-DD"), and the change entries

@@ -1,8 +1,9 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { addDays, dayInZone, zonedInstant } from "../db/schema";
 import { createWorld, ok } from "../../test/fixtures";
 import { getDb } from "../db";
 import { assistantActionService, medicationPassService, medicationService } from ".";
+import { addDays } from "../domain/core/entryTiming";
+import { dayInZone, zonedInstant } from "../domain/core/zonedDay";
 
 // B-986: a sheet's marks and Given all reach every medication in the group,
 // not only the first page of a list read (pages stop at 100). A fictional

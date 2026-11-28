@@ -15,7 +15,7 @@ import type { EntryRow } from "~/lib/timeline/timeline.sync";
 import type { EntryProviderLinkRow } from "~/lib/providers/entryProviders";
 import type { TagRow } from "~/lib/tags/tags.sync";
 
-import { activeTag, isEmptySearch, TAG_TARGET_COLUMNS, TAG_TARGETS } from "@caretook/data/schema";
+import { activeTag, TAG_TARGET_COLUMNS, TAG_TARGETS } from "@caretook/data/schema";
 import { groupLinksByEntry } from "~/lib/providers/entryProviders";
 import { isLiveEntryKind } from "~/lib/live-notes/liveEntry";
 import { medicationIdOf, withMedication } from "~/lib/medications/medicationEntries";
@@ -29,15 +29,10 @@ import { toTodo } from "~/lib/todos/todos.sync";
 import { toConditions } from "~/lib/profiles/conditions.sync";
 import { rangeUntilNow } from "~/lib/care-periods/periodSearch";
 import { loadSearchPeriods, searchPeriodRange } from "~/lib/care-periods/periodSearch.sync";
-import {
-  matchingTagIds,
-  parseSearch,
-  searchGroup,
-  searchIndexStatus,
-  taggedItems,
-} from "~/lib/search/search.sync";
+import { matchingTagIds, searchGroup, searchIndexStatus, taggedItems } from "~/lib/search/search.sync";
 import { tagsQuery } from "~/lib/tags/tags.sync";
 import { fromLocalTimestamp, readRows, toTimelineEntry } from "~/lib/timeline/timeline.sync";
+import { isEmptySearch, parseSearch } from "@caretook/data/domain";
 
 // The search page's reads: the index's matches for one group, arranged into
 // sections (`lib/search/searchResults`), then the rows they show, read locally in

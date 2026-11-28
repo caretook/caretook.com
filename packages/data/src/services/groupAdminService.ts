@@ -1,27 +1,21 @@
 import type { GroupRoleName } from "../constants";
 import type { Tx } from "../db";
-import type { StaffSettableGroupRole } from "../db/schema";
 import type { GroupDirectoryFilter } from "../models";
 import type { InviteMailer } from "./careGroupInviteService";
 import type { ServiceContext } from "./types";
 
 import { SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
-import {
-  auditChanges,
-  GROUP_ADMIN_PAGE_SIZE,
-  inviteEmailZ,
-  STAFF_SETTABLE_GROUP_ROLES,
-  staffReasonZSchema,
-} from "../db/schema";
+import { auditChanges, inviteEmailZ, staffReasonZSchema } from "../db/schema";
 import { isError, newError } from "../errors";
 import { careGroupInviteModel, careGroupMemberModel, groupDirectoryModel } from "../models";
 import * as adminAuditService from "./adminAuditService";
 import * as careGroupInviteService from "./careGroupInviteService";
 import * as careGroupMemberService from "./careGroupMemberService";
 import { auditActorId, staffRefusal } from "./staffAccess";
+import type { StaffSettableGroupRole } from "../domain/admin/groupAdminRules";
+import { GROUP_ADMIN_PAGE_SIZE, STAFF_SETTABLE_GROUP_ROLES } from "../domain/admin/groupAdminRules";
 
-export const serviceName = "groupAdmin";
 export const schemaName = groupDirectoryModel.schemaName;
 
 // Care groups for Caretook staff (admin slice 4). Reads (`groups.read`,

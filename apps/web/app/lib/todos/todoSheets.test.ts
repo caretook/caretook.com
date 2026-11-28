@@ -48,6 +48,8 @@ describe("todo sheet guards", () => {
     expect(listSearch("?who=everyone&providerId=p")).toBe("?who=everyone");
     // The tag filter is the list's too (tags PRD).
     expect(listSearch("?tag=t1&providerId=p&who=mine")).toBe("?who=mine&tag=t1");
+    // So is the view (todo-links-2).
+    expect(listSearch("?subtasks=own&providerId=p&who=mine")).toBe("?who=mine&subtasks=own");
     const url = (path: string) => new URL(`http://x${path}`);
     expect(onlyTodoSheetChanged(G, url(LIST), url(`${LIST}/new`))).toBe(true);
     expect(onlyTodoSheetChanged(G, url(`${LIST}/t1/edit`), url(LIST))).toBe(true);

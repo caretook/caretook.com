@@ -238,6 +238,15 @@ export const MODEL_ERRORS = {
   "todoModel:restore": {
     message: "Failed to restore the todo",
   },
+  "todoModel:lockById": {
+    message: "Failed to lock the todo",
+  },
+  "todoModel:transactionNow": {
+    message: "Failed to read the database's clock",
+  },
+  "todoModel:stampMadeAfter": {
+    message: "Failed to stamp the next todo's creation time",
+  },
   "adminAuditLogModel:insert": {
     message: "Failed to record the audit entry",
   },

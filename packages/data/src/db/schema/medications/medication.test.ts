@@ -2,6 +2,7 @@ import type { MedicationContent } from "./medication";
 
 import { describe, expect, it } from "vitest";
 import {
+  changeTimes,
   doseDetailsZSchema,
   medicationChange,
   medicationChangeDetailsZSchema,
@@ -594,5 +595,32 @@ describe("medicationChangeId", () => {
     expect(toChangeTime("2026-11-17T21:45:25")).toBe("2026-11-17T21:45:25.000Z");
     expect(toChangeTime("")).toBeNull();
     expect(toChangeTime("2026-13-40T99:00:00Z")).toBeNull();
+  });
+});
+
+describe("changeTimes", () => {
+  const now = new Date("2026-11-17T12:00:00.000Z");
+
+  it("keys a time ahead by itself and dates it now", () => {
+    expect(changeTimes("2026-11-18T12:00:00.123000Z", now)).toEqual({
+      key: "2026-11-18T12:00:00.123Z",
+      date: "2026-11-17T12:00:00.000Z",
+    });
+  });
+
+  it("gives a time behind, or equal to now, for both", () => {
+    expect(changeTimes("2026-11-16 08:30:00+00", now)).toEqual({
+      key: "2026-11-16T08:30:00.000Z",
+      date: "2026-11-16T08:30:00.000Z",
+    });
+    expect(changeTimes(now, now)).toEqual({ key: now.toISOString(), date: now.toISOString() });
+  });
+
+  it("gives now for both when the time is missing or unreadable", () => {
+    const both = { key: now.toISOString(), date: now.toISOString() };
+    expect(changeTimes(undefined, now)).toEqual(both);
+    expect(changeTimes(null, now)).toEqual(both);
+    expect(changeTimes("", now)).toEqual(both);
+    expect(changeTimes("yesterday", now)).toEqual(both);
   });
 });

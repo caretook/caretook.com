@@ -1,13 +1,14 @@
 import type { DeviceRoute } from "../../../../../test/device";
 import type { GroupRole } from "../../../../../test/fixtures";
 
-import { addDays, localDate } from "@caretook/data/schema";
 import { afterEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import * as todosRoute from "./route";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, hoursAgo, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
+import { appUrls } from "~/lib/app-shell/appUrls";
 import { clearTodoUndo } from "~/lib/todos/todoUndo";
+import { addDays, localDate } from "@caretook/data/domain";
 
 // The Todos tab shows trees (todo-subtasks-3 slice 5): a subtask only inside
 // its tree, indented, a done one struck in place (and not in Done); a parent
@@ -137,5 +138,75 @@ describe("the Todos tab's trees", () => {
       "Buy the candles",
       "Send the invites",
     ]);
+  });
+});
+
+// Subtasks on their own (todo-links-2 slice 1): `?subtasks=own` lists each
+// open todo as its own row under its own due, with "Part of" linking up, and
+// a done step of an open tree in Done.
+describe("the Todos tab with subtasks on their own", () => {
+  const filterButton = () => page.getByRole("button", { name: /^Filter(, \d+ on)?$/ });
+  const chips = () =>
+    [...document.querySelectorAll('main nav[aria-label="Filters on"] a')].map((a) => a.textContent?.trim());
+
+  test("a subtask is its own row in its own section, Part of its parent; its tick works with Undo; a done step is in Done", async () => {
+    await open("owner", `${LIST}?subtasks=own`);
+    await expect.element(page.getByText("Arrange the dog sitter")).toBeVisible();
+
+    expect(titles(`[data-todo-section="${tomorrow}"]`)).toEqual(["Arrange the dog sitter"]);
+    expect(titles(`[data-todo-section="${addDays(today, 5)}"]`)).toEqual(["Get ready for the hospital stay"]);
+    // Undated ones go newest first (`todoOrder`); the world's are made the same moment.
+    expect(titles('[data-todo-section="undated"]').sort()).toEqual([
+      "Order the cake",
+      "Pack the bag",
+      "Plan the birthday",
+    ]);
+    // No tree: every row is the top level, none indented under another.
+    expect(document.querySelector('[data-todo-level="2"]')).toBeNull();
+    expect(left(id(3))).toBe(left(PARENT));
+
+    const partOf = rowOf(id(3))?.querySelector("[data-todo-part-of]");
+    expect(partOf?.textContent).toBe("Part of Get ready for the hospital stay");
+    expect(partOf?.querySelector("a")?.getAttribute("href")).toBe(appUrls.todo(TEST_GROUP.id, PARENT));
+    expect(rowOf(PARENT)?.querySelector("[data-todo-part-of]")).toBeNull();
+    // The parent keeps its progress and its waiting tick.
+    expect(rowOf(PARENT)?.querySelector("[data-todo-progress]")?.textContent).toBe("1 of 3 done");
+
+    // Done lists the done step of the open tree too, with its Part of.
+    expect(titles('[data-todo-section="done"]')).toEqual(["Print the medication list", "Book the eye exam"]);
+    expect(rowOf(id(4))?.querySelector("[data-todo-part-of]")?.textContent).toBe(
+      "Part of Get ready for the hospital stay",
+    );
+
+    // The chip says the view is on.
+    await expect.element(filterButton()).toHaveAccessibleName("Filter, 1 on");
+    await expect.poll(() => chips()).toEqual(["Subtasks on their own"]);
+
+    await userEvent.click(page.getByRole("checkbox", { name: "Mark “Arrange the dog sitter” done" }));
+    await expect.poll(() => titles(`[data-todo-section="${tomorrow}"]`)).toEqual([]);
+    await expect.poll(() => titles('[data-todo-section="done"]')).toContain("Arrange the dog sitter");
+    await userEvent.click(page.getByRole("button", { name: "Undo Arrange the dog sitter" }));
+    await expect.poll(() => titles(`[data-todo-section="${tomorrow}"]`)).toEqual(["Arrange the dog sitter"]);
+  });
+
+  test("choosing On their own in the Filter menu splits the trees; In their tree puts them back", async () => {
+    const device = await open();
+    await expect.element(filterButton()).toBeVisible();
+    await userEvent.click(filterButton());
+    await userEvent.click(page.getByRole("menuitemradio", { name: "On their own", exact: true }));
+    await expect.poll(() => device.location()).toBe(`${LIST}?subtasks=own`);
+    await expect.poll(() => titles(`[data-todo-section="${tomorrow}"]`)).toEqual(["Arrange the dog sitter"]);
+
+    await userEvent.click(filterButton());
+    await userEvent.click(page.getByRole("menuitemradio", { name: "In their tree", exact: true }));
+    await expect.poll(() => device.location()).toBe(LIST);
+    await expect
+      .poll(() => titles(`[data-todo-section="${tomorrow}"]`))
+      .toEqual([
+        "Get ready for the hospital stay",
+        "Arrange the dog sitter",
+        "Pack the bag",
+        "Print the medication list",
+      ]);
   });
 });

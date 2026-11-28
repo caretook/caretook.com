@@ -1,9 +1,15 @@
 import type { PrintMedicationInput, PrintRecipient } from "../printSheet";
-import type { SchedulePass } from "../../../../../../lib/medications/medicationDisplay";
 
-import { slotAmount, slotTimes, sortPasses } from "@caretook/data/schema";
-import { clockTime, FORM_LABELS, medicationTitle } from "../../../../../../lib/medications/medicationDisplay";
+import {
+  slotAmount,
+  slotTimes,
+  sortPasses,
+  clockTime,
+  FORM_LABELS,
+  medicationTitle,
+} from "@caretook/data/schema";
 import { addDays, dayIn, printSheet } from "../printSheet";
+import type { SchedulePass } from "@caretook/data/schema";
 
 // The weekly bedside sheet's view model: one week in the recipient's zone, a
 // row per pass and medication with a box per day, then blank rows for

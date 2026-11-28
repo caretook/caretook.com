@@ -1,8 +1,7 @@
-import type { TodoRuleFields } from "@caretook/data/schema";
-
-import { todoOrder } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import { todoStrip, todoStripText, todoStripWho } from "./todoStrip";
+import type { TodoRuleFields } from "@caretook/data/domain";
+import { todoOrder } from "@caretook/data/domain";
 
 const LA = "America/Los_Angeles";
 // Wednesday, Nov 18, 2026, 10:00 AM in Los Angeles.

@@ -3,14 +3,13 @@ import type { TimelineEntry } from "~/lib/core/rpc";
 
 import { useId, useState } from "react";
 import { Link } from "react-router";
-import { AuthorFilterLink, KindFilterLink, MedicationHeading } from "~/components/entry";
+import { ASIDE_CLASS, AuthorFilterLink, KindFilterLink, MedicationHeading } from "~/components/entry";
 import { Chevron, Collapse } from "~/components/ui";
 import { formatTime } from "~/lib/core/format";
-import { passLogText } from "~/lib/medications/medicationDisplay";
 import { medicationEntryText } from "~/lib/medications/medicationEntries";
 import { passLogCounts } from "~/lib/medications/passLogs";
-import { ASIDE_CLASS } from "./layout";
 import { SHEET_LINK_STATE } from "./sheet";
+import { passLogText } from "@caretook/data/schema";
 
 /**
  * A pass log on the timeline: the doses logged in one round as one row or

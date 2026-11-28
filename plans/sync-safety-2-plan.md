@@ -4,12 +4,16 @@
 
 ## Status
 
-| Slice | Wave | State   | Merge into `prd/sync-safety-2` (slice commits) |
-| ----- | ---- | ------- | ---------------------------------------------- |
-| 1     | 1    | planned |                                                |
-| 2     | 1    | planned |                                                |
-| 3     | 2    | planned |                                                |
-| 4     | 1    | planned |                                                |
+| Slice | Wave | State  | Merge into `prd/sync-safety-2` (slice commits) |
+| ----- | ---- | ------ | ---------------------------------------------- |
+| 1     | 1    | merged | 4d070348b (9f4435a03)                          |
+| 2     | 1    | merged | 24b9272c5 (f8581109c..938e9e941)               |
+| 3     | 2    | merged | 8cb04b6f4 (b830e7afd)                          |
+| 4     | 1    | merged | 786118c26 (db392b14f, 64e2ce076)               |
+
+- **Landing mode: run everything through** (dispatcher start, 2026-11-27).
+- **Wave 1 landed** in dev 2026-11-27 through PR #308 (merge on GitHub, dev at d532090), tier components (CI run 46109445348 green on afc67f18c), Codex clean after three rounds: 959b11b28 (successor also made after the reopened row), df938bf03 (`todoModel.stampMadeAfter`: a next at least 1 ms after its predecessor), round 3 filed as B-1002 (fixes-bug, legacy rows). Items done: B-295, B-383, B-384, B-730, B-296; B-805 archived (answered in sync.md). Docs folded (medications, profiles, sync, todos, auth). Report filed. Slice models: all opus; docs fold sonnet.
+- **Wave 2 under way:** dev synced (up to date) at 87c1eef24; B-387 claimed; slice 3 worktree made and one opus agent spawned (2026-11-28) with the wave-1 notes (successor rule `created_at >= done_at`, `stampMadeAfter`, `lockVisible`). Slice 3 merged as 8cb04b6f4 (B-387 done); its gap (the PATCH restore path) filed as B-1003 (fixes-bug). CI components run 46110688455 on c4fa8698f: flake only (linkToBox, todo-links' test, passed on retry). PR #311; Codex clean on c4fa869. Docs folded (todos, sync). Landing next. Next: CI gate (`risa tier`), PR, Codex, land, docs fold (todos, sync), then `risa rm sync-safety-2` (last wave). Nothing new to propose from the backlog.
 
 ## Durable decisions
 

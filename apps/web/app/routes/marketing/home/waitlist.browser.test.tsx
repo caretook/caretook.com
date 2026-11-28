@@ -1,4 +1,3 @@
-import { HONEYPOT_FIELD, MIN_FORM_MS } from "@caretook/data/schema";
 import { describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { apiCalls } from "../../../../test/api";
@@ -7,6 +6,7 @@ import { openMarketing } from "../marketingWorld";
 import { waitlistSource } from "../sections/forms";
 import { homeContent } from "./content";
 import { labelled } from "../../../../test/required";
+import { HONEYPOT_FIELD, MIN_FORM_MS } from "@caretook/data/domain";
 
 // Home's waitlist band on one device (moved down from marketing.spec.mjs):
 // what a submit sends (the fields, the page and its UTM parameters, the

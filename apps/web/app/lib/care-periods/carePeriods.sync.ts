@@ -1,9 +1,4 @@
-import type {
-  CarePeriodContent,
-  CarePeriodContentInput,
-  CarePeriodUpdateInput,
-  PeriodSpan,
-} from "@caretook/data/schema";
+import type { CarePeriodContent, CarePeriodContentInput, CarePeriodUpdateInput } from "@caretook/data/schema";
 import type { ActionResult } from "../core/api";
 import type { SyncDb } from "../sync/index";
 import type { ProviderRow } from "../providers/providers.sync";
@@ -15,9 +10,7 @@ import {
   carePeriodContentZSchema,
   carePeriodStartIssue,
   carePeriodUpdateZSchema,
-  DEVICE_FUTURE_SKEW_MS,
   isCarePeriodType,
-  periodSpans,
 } from "@caretook/data/schema";
 import { eq } from "drizzle-orm";
 import { newProviderRow, providersQuery } from "../providers/providers.sync";
@@ -31,6 +24,8 @@ import {
   toLocalTimestamp,
   WRITER_ROLES,
 } from "../timeline/timeline.sync";
+import type { PeriodSpan } from "@caretook/data/domain";
+import { DEVICE_FUTURE_SKEW_MS, periodSpans } from "@caretook/data/domain";
 
 // Care periods on this device: local queries for `useLiveQuery` and loaders,
 // and local writes that validate with the shared Zod schema and check the

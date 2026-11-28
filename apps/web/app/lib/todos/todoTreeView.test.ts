@@ -1,7 +1,8 @@
 import type { TodoTree, TodoTreeNode, TreeTodo } from "./todoTreeView";
 
 import { describe, expect, it } from "vitest";
-import { todoDayOf, todoDayTrees, todoTrees } from "./todoTreeView";
+import { todoSections } from "./todoList";
+import { ancestorChain, splitTrees, todoDayOf, todoDayTrees, todoTrees } from "./todoTreeView";
 
 // Fictional todos; "now" is Monday 2026-11-23 at noon in Los Angeles.
 const ZONE = "America/Los_Angeles";
@@ -114,6 +115,83 @@ describe("todoTrees", () => {
       { rootId: "move" },
     );
     expect(shape(trees)).toEqual({ movers: {}, pack: { tape: {} } });
+  });
+});
+
+describe("splitTrees", () => {
+  const NEXT_WEEK = "2026-11-30";
+  const split = (todos: TreeTodo[], matches?: (t: TreeTodo) => boolean) =>
+    splitTrees(todos, { now: NOW, timeZone: ZONE, ...(matches ? { matches } : {}) });
+
+  it("places a subtask by its own due: an overdue step under Overdue, its parent next week", () => {
+    const trees = split([
+      todo("hospital", { dueOn: NEXT_WEEK }),
+      todo("forms", { parentId: "hospital", dueOn: SUNDAY }),
+    ]);
+    expect(shape(trees)).toEqual({ forms: {}, hospital: {} });
+    for (const tree of trees) expect(tree.lead).toBe(tree.todo);
+    expect(todoSections(trees, NOW, ZONE).map((s) => [s.key, s.trees.map((t) => t.todo.id)])).toEqual([
+      ["overdue", ["forms"]],
+      [NEXT_WEEK, ["hospital"]],
+    ]);
+  });
+
+  it("leaves out done and deleted todos", () => {
+    const trees = split([
+      todo("move"),
+      todo("boxes", { parentId: "move", doneAt: DONE }),
+      todo("tape", { parentId: "move", deletedAt: DONE }),
+      todo("finished", { doneAt: DONE }),
+    ]);
+    expect(order(trees)).toEqual(["move"]);
+  });
+
+  it("keeps a match without its ancestors: under Mine, a parent assigned to you lists alone", () => {
+    const mine = (t: TreeTodo) => t.assigneeId === "me";
+    const trees = split(
+      [
+        todo("party", { assigneeId: "me" }),
+        todo("cake", { parentId: "party", assigneeId: "aunt" }),
+        todo("trip"),
+        todo("tickets", { parentId: "trip", assigneeId: "me", dueOn: FRIDAY }),
+      ],
+      mine,
+    );
+    expect(shape(trees)).toEqual({ tickets: {}, party: {} });
+    expect(trees.every((t) => !t.context)).toBe(true);
+  });
+
+  it("orders by todoOrder: overdue, by day and time, undated last", () => {
+    const trees = split([
+      todo("later", { dueOn: FRIDAY }),
+      todo("undated"),
+      todo("soon", { parentId: "later", dueOn: THURSDAY, dueTime: "15:00" }),
+      todo("sooner", { parentId: "later", dueOn: THURSDAY, dueTime: "09:00" }),
+      todo("late", { parentId: "soon", dueOn: SUNDAY }),
+    ]);
+    expect(order(trees)).toEqual(["late", "sooner", "soon", "later", "undated"]);
+  });
+});
+
+describe("ancestorChain", () => {
+  const rows = [todo("trip"), todo("packing", { parentId: "trip" }), todo("socks", { parentId: "packing" })];
+  const byId = new Map(rows.map((t) => [t.id, t]));
+  const parentOf = (id: string) => byId.get(id);
+  const chain = (t: TreeTodo) => ancestorChain(t, parentOf).map((p) => p.id);
+
+  it("walks a split row's parents up the rows read: nothing for a top-level todo", () => {
+    expect(chain(rows[0]!)).toEqual([]);
+    expect(chain(rows[1]!)).toEqual(["trip"]);
+    expect(chain(rows[2]!)).toEqual(["packing", "trip"]);
+  });
+
+  it("stops at a parent the rows don't have, and at MAX_TODO_DEPTH on a loop", () => {
+    expect(chain(todo("lost", { parentId: "gone" }))).toEqual([]);
+    const loop = new Map([
+      ["a", todo("a", { parentId: "b" })],
+      ["b", todo("b", { parentId: "a" })],
+    ]);
+    expect(ancestorChain(todo("x", { parentId: "a" }), (id) => loop.get(id))).toHaveLength(3);
   });
 });
 

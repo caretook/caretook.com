@@ -10,20 +10,18 @@ import {
   careGroupMemberSchema,
   careGroupSchema,
   careRecipientSchema,
-  encodeNoteDoc,
   medicationChange,
   medicationChangeId,
   medicationContentZSchema,
   medicationSchema,
-  noteDocFromText,
   noteDocumentSchema,
-  noteText,
   providerSchema,
   timelineEntrySchema,
   userSchema,
 } from "../schema";
 import { seedPasswordHash } from "./accounts";
 import { occurredAtOf, seedContentOf } from "./timelineEntries";
+import { encodeNoteDoc, noteDocFromText, noteText } from "../../domain/live-notes/noteYjs";
 
 // More care groups and a mix of users, for trying roles by hand (B-90).
 // Every name, number and address is made up. The existing seed users'

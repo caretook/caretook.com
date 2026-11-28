@@ -16,7 +16,6 @@ import { addToPassLog } from "./passLogs.sync";
 import {
   changeMedicationStatus,
   createMedication,
-  dayBounds,
   groupDosesQuery,
   logDose,
   logDoses,
@@ -32,6 +31,7 @@ import {
   updateDose,
   updateMedication,
 } from "./medications.sync";
+import { dayBounds } from "@caretook/data/domain";
 
 // The medications device module on the test device (medications.mjs's
 // device steps, which drove it through `window.caretookModules()`): the list

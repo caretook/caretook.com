@@ -6,6 +6,8 @@ import { getGroup, GroupProvider, setGroup, useGroup } from "~/lib/app-shell/gro
 import { sessionContext } from "~/lib/auth/session";
 import { MemberLooksProvider } from "~/lib/care-groups/useMemberLooks";
 import { easyRoleRedirect } from "~/lib/assistant/easyModeLock";
+import { setupRedirect } from "./setupRedirect";
+import { useSetupNudges } from "./useSetupNudges";
 
 // Shared by web + native. `/app/groups/:groupId`: every screen about one
 // care group (the timeline, an entry, group settings, later sections) is a
@@ -22,23 +24,29 @@ import { easyRoleRedirect } from "~/lib/assistant/easyModeLock";
 // timeline from every other group route but their notes' and events' pages
 // (`lib/assistant/easyModeLock.ts`): by the middleware on each navigation, and
 // by `EasyRoleRedirect` when the role arrives by sync while they're on one.
+//
+// The person who sets the group up is sent to its setup pages on their first
+// open of it, from any group page (`setupRedirect`), and gets its setup
+// nudges here, over every group page but the setup pages (`useSetupNudges`).
 
 export const clientMiddleware: Route.ClientMiddlewareFunction[] = [
   async ({ request, params, context }) => {
     const { db } = context.get(sessionContext);
     await setGroup(context, db, params.groupId);
-    let easyRole = false;
+    let group: ReturnType<typeof getGroup> | null = null;
     try {
-      easyRole = getGroup(context).easyRole;
+      group = getGroup(context);
     } catch {
       // No group: the loaders throw its error.
     }
     const to = easyRoleRedirect({
       groupId: params.groupId,
       pathname: new URL(request.url).pathname,
-      easyRole,
+      easyRole: group?.easyRole ?? false,
     });
     if (to) throw redirect(to);
+    const setup = group && (await setupRedirect({ request, db, group }));
+    if (setup) throw redirect(setup);
   },
 ];
 
@@ -52,6 +60,7 @@ export default function GroupLayout({ loaderData }: Route.ComponentProps) {
     <GroupProvider key={loaderData.id} group={loaderData}>
       <MemberLooksProvider>
         <EasyRoleRedirect />
+        <SetupNudges />
         <Outlet />
       </MemberLooksProvider>
     </GroupProvider>
@@ -67,5 +76,11 @@ function EasyRoleRedirect() {
   useEffect(() => {
     if (to) void navigate(to, { replace: true });
   }, [to, navigate]);
+  return null;
+}
+
+/** The group's setup nudges, as toasts (`useSetupNudges`). */
+function SetupNudges() {
+  useSetupNudges();
   return null;
 }

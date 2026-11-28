@@ -12,8 +12,8 @@
 //
 //   test.skipIf(inSecondZone("B-123"))("…", …)
 
-import { addDays, dayInZone, zonedInstant } from "@caretook/data/schema";
 import { TEST_TIME_ZONE } from "./fixtures";
+import { addDays, dayInZone, zonedInstant } from "@caretook/data/domain";
 
 /** `SECOND_ZONE` in scripts/ci/zones.mjs (untyped, so not imported here; keep the two the same). */
 export const SECOND_ZONE = "America/New_York";

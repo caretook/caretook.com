@@ -1,6 +1,6 @@
 import type { DeviceRoute } from "../../../../../test/device";
 
-import { addDays, entryTodoId, localDate } from "@caretook/data/schema";
+import { entryTodoId } from "@caretook/data/schema";
 import { afterEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
@@ -11,6 +11,7 @@ import * as newTodo from "../todos/new/route";
 import * as timeline from "./route";
 import { TIMELINE_URL } from "./timelineWorld";
 import { found, waitUntil } from "../../../../../test/found";
+import { addDays, localDate } from "@caretook/data/domain";
 
 // Quick entry makes a repeating todo (planner-3, B-254), on the test device
 // (offline): the item's line "bins out every monday" previews as "Todo · Due

@@ -1,15 +1,16 @@
 import type { TimedEntry } from "./upcoming";
 
 import { CalendarDateTime, toZoned } from "@internationalized/date";
+import { localTimeZone } from "../core/format";
+import { timeRange } from "./upcomingLabels";
 import {
   DEVICE_FUTURE_SKEW_MS,
   dayStart,
   FUTURE_DATE_MESSAGE,
   isTooFarAhead,
   localDate,
-} from "@caretook/data/schema";
-import { dayLabel, localTimeZone } from "../core/format";
-import { timeRange } from "./upcomingLabels";
+  dayLabel,
+} from "@caretook/data/domain";
 
 // When a note or event is: its start, an optional end (events) and all day.
 // The entry page's time chip edits one of these and saves it when it

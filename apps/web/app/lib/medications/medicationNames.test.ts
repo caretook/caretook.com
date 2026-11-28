@@ -1,7 +1,7 @@
-import { foldSearchText } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import { MEDICATION_NAMES } from "./medicationNameList";
 import { MEDICATION_SUGGESTION_LIMIT, medicationNameSuggestions } from "./medicationNames";
+import { foldSearchText } from "@caretook/data/domain";
 
 const names = (...list: string[]) => list.map((name) => ({ name }));
 

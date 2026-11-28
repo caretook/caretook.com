@@ -1,6 +1,6 @@
 import { ExtraDoseWarning } from "~/components/medications";
 import { useDueDoses } from "~/lib/medications/dueDoses.sync";
-import { extraDoseText, overMaxText } from "~/lib/medications/medicationDisplay";
+import { extraDoseText, overMaxText } from "@caretook/data/schema";
 
 /**
  * Today's double doses of this medication, in the page's header: each slot

@@ -4,16 +4,28 @@
 
 ## Status
 
-| Slice | Wave | State   | Merge into `prd/onboarding-2` (slice commits) |
-| ----- | ---- | ------- | --------------------------------------------- |
-| 1     | 1    | planned |                                               |
-| 2     | 2    | planned |                                               |
-| 3     | 3    | planned |                                               |
-| 4     | 3    | planned |                                               |
-| 5     | 4    | planned |                                               |
-| 6     | 5    | planned |                                               |
+| Slice | Wave | State         | Merge into `prd/onboarding-2` (slice commits)   |
+| ----- | ---- | ------------- | ----------------------------------------------- |
+| 1     | 1    | landed (opus) | e6594062c (7844ff2e0)                           |
+| 2     | 2    | landed (opus) | ab0722574 (f26ce5101)                           |
+| 3     | 3    | landed (opus) | 52d9b39e1 (51bcd45a6)                           |
+| 4     | 3    | landed (opus) | 744b58204, fix 4e8ee1a20 (748f3b4c8, 807e5b1ef) |
+| 5     | 4    | merged (opus) | bd843f2b7 (1cac719b7)                           |
+| 6     | 5    | planned       |                                                 |
 
-**Backlog:** `done` B-670 when slice 6 merges (B-670 replaces the setup card, which is slice 6's work).
+**Landing mode:** run everything through (dispatcher run-through start): start every ready slice, land each green wave, ask only real questions via `risa ask`.
+
+**Wave 3 landed (2026-11-28)** in dev through PR #314 as 5cc9811 (tier components: run 46116285448 green, then 46117505937 on the fix a flake (search perf test, brake list); Codex clean on 1154928 after one fix round; landed unsynced over 2 dev commits sharing no file). Slice worktrees removed. Report filed. Docs: setup + nudges in app-shell.md (trimmed to its 10 KB budget), ui-kit toast `secondAction`, new component folders in layout.md. shared-displays (now session shared-displays-9c) told about the `components/medications/index.ts` exports.
+
+**Codex follow-ups filed (prd=onboarding-2, triaged):** B-1008 (a setup nudge toast outlives its group or a setup page opening; Open goes to the old group) and B-1009 (Back from a medication opened on the setup medications step goes to the Medications list: add the setup route to `lib/medications/medicationOrigin.ts`). Either can ride with slice 5 or 6 if small, else a fixes slice.
+
+**Wave 4 started (2026-11-28):** dev sync skipped (no shared file); backlog ingest empty, no new items. Slice 5 (opus) handed off 1cac719b7 (quick check green), merged as bd843f2b7: redirect in the group layout middleware (`layout/setupRedirect.ts`); first-sync and invites edited to click Later, not yet run. CI components run 46119276962 on cec63f0a: file; blame puts `settings.browser.test.tsx` (timeline toggle vs Settings, save in flight) on the branch. Lean browser suite 10/11: `session-end` fails 3/3 (offline symptom chip at :118), owner unknown. Fix f7c7c9517 (the redirect reads settings via `loadSettings`; a known-but-uncached device redirected to an unrouted setup page) merged as 68eb76e09. session-end was this stack's stale data: passes after `pnpm datastore:reset`. CI rerun 46120701023 on 08857676: file, another settings test (offline pending Full, :278), blamed on the branch; sent back to slice 5 as a second fix: 3a05759d7 (`settingsKnown` in `me.ts` needs the cached copy too; with storage refusing writes, the redirect and nudges now stay quiet) merged as a49f8226b. CI components run 46121843970 on b24e28ba: **green**. Sync skipped (no shared file). Browser on the tip: app-shell, first-sync, invites, session-end pass (lean suite 10/11 earlier, session-end then stale data). PR #318 open; Codex review waiting. B-670 stays in progress until slice 6.
+
+**Wave 4 = slice 5** (stack: yes, opus). Builds on `readSetupFacts` + `setupRedirectStep` + `settingsKnown` (`lib/app-shell/groupSetup.ts`). The setup pages render inside the group layout. `useSetupNudges` shows nothing on a setup page. Entry nudge's Open goes to `appUrls.newEntry(g, "note")` (the PRD's `timeline/new/note` doesn't exist). Then wave 5 = slice 6 (check `fixes-ui`'s wave isn't on `routes/app/groups/timeline/` first).
+
+**Overlap with shared-displays:** onboarding-2 edits none of `components/providers/ProviderForm`, `ProviderListItem`, `ProviderRowContact` again (a promise). Planning note: slice 2 touched 24 files and slice 3 55 (it moved the medication, period and profile form pieces into `components/` and `lib/` so no route imports another's folder).
+
+**Backlog:** `done` B-670 when slice 6 merges (B-670 replaces the setup card, which is slice 6's work). B-1007 landed.
 
 ## Architectural decisions
 

@@ -4,18 +4,17 @@
 
 ## Status
 
-| Slice | Wave | State   | Merge into `prd/symptom-catalog-3` (slice commits)  |
-| ----- | ---- | ------- | --------------------------------------------------- |
-| 1     | 1    | landed  | a84e4d658 (b74850034); wave 1 landed via PR #287    |
-| 2     | 2    | merged  | 3ca82c624 (7a584c4cd, aa5ef7fcc); slice check green |
-| 3     | 2    | merged  | 82766a2a1 (075716d6c); slice check green            |
-| 4     | 3    | planned |                                                     |
+| Slice | Wave | State  | Merge into `prd/symptom-catalog-3` (slice commits)  |
+| ----- | ---- | ------ | --------------------------------------------------- |
+| 1     | 1    | landed | a84e4d658 (b74850034); wave 1 landed via PR #287    |
+| 2     | 2    | landed | 3ca82c624 (7a584c4cd, aa5ef7fcc); slice check green |
+| 3     | 2    | landed | 82766a2a1 (075716d6c); slice check green            |
+| 4     | 3    | landed | 692385602 (75e0681fa); wave 3 landed via PR #291    |
 
 - **Landing mode: run everything through** (started run-through; land each green wave, ask only real questions via `risa ask`).
-- **Wave 2 running** (session 2): synced with dev (up to date, no merge); worktrees `.loops/symptom-catalog-3-2` and `-3`, both agents spawned on opus. Slice 3 got slice 1's note (map `replaced_by_id` to `replacedById`; a tombstone whose replacement isn't local resolves to itself). B-920 stays claimed until slice 4; mark it done at wave 3.
-- Wave 2: both slices handed off and merged (slice models: 2 opus, 3 opus). CI green at components (run 46082505274, 27470995f); `risa sync`: no merge needed; timeline doc folded. PR #289 open; Codex review waiting. Next: triage findings, land (`--tier components`). Slice 3's note for slice 4/follow-up: the sheet and quick entry still show the deleted name as typed before saving (suggestions leave tombstones out); only the stored entry changes.
-- 2026-11-27: synced with dev (up to date); B-920 claimed. Wave 1: slice 1 worktree `.loops/symptom-catalog-3-1`, agent spawned on opus.
-- Slice 1 handed off (quick check green on b74850034), merged as a84e4d658. Wave 1 CI green at integration (run 46080707119); worktree removed; no dev sync needed; timeline doc folded. Codex clean on PR #287. **Wave 1 landed** in dev as bcd8ea8b1; to-test/2026-11-27-1816-symptom-catalog-3.md. Slice models: 1 opus.
+- 2026-11-27, session 3: slice 4 (opus) merged as 692385602; CI green at components (run 46084805349); no dev sync needed; timeline and care-groups docs folded and trimmed under budget; Codex clean. **Wave 3 landed** through PR #291 (dev at e94e0be, an unsynced tip, typecheck only); to-test/2026-11-27-1904-symptom-catalog-3.md. Slice worktree removed. **All waves landed**; B-992 re-homed (below).
+- **B-992** re-homed to `fixes-bug` (triaged; decided for you, ask a353, skeptic s80). The PRD is done; `risa rm symptom-catalog-3` is the last step.
+- 2026-11-27, session 2: wave 2 slices 2 and 3 (both opus) merged as 3ca82c624 and 82766a2a1; CI green at components (run 46082505274); no dev sync needed; timeline doc folded; Codex: 2 findings, both tracked as B-992, then clean. **Wave 2 landed** through PR #289 (dev pushed to 6dbbbd9); to-test/2026-11-27-1842-symptom-catalog-3.md. Slice worktrees removed.
 
 ## Architectural decisions
 

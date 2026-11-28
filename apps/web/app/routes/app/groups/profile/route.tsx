@@ -7,7 +7,6 @@ import { Outlet } from "react-router";
 import type { RecipientDetailsRow } from "~/lib/profiles/recipientDetails";
 import type { MemberDetailRow } from "~/lib/care-groups/members.sync";
 
-import { canEditRecipient, canManageEmergencyContacts, canReadRecipient } from "@caretook/data/schema";
 import { useMemo } from "react";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
@@ -21,15 +20,15 @@ import { loadRecipientDetailsRows, useRecipientDetails } from "~/lib/profiles/re
 import { loadRecentReadingRows, useVitalAverages } from "~/lib/profiles/vitalAverages.sync";
 import { loadConditions, setNoKnownConditions, useConditions } from "~/lib/profiles/conditions.sync";
 import { loadAllergies, setNoKnownAllergies, useAllergies } from "~/lib/medications/allergies.sync";
-import { allergyActionFromForm } from "./allergies/allergyActions";
-import { AllergiesSection } from "./AllergiesSection";
-import { conditionActionFromForm } from "./conditions/conditionActions";
-import { ConditionsSection } from "./ConditionsSection";
+import { allergyActionFromForm } from "~/lib/medications/allergyActions";
+import { conditionActionFromForm } from "~/lib/profiles/conditionActions";
+import { AllergiesSection, ConditionsSection } from "~/components/profiles";
 import { ContactSection, InsuranceSection } from "./DetailsSections";
 import { EmergencySection } from "./EmergencySection";
 import { BasicsSection, NoteSection } from "./ProfileSections";
 import { ProfileHeader } from "./ProfileHeader";
 import { VitalAveragesSection } from "./VitalAveragesSection";
+import { canEditRecipient, canManageEmergencyContacts, canReadRecipient } from "@caretook/data/domain";
 
 // Shared by web + native. `…/profile`: the care recipient's profile, for
 // every member, in bands (`Page bands`: the header, then each part a

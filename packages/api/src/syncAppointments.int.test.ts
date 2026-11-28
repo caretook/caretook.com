@@ -1,5 +1,4 @@
 import {
-  encodeNoteDoc,
   entryProviderId,
   entryProviderService,
   noteDocumentService,
@@ -9,6 +8,7 @@ import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, newYDoc, ok, typeParagraph } from "../../data/test/fixtures";
 import { clientFor, sqliteTime, upload } from "./testing";
+import { encodeNoteDoc } from "@caretook/data/domain";
 
 // sync.upload for appointments and reminders: the new timeline_entry columns
 // as a device's SQLite holds them (timestamps as PowerSync text, all_day as

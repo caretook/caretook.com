@@ -8,7 +8,6 @@ import { redirect } from "react-router";
 import { QuickTags } from "~/components/tags";
 import { Sheet } from "~/components/ui";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
-import { scheduleZoneNote } from "~/lib/medications/medicationDisplay";
 import { sessionContext } from "~/lib/auth/session";
 import { useLiveQuery } from "~/lib/sync";
 import { subtasksQuery, todoQuery, toTodo, updateTodo } from "~/lib/todos/todos.sync";
@@ -23,6 +22,7 @@ import {
   useLinkChoices,
 } from "../todoSheet";
 import { editTodoGuard } from "~/lib/todos/todoSheets";
+import { scheduleZoneNote } from "@caretook/data/schema";
 
 const NO_ROWS: TodoRow[] = [];
 

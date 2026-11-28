@@ -16,23 +16,13 @@ Notes for every wave:
 
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 
-**Previous hand-over:** wave 16 landed 2026-11-26 as dev d6e934e9 through PR #231, `--no-review` (Codex out of credits), CI components green (run 45879574428, 200c4c14); report a283; to-test/2026-11-26-1413-fixes-ui.md. Slices 86–94 (B-885 sonnet; B-897+B-900, B-902, B-904, B-905, B-906, B-908, B-909, B-916 opus); rows in the history file. Parked mid-wave for orchestration-split-3 wave 1 (dev 00c60f0c, new browser.sh via hooks.browser) at the backlog session's request, then synced. Browser `--changed --base dev`: layout-offline, first-sync, marketing pass; ui failed once under load (0×0 sheet), passed alone twice: filed B-922 (fixes-tooling). Lesson: slice 93 ran to 13 files; split an item with a schema key, an API and two screens. Docs folded (5ef43e2c) into assistant, app-shell, ui-kit, providers, medications. Slice worktrees removed.
+**Restarted 2026-11-27 (this session), run-through:** landing mode run everything through. Anchors ok, ingest empty, prd/fixes-ui = dev (1e628db49). Wave 21: B-975 (marketing AI 'will not') slice 108 on sonnet; B-980 (subtask add button on the title line) slice 109 on opus; parallel.
 
-**Wave 17 (this session, 2026-11-26):** B-694 (Long create forms on tabs) released: the user approved every split today. Slices 95–98, all opus: 95 shared tabs component; 96 provider tabs and 97 medication tabs (both after 95, parallel); 98 schedule overlay (after 97). Synced: prd/fixes-ui up to date with dev. Still held: B-325 (Capacitor).
+**Wave 21 landed 2026-11-27** as dev 40ff2e6 through PR #297 (Codex clean on 75f1874), CI components green on the synced tip (run 46092112343, 6f0b5cce); to-test/2026-11-27-2025-fixes-ui.md. Slices 108 (B-975 marketing AI 'will not', sonnet, 1689bd40d) and 109 (B-980 subtask add on the title line via `TodoQuickAdd inline`, opus, c5e753432). Sync conflict in TodoTree (todo-links-2's `chain`), kept both. Browser `--changed --base dev`: marketing pass. Docs folded into todos. Slice worktrees removed. Lesson: format the plan after every Status edit, not only after writing slices (slice 108's check tripped on it). No fixes-ui item waits: topic closed.
 
-**Wave 17 landed 2026-11-26** as dev 919af00 through PR #235, `--no-review` (Codex out of credits), CI components green (run 45892683323, f9403a5b), browser ui pass; to-test/2026-11-26-1548-fixes-ui.md. B-694 (long create forms on tabs), slices 95–98 all opus (shared FormTabs; provider Essentials | More; medication Essentials | Details | Refills; At set times overlay). Parked mid-wave once for orchestration-split-3 wave 4 (48db0d34), then synced. Docs folded (f375234f) into ui-kit, providers, medications. Follow-up idea: FormTabs could focus after the switch commits so forms needn't wrap `revealField` in `requestAnimationFrame` (noted on B-694).
+**Restarted 2026-11-27 (next session), run-through:** landing mode run everything through. Anchors ok, ingest empty, prd/fixes-ui = dev (fae76d70c). Wave 22: B-999 (day headers abbreviate the weekday on phones) slice 110 on opus. Hot: `routes/app/groups/timeline/`, `lib/timeline/`.
 
-**Released 2026-11-26** by the backlog session (caretook-com-3c; ListAgents if it rotates again): orchestration-split-3 wave 5 is on dev (6265872b; that PRD is done). Synced: prd/fixes-ui merged dev as 95021acb (tooling and scripts only for us). Rotated right after so the next session runs on the new scripts. Reports go to caretook-com-3c.
-
-**Wave 18 landed 2026-11-26** as dev dc9bffb through PR #237, `--no-review` (Codex out of credits); CI components failed only dev's doc.test.mjs (B-928; run 45906838038, 765d0282); landed unsynced (dev's 1 commit in other files); report a290; to-test/2026-11-26-1755-fixes-ui.md. Slices 99–102 all opus (B-899 copy link into the entry ⋯; B-923 specialty datalist; B-924 provider header Edit + ⋯; B-925 arrows `-me-2`); rows in the history file. Two CI fix rounds for tests asserting the old menus and roundtrip's viewer step. Lesson: changing who sees a ⋯ breaks tests outside its folder and `scripts/browser-checks/`; grep `aria-label^="Actions"` there when writing such a slice. `browser --suite` is classifier-blocked (ask before it); ran `--changed --base dev`. Docs folded (197999f6). Slice worktrees removed. Rotated after (past the soft context limit).
-
-**Wave 19 landed 2026-11-27** as dev 36b84a4a through PR #250, `--no-review` (Codex out of credits), CI components flake only (search.sync perf, not ours; run 45953425948); to-test/2026-11-27-0155-fixes-ui.md; report filed. Slices 103–105 all opus (B-937, B-939, B-940); details in the history file. Browser roundtrip fails at its tags step from dev's tags-2 (B-951; the backlog session is raising it). Follow-up B-950 (fixes-nit). Docs folded (68cec34a, 3faeaeb1). Slice worktrees removed. Rotated after (past the soft context limit).
-
-**Wave 20 landed 2026-11-27** as dev 697b53fcd through PR #255 (Codex clean on 8651988), CI components green (run 46036495830, 91686c31), landed unsynced (dev's 1 commit in other files); to-test/2026-11-27-1222-fixes-ui.md; report filed. Slices 106 (B-957 first-load steps and progress bar, `lib/sync/startup.ts`) and 107 (B-962 note full screen edge to edge), both opus, merged 40d5df4c6 and e32df1434. Browser `--changed --base dev` 7/7 pass. Docs folded (7932e7a8a) into app-shell and live-notes. Slice worktrees removed. Lessons: slice 106 ran to 19 files; format the plan with prettier before slices start (both slice checks tripped on it); a Status commit after a clean Codex verdict stales it (commit Status before `risa pr`). `risa status-trim` fails (risa v0.1.2 can't import prettier; told the backlog session); Status is under 6 KB so untrimmed. Rotated after (past the soft context limit).
-
-**Idle (session of 2026-11-27, after wave 20):** `risa sync` needed no merge (todo-subtasks-3's 6d975d86a shares no file), ingest found nothing new; only B-325 (held for Capacitor) is triaged for fixes-ui. Inbox B-961 (shared displays audit, needs its own PRD) and B-972 (planner Tags tab, a feature) are the backlog session's. Wave 21 starts when a new fixes-ui item is triaged; a background loop on `risa backlog list` wakes this session. No slice in flight. Resumed run-through later on 2026-11-27: anchors ok, ingest empty, still only B-325; idle again. **Closed 2026-11-27** at the backlog session's request (caretook-com-69, standing order): hand-over docs landed, worktree removed. B-325 waits for Capacitor; a new fixes-ui item restarts the topic with `risa start fixes-ui`.
-
-**Restarted 2026-11-27 (fixes-ui-4f), run-through:** landing mode still run everything through. Anchors ok, ingest empty, dev = origin/dev (85aa63a6e). Only B-325 (Native readiness: safe-area inset and cold-start blank page) is triaged for fixes-ui, held for Capacitor; B-973 (trim components.md under budget) is fixes-nit, not ours. No wave to start. **Closed again 2026-11-27** at caretook-com-69's word: B-325 moved to hosting (held with the Capacitor prerequisites), so fixes-ui has 0 waiting and the dispatcher stops restarting it; B-973 stays fixes-nit. No slice in flight. A new fixes-ui item restarts the topic with `risa start fixes-ui`.
+**Wave 22 landed 2026-11-27** as dev f41af6ffc through PR #305 (Codex clean on 88d910a), CI components green on the synced tip (run 46102756026, a4d044ac; the sync brought seeds, datastore reset); landed on an unsynced tip (dev's 1 commit shared no file). to-test/2026-11-27-2235-fixes-ui.md. Slice 110 (B-999 `shortDayLabel` below `sm`, full label stays the heading's name; opus, 4b24c08e0). Browser `--changed`: none mapped. Docs folded into timeline (trimmed to stay under budget). Slice worktree removed. No fixes-ui item waits: topic closed.
 
 | Slice | Item | State | Merge |
 | ----- | ---- | ----- | ----- |
@@ -1570,3 +1560,52 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 - [ ] Component test: a viewer in full screen sees the title and Exit, and no toolbar.
 - [ ] Component test: not in full screen, the bar has no title.
 - [ ] Existing NoteFullScreen and live notes tests still pass; grep tests and `scripts/browser-checks/` for `data-note-full-screen` and the old heading and update any that assert it.
+
+## Wave 21 (written 2026-11-27 by the orchestrator, from the triaged fixes-ui items)
+
+Slices 108 and 109 share no file and run in parallel.
+
+## Slice 108: Marketing home says AI providers will not keep or train on your data (B-975)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/marketing.md · Tests: component
+
+**Problem.** The marketing home's "Not for AI training" answer (`apps/web/app/routes/marketing/home/content.ts`, the `noAiTraining` item) ends "If we add AI features, their providers may not keep your data or train on it." "May not" reads as "might not", the opposite of the promise (AGENTS.md _Compliance_: AI vendors that don't retain or train on our data).
+
+**Build.** Change "may not keep your data or train on it" to "will not keep your data or train on it". Grep `apps/web/app/routes/marketing/` for the same "may not keep" wording elsewhere (privacy pages) and fix any match the same way; change nothing else.
+
+**Acceptance criteria.**
+
+- [ ] The home's AI answer says "will not keep your data or train on it"; no "may not keep" remains under `routes/marketing/`.
+- [ ] Existing marketing tests pass (no word-for-word copy test is added).
+
+## Slice 109: A nested todo's add-subtask button sits right-aligned on its title's line (B-980)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/todos.md · Tests: component
+
+**Problem.** In the nested todo tree, `TodoRow.tsx` renders the `addSubtask` slot (`TodoTree`'s per-row compact `TodoQuickAdd`) under the row's text (around lines 174, 220 and 260, one per look), so it takes its own line below the title.
+
+**Build.** In each `TodoRow` look that renders `addSubtask`, put it at the end of the title's line, right-aligned (the title truncates or wraps before it, never under it), keeping its tap target room from neighbouring controls (the row's own ⋯ or tick). When the quick add opens its input, the input may take the row's width below as it does today; only the closed button moves. Rows without `addSubtask` look exactly as today. Update the doc comment at the top of `TodoRow.tsx` ("under the row's text").
+
+**Acceptance criteria.**
+
+- [ ] Component test: in each look that renders it, the add-subtask button is inside the title's line (the same row container as the title), after the title.
+- [ ] Component test: a row without `addSubtask` renders as before.
+- [ ] Existing TodoRow, TodoTree and planner/todos tests pass; grep tests and `scripts/browser-checks/` for the add-subtask button's label and update any that assert its old place.
+
+## Wave 22 (written 2026-11-27 by the orchestrator, from the triaged fixes-ui items)
+
+No migration, no dependency, and no edits under `packages/data/src/domain/` (code-health holds it; `dayLabel` stays as is).
+
+## Slice 110: Timeline day headers abbreviate the weekday on phones (B-999)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md · Tests: component
+
+**Problem.** A timeline day header that shows a day and date ("Wednesday, Nov 18") wraps on small phones, crowding the period, copy-link and + actions beside it.
+
+**Build.** Below the `sm` breakpoint the heading shows the short weekday ("Wed, Nov 18", "Wed, Nov 18, 2025"); from `sm` up, the full name as today. "Today", "Yesterday" and "Tomorrow" are unchanged. Derive the short form in the app (a small helper in `lib/timeline/`, from the day's key or moment, the viewer's zone and locale, or by passing a short label beside `label` from `groupByDay`), never by editing `dayLabel` in `packages/data`. Render both in `DayHeader.tsx`'s `<h3>` with CSS toggling (`sm:hidden` / `hidden sm:inline`), so there's no layout jump and SSR matches; the heading's accessible name stays the full label (the copy-link and + labels keep using `label`). Easy mode's header follows the same rule if it shows a weekday and date.
+
+**Acceptance criteria.**
+
+- [ ] Unit test for the helper: a past day gives "Wed, Nov 18"-style text, a past year adds the year, and Today/Yesterday/Tomorrow come back unchanged.
+- [ ] Component test (`DayHeader`/timeline): at phone width the visible heading text is the short form, at a wider width the full form, and the heading's accessible name is the full label at both.
+- [ ] Existing timeline tests pass; grep tests and `scripts/browser-checks/` for full weekday heading text they match and update any that break.

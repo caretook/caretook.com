@@ -6,8 +6,8 @@ import { textContrast } from "../../../../../test/contrast";
 import { fixClock, found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx, medicationPass, TEST_TIME_ZONE } from "../../../../../test/fixtures";
-import { clockTime } from "~/lib/medications/medicationDisplay";
 import { CLOCK, clockAt, clockMoment, MEDICATION_ROUTES, medicationUrl, SCHEDULE } from "./medicationWorld";
+import { clockTime } from "@caretook/data/schema";
 
 // A double dose called out (B-606): a slot given twice reads "Given twice:
 // 9:55 and 9:58" beside a warning badge on Today's row, on its pass's card

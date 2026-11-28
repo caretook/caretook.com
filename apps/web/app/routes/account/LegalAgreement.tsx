@@ -1,6 +1,6 @@
-import { LEGAL_CHECKBOX_PARTS, LEGAL_DOCUMENTS } from "@caretook/data/schema";
 import { LINK } from "~/components/ui/plain";
 import { legalHref } from "~/lib/auth/legalLinks";
+import { LEGAL_CHECKBOX_PARTS, LEGAL_DOCUMENTS } from "@caretook/data/domain";
 
 /** The checkbox's sentence. Its links open in a new tab, so the form keeps what was typed. */
 export function LegalAgreement() {

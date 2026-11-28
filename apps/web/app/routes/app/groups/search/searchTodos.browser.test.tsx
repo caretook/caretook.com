@@ -1,17 +1,17 @@
 import type { DeviceRoute } from "../../../../../test/device";
 
-import { addDays, localDate } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import * as searchRoute from "./route";
 import * as todoRoute from "../todo/route";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, hoursAgo, todo, TEST_GROUP, TEST_TIME_ZONE } from "../../../../../test/fixtures";
+import { addDays, localDate } from "@caretook/data/domain";
 
 // Todos on the search page (todos slice 5): a todo is found by its title
 // and by its notes, sits after medications and before entries, is marked
-// when done, opens its page, and drops out once deleted. What a document
-// holds is `todoSearchDocument`'s unit test.
+// when done (the Todos row's done line), opens its page, and drops out once
+// deleted. What a document holds is `todoSearchDocument`'s unit test.
 
 const ROUTES: DeviceRoute[] = [
   { path: "/app/groups/:groupId/search", module: searchRoute },
@@ -88,7 +88,8 @@ describe("search: todos", () => {
     await expect.poll(todoResults).toEqual([FAX.id]);
     const row = result(FAX.id)!;
     expect(row.hasAttribute("data-done")).toBe(true);
-    expect(row.querySelector("[data-marker]")?.textContent).toBe("Done");
+    // The Todos page's done line (`TodoRow`).
+    expect(row.querySelector("[data-todo-due]")?.textContent).toMatch(/^Done by /);
     expect(row.textContent).not.toContain("Due");
   });
 

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { ComboBox, Field } from "~/components/ui";
 import { conditionSuggestions } from "~/lib/profiles/conditionSuggestions";
-import { CONDITION_FIELD } from "./conditionActions";
+import { CONDITION_FIELD } from "~/lib/profiles/conditionActions";
 
 /**
  * The condition's name (required): a combo box whose text is the name, with

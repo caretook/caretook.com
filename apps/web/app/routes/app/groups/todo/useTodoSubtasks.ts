@@ -2,10 +2,10 @@ import type { QuickAddParent } from "~/components/todos";
 import type { LocalTodo, TodoRow } from "~/lib/todos/todos.sync";
 import type { loadTodo } from "./loadTodo";
 
-import { subtaskProgress } from "@caretook/data/schema";
 import { useMemo } from "react";
 import { useLiveQuery } from "~/lib/sync";
 import { todoDescendantsQuery, todoQuery, toTodo, toTodos } from "~/lib/todos/todos.sync";
+import { subtaskProgress } from "@caretook/data/domain";
 
 /**
  * The todo's place in its tree, live (todo-subtasks): its parent (for "Part

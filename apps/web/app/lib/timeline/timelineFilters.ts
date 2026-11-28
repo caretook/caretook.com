@@ -1,6 +1,7 @@
 import type { TimelineEntryKind, VitalType } from "@caretook/data/schema";
 
-import { SEARCH_MAX_LENGTH, TAG_PARAM, tagFromParams, VITAL_TYPES } from "@caretook/data/schema";
+import { TAG_PARAM, tagFromParams, VITAL_TYPES } from "@caretook/data/schema";
+import { SEARCH_MAX_LENGTH } from "@caretook/data/domain";
 
 // The timeline's filters live in the URL: `?kind=<kind>&author=<userId>`
 // and the search `?q=<text>` (narrowed to one care period by `?period=<id>`

@@ -4,7 +4,6 @@ import type { MemberDetailRow } from "~/lib/care-groups/members.sync";
 import type { memberAccess } from "../groupSettings";
 import type { MemberStatus } from "./memberStatus";
 
-import { visibleSharedFields } from "@caretook/data/schema";
 import { useState } from "react";
 import { useFetcher } from "react-router";
 import { ContactLines } from "~/components/contact";
@@ -17,6 +16,7 @@ import { memberHistory } from "./invites";
 import { memberStatusLine } from "./memberStatus";
 import { RoleOptions } from "./RoleOptions";
 import { YourSharing } from "./YourSharing";
+import { visibleSharedFields } from "@caretook/data/domain";
 
 /**
  * One member's card. The identity (avatar, full name, badges, relationship,

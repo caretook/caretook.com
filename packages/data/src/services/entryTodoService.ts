@@ -22,7 +22,6 @@ import { rejectError } from "../permissions";
 // `unlink` here clears it when it names the unlinked entry, so an old client
 // doesn't keep showing a removed link.
 
-export const serviceName = "entryTodo";
 export const schemaName = timelineEntryTodoModel.schemaName;
 
 const invalid = (error: z.ZodError) =>

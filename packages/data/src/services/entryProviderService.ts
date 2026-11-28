@@ -16,7 +16,6 @@ import { rejectError } from "../permissions";
 // A link's id is derived from its pair (`entryProviderId`), so linking is
 // idempotent everywhere: a replay, or two devices linking the same provider.
 
-export const serviceName = "entryProvider";
 export const schemaName = timelineEntryProviderModel.schemaName;
 
 const invalid = (error: z.ZodError) =>

@@ -1,7 +1,6 @@
-import type { TodoRuleFields } from "@caretook/data/schema";
-
-import { dueText, todoOrder } from "@caretook/data/schema";
 import { matchesText, textTokens } from "../core/textFilter";
+import type { TodoRuleFields } from "@caretook/data/domain";
+import { dueText, todoOrder } from "@caretook/data/domain";
 
 // The entry page's Link a todo picker (planner-3), its pure part: which
 // todos it offers for the typed text. No React or database; unit-tested in

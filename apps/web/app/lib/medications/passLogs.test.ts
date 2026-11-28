@@ -1,8 +1,8 @@
 import type { TimelineEntryDetails, TimelineEntryKind } from "@caretook/data/schema";
 
 import { describe, expect, it } from "vitest";
-import { passLogText } from "./medicationDisplay";
 import { groupPassLogs, passLogCounts, passLogIdOf, rowPassLogId, wholeLogsPage } from "./passLogs";
+import { passLogText } from "@caretook/data/schema";
 
 const MED = (n: number) => `00000000-0000-4000-8000-00000000000${n}`;
 const MORNING = "11111111-1111-4111-8111-111111111111";

@@ -1,6 +1,5 @@
 import type {
   ActionPreview,
-  Weekday,
   AppError,
   AssistantAction,
   ConditionAction,
@@ -13,17 +12,12 @@ import type { ToolContext, ToolOutput } from "../registry";
 import {
   actionPreview,
   addConditionActionZSchema,
-  addDays,
   addEventActionZSchema,
   addNoteActionZSchema,
   addTodoActionZSchema,
   appendLineZSchema,
   CONDITION_STATUSES,
   conditionSinceWords,
-  dayInZone,
-  DEVICE_FUTURE_SKEW_MS,
-  FUTURE_DATE_MESSAGE,
-  isTooFarAhead,
   assistantActionService,
   DOSE_STATUSES,
   ENTRY_APPEND_LIMITS,
@@ -40,21 +34,29 @@ import {
   recipientConditionService,
   resolveConditionActionZSchema,
   resolveUnits,
-  ruleText,
-  SERIES_LIMITS,
   SYSTEM_USER,
   timelineEntryService,
-  todoRepeatText,
   updateConditionActionZSchema,
   updateEntryActionZSchema,
   userModel,
-  WEEKDAYS,
   whenText,
 } from "@caretook/data";
 import { z } from "zod";
 import { entryPath, linkTo, passLogPath, profilePath, todoPath } from "../links";
 import { defineTool, WRITE_ANNOTATIONS } from "../registry";
 import { loadGroup, loadMembers } from "./shared";
+import type { Weekday } from "@caretook/data/domain";
+import {
+  addDays,
+  dayInZone,
+  DEVICE_FUTURE_SKEW_MS,
+  FUTURE_DATE_MESSAGE,
+  isTooFarAhead,
+  ruleText,
+  SERIES_LIMITS,
+  todoRepeatText,
+  WEEKDAYS,
+} from "@caretook/data/domain";
 
 // The write tools (connectors PRD): one per assistant action, each a batch
 // of one through the server's runner (`assistantActionService.run`) with

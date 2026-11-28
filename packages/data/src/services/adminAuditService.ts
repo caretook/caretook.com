@@ -8,7 +8,6 @@ import { logError } from "../logging";
 import { adminAuditLogModel } from "../models";
 import { staffRefusal } from "./staffAccess";
 
-export const serviceName = "adminAudit";
 export const schemaName = adminAuditLogModel.schemaName;
 
 // The staff audit log (admin PRD). `record` runs inside the action's own

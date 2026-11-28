@@ -1,5 +1,3 @@
-import type { DueDoses } from "~/lib/medications/dueDoses";
-import type { SchedulePass } from "~/lib/medications/medicationDisplay";
 import type { LocalMedication } from "~/lib/medications/medications.sync";
 
 import { Plus } from "lucide-react";
@@ -9,14 +7,10 @@ import { QuickTags } from "~/components/tags";
 import { Badge, Button, Message } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { SHEET_LINK_STATE } from "~/lib/timeline/timelineSheet";
-import {
-  MEDICATION_TYPE_LABELS,
-  medicationSummaryLine,
-  medicationTitle,
-  medicationTypeBadge,
-  stoppedText,
-} from "~/lib/medications/medicationDisplay";
 import { AsNeededLogButton, useAsNeededLog } from "./AsNeededLog";
+import type { DueDoses, SchedulePass } from "@caretook/data/schema";
+import { MEDICATION_TYPE_LABELS, medicationTypeBadge } from "@caretook/data/domain";
+import { medicationSummaryLine, medicationTitle, stoppedText } from "@caretook/data/schema";
 
 const NO_TAGS: readonly { id: string; name: string }[] = [];
 

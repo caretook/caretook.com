@@ -1,9 +1,9 @@
-import type { PeriodSpan } from "@caretook/data/schema";
 import type { CarePeriodRow, LocalCarePeriod } from "~/lib/care-periods/carePeriods.sync";
 
 import { useMemo } from "react";
 import { useLiveQuery } from "~/lib/sync";
 import { carePeriodsQuery, toPeriodSpans } from "~/lib/care-periods/carePeriods.sync";
+import type { PeriodSpan } from "@caretook/data/domain";
 
 // The timeline's care periods: the group's track (for the current-period
 // line and the boundary markers), live.

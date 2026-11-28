@@ -1,11 +1,12 @@
 import type { AuthUser } from "@caretook/data";
 
-import { ROLLUP_METADATA, todoService, UNDO_NEXT_METADATA } from "@caretook/data";
+import { todoService } from "@caretook/data";
 import { nextTodoId } from "@caretook/data/series";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../data/test/fixtures";
 import { clientFor, outcomes, upload } from "./testing";
+import { ROLLUP_METADATA, UNDO_NEXT_METADATA } from "@caretook/data/domain";
 
 // sync.upload for todos: rows as a device's SQLite holds them (snake_case,
 // PowerSync's timestamps). Each test makes its own users and group.
@@ -249,6 +250,30 @@ describe("sync.upload: repeating todos", () => {
     expect(
       await todoService.getById(owner.ctx, nextTodoId(id, "2026-11-18"), { includeDeleted: true }),
     ).toBeNull();
+  });
+
+  it("a new repeating todo uploaded already ticked (one PUT): a reopen finds its next and takes the untouched one away", async () => {
+    const { group, recipient, owner } = await setup();
+    const id = randomUUID();
+    // Made and ticked offline: the PUT carries done_at, so the create and the
+    // tick (and its next) run in one transaction.
+    const put = {
+      op: "PUT" as const,
+      table: "todo",
+      id,
+      data: repeating(id, group.id, recipient.id, { done_at: MONDAY, done_by: owner.user.id }),
+    };
+    const next = twin(id, group.id, recipient.id, "2026-11-23");
+    expect((await upload(owner.api, [put, next])).map((r) => r.status)).toEqual(["applied", "applied"]);
+    expect(await openIn(owner.ctx, group.id, id)).toEqual([[next.id, "2026-11-23"]]);
+
+    const reopen = { op: "PATCH" as const, table: "todo", id, data: { done_at: null, done_by: null } };
+    expect(await upload(owner.api, [reopen])).toEqual([{ id, status: "applied" }]);
+    expect(ok(await todoService.getById(owner.ctx, id))).toMatchObject({
+      doneAt: null,
+      repeatRule: WEEKLY_MO,
+    });
+    expect(await openIn(owner.ctx, group.id, id)).toEqual([[id, "2026-11-16"]]);
   });
 
   it("a device's Undo removes the untouched next; a skip deletes this one and makes the next", async () => {

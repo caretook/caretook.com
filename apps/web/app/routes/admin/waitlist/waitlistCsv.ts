@@ -1,6 +1,5 @@
-import type { CaringFor, WaitlistSource } from "@caretook/data/schema";
-
-import { CARING_FOR_LABELS } from "@caretook/data/schema";
+import type { CaringFor, WaitlistSource } from "@caretook/data/domain";
+import { CARING_FOR_LABELS } from "@caretook/data/domain";
 
 // The waitlist's CSV export (marketing slice 5): RFC 4180, UTF-8 with a byte
 // order mark (so spreadsheet apps read accents and emoji right), CRLF line

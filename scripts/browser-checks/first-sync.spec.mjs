@@ -5,7 +5,8 @@
 // 2. Reload a synced timeline: no syncing state. Then a sheet's URL loaded as a
 //    page (a deep link after a full load) opens the sheet (closing it, filters
 //    kept, is timelineSheetUrls.browser.test.tsx's). Then a new care group
-//    (careGroup.create) syncs in and its empty timeline opens.
+//    (careGroup.create) syncs in, opens on its setup pages, and Later reaches
+//    its timeline.
 // 3. Slow first sync (the device's proxy holds PowerSync's traffic for HOLD_MS):
 //    home shows "Syncing your care groups…" (never "not in a care group"), then
 //    goes straight to the timeline once the group arrives.
@@ -126,17 +127,24 @@ test("a normal sign-in, a reload, a sheet's URL and a new group", { tag: "@smoke
   });
 
   // A new care group: careGroup.create on the server, then the group syncs
-  // into this device and its empty timeline opens with the Invite someone
-  // card. Deleted at once, so caretaker@ keeps one group for the steps below.
+  // into this device and opens on its setup pages (the creator's first open);
+  // Later reaches its timeline. Deleted at once, so caretaker@ keeps one group
+  // for the steps below.
   try {
-    await test.step("a new care group syncs in and opens its empty timeline, with the Invite someone card", async () => {
+    await test.step("a new care group syncs in and opens on its setup pages; Later reaches its timeline", async () => {
       await page.goto("/app/groups/new");
       await page.locator('[data-new-group-form] [name="recipientName"]').fill(`${newGroupTag} Lou Example`);
       await page.locator('[data-new-group-form] button[type="submit"]').click();
+      await page.waitForURL(
+        (url) => /\/setup\/providers$/.test(url.pathname) && !url.pathname.includes(groupId),
+        {
+          timeout: 20_000,
+        },
+      );
+      await page.locator("[data-setup-later]").click();
       await page.waitForURL((url) => /\/timeline$/.test(url.pathname) && !url.pathname.includes(groupId), {
         timeout: 20_000,
       });
-      await expect(page.locator("[data-invite-card]")).toBeVisible({ timeout: 20_000 });
     });
   } finally {
     psql(

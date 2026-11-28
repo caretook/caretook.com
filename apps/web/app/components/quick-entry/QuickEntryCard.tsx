@@ -1,5 +1,4 @@
-import type { ActionPreview } from "~/lib/assistant/quickEntryPreview";
-import type { QuickEntryKind } from "@caretook/data/schema";
+import type { QuickEntryKind, ActionPreview } from "@caretook/data/schema";
 import type { LucideIcon } from "lucide-react";
 import type { KindChip } from "~/lib/timeline/entryDisplay";
 import type { QuickEntryCard as Card } from "./quickEntryCards";

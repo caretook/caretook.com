@@ -4,11 +4,10 @@ import type { ServiceContext, ServiceInsert, ServiceSelectArgs, ServiceUpdateArg
 import { eq } from "drizzle-orm";
 import { DEFAULT_PAGE_SIZE } from "../constants";
 import { dbMayFail, withTransaction } from "../db";
-import { mergeSetupDismissed, userSchema } from "../db/schema";
+import { mergeGroupSetup, mergeSetupDismissed, userSchema } from "../db/schema";
 import { isError } from "../errors";
 import { userModel } from "../models";
 
-export const serviceName = "user";
 export const schemaName = userModel.schemaName;
 
 type K = typeof schemaName;
@@ -86,6 +85,10 @@ export const updateOwnPreferences = async (ctx: ServiceContext, change: UserPref
         // Added to, never replaced: another device may have dismissed a different group.
         ...(change.setupDismissed && {
           setupDismissed: mergeSetupDismissed(user.preferences.setupDismissed, change.setupDismissed),
+        }),
+        // The same: a change names only the groups it touches, and never unsets.
+        ...(change.groupSetup && {
+          groupSetup: mergeGroupSetup(user.preferences.groupSetup, change.groupSetup),
         }),
       };
       const updated = await userModel.update({

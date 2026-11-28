@@ -3,23 +3,20 @@ import type { AppointmentSeriesContentInput } from "../schema";
 import { eq } from "drizzle-orm";
 import { getDb } from "../client";
 import {
-  addDays,
   appointmentSeriesSchema,
-  dayInZone,
-  encodeNoteDoc,
   entryProviderId,
-  noteDocFromText,
   noteDocumentSchema,
-  SERIES_AHEAD_DAYS,
-  seriesVisitId,
   timelineEntryProviderSchema,
   timelineEntrySchema,
   userSchema,
-  zonedInstant,
 } from "../schema";
-import { seriesVisits } from "../schema/appointments/seriesVisits";
+import { seriesVisits } from "../../domain/appointments/seriesVisits";
 import { DEV_GROUP_ID, DEV_RECIPIENT_ID } from "./careGroups";
 import { SEED_GROUPS as PROVIDER_GROUPS } from "./providers";
+import { addDays } from "../../domain/core/entryTiming";
+import { dayInZone, zonedInstant } from "../../domain/core/zonedDay";
+import { encodeNoteDoc, noteDocFromText } from "../../domain/live-notes/noteYjs";
+import { SERIES_AHEAD_DAYS, seriesVisitId } from "../../domain/appointments/repeatRule";
 
 // Fictional repeating series for Grandma Pat (Dev Family; appointments-2):
 // dialysis Mon, Wed and Fri at 6:00 with no end (started a week ago, so the

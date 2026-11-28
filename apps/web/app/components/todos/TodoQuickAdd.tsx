@@ -1,13 +1,13 @@
 import type { FormEvent, KeyboardEvent } from "react";
 import type { LocalTodo, TodoLink } from "~/lib/todos/todos.sync";
 
-import { canHaveSubtask, isTodoWriter } from "@caretook/data/schema";
 import { ListPlus, Plus } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { Button, Field, IconButton, Message } from "~/components/ui";
 import { useGroup } from "~/lib/app-shell/group";
 import { getSync } from "~/lib/sync";
 import { createTodo } from "~/lib/todos/todos.sync";
+import { canHaveSubtask, isTodoWriter } from "@caretook/data/domain";
 
 /** What the quick add needs of the todo it adds under. */
 export type QuickAddParent = Pick<LocalTodo, "id" | "title" | "deletedAt" | "repeatRule">;
@@ -37,24 +37,32 @@ export const mayAddSubtask = (
  * and open for the next; a failed write says so inline. `compact` (a list
  * row, a tree; it needs a parent) is an icon-only "Add subtask to <title>"
  * button that opens the field in place, and Escape closes it; `full` (a
- * page's band) shows the field with its Add button. Nothing for a
- * non-writer or a parent that can't take a subtask.
+ * page's band) shows the field with its Add button. `inline` (a compact
+ * one on a tree's row, B-980) lays its parts into the row's title line: the
+ * closed button at the line's end, the opened field on its own full-width
+ * line below. Nothing for a non-writer or a parent that can't take a subtask.
  */
 export function TodoQuickAdd({
   parent,
   ancestors = [],
   link,
   form,
+  inline = false,
   className = "",
 }: (
-  | { form: "compact"; parent: QuickAddParent }
-  | { form: "full"; /** Without one, a top-level todo. */ parent?: QuickAddParent }
+  | {
+      form: "compact";
+      parent: QuickAddParent;
+      /** Its button and field are items of the title line it sits in (a wrapping flex row). */
+      inline?: boolean;
+    }
+  | { form: "full"; /** Without one, a top-level todo. */ parent?: QuickAddParent; inline?: never }
 ) & {
   /** The parent's own chain (its parent, …, up to the top). */
   ancestors?: readonly unknown[];
   /** What the new todo links to. */
   link?: QuickAddLink;
-  /** Classes for the outer element. */
+  /** Classes for the outer element (`inline`: for the opened field). */
   className?: string;
 }) {
   const group = useGroup();
@@ -98,21 +106,29 @@ export function TodoQuickAdd({
   const compact = form === "compact";
   const noun = parent ? "subtask" : "todo";
   return (
-    <div className={`space-y-2 ${className}`} data-todo-quick-add={form}>
+    // `contents` when inline: the button and the field join the title line's flex row.
+    <div className={inline ? "contents" : `space-y-2 ${className}`} data-todo-quick-add={form}>
       {compact && (
-        // Its own gap from the row's other controls (`ml-1`), so a tap lands on it.
+        // Its own gap from the row's other controls (`ml-1`; inline, the line's gap
+        // and `ms-auto` at its end), so a tap lands on it. Inline, `-my-1` keeps the
+        // small button to the title's line height, and `z-10` lifts it over a card's link.
         <IconButton
           ref={opener}
           icon={ListPlus}
           label={`Add subtask to ${parent?.title ?? ""}`}
           expanded={open}
           controls={formId}
-          className="ml-1"
+          className={inline ? "relative z-10 -my-1 ms-auto shrink-0" : "ml-1"}
           onPress={() => (open ? close() : setOpen(true))}
         />
       )}
       {open && (
-        <form id={formId} className="space-y-2" onSubmit={submit} data-subtask-add="">
+        <form
+          id={formId}
+          className={inline ? `relative z-10 basis-full space-y-2 ${className}` : "space-y-2"}
+          onSubmit={submit}
+          data-subtask-add=""
+        >
           <div className="flex items-end gap-2">
             <Field label={`New ${noun}`} labelHidden kind="input" className="min-w-0 flex-1">
               {(control) => (

@@ -1,4 +1,4 @@
-import type { CalendarEntryInput, CalendarTodoInput, ReminderLead, ReminderOverrideRule } from "../db/schema";
+import type { ReminderLead } from "../db/schema";
 import type { Tx } from "../db";
 
 import { and, eq, gte, inArray, isNull, lt, sql } from "drizzle-orm";
@@ -18,8 +18,8 @@ import {
 } from "../db/schema";
 import { isError } from "../errors";
 import { appSettingModel } from "../models";
-
-export const serviceName = "calendarReminder";
+import type { CalendarEntryInput, CalendarTodoInput } from "../domain/calendars/calendarItems";
+import type { ReminderOverrideRule } from "../domain/calendars/reminderPlan";
 
 // What the reminder sweep reads (appointments-2 slice 6), as the system: for
 // every group where a current member has reminders on, its recipient, those

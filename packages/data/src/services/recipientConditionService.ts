@@ -10,6 +10,7 @@ import type {
   Tx,
 } from "../db";
 import type { IncludeDeleted } from "../models/recipientCondition";
+import type { ChangeTimes } from "../db/schema";
 import type { ServiceContext } from "./types";
 
 import { z } from "zod";
@@ -27,8 +28,8 @@ import {
   recipientConditionUpdateZSchema,
   recipientConditionUpsertZSchema,
   timelineEntryContentZSchema,
-  toChangeTime,
   withManagersChange,
+  changeTimes,
 } from "../db/schema";
 import { isError, newError } from "../errors";
 import {
@@ -55,7 +56,6 @@ import { resolveRecipient } from "./medicationService";
 // or unlink folds into the change entry of its save's time, so one save's
 // links (however many) are one entry with "Managed by: before → after".
 
-export const serviceName = "recipientCondition";
 export const schemaName = recipientConditionModel.schemaName;
 
 const invalid = (error: z.ZodError) =>
@@ -126,8 +126,8 @@ export type ConditionWriteOptions = {
   via?: string | null;
 };
 
-const changeTimeOf = (opts: ConditionWriteOptions) =>
-  (opts.changedAt ? toChangeTime(opts.changedAt) : null) ?? new Date().toISOString();
+/** The save's change times: the device's for the entry's id, never later than now for its date. */
+const changeTimeOf = (opts: ConditionWriteOptions) => changeTimes(opts.changedAt);
 
 /**
  * Record what a save did on the timeline, as the actor: one
@@ -152,14 +152,15 @@ const writeChange = async (
     before: ConditionChangeSource | null;
     /** The condition after the save, as a change source (default: its row). */
     source?: ConditionChangeSource;
-    changedAt: string;
+    /** The save's times: `key` for the id, `date` for `occurredAt`. */
+    changedAt: ChangeTimes;
     via?: string | null;
   },
 ) => {
   const change = conditionChange(before, source ?? (await sourceOf(tx, after)));
   if (!change) return null;
 
-  const id = conditionChangeId(after.id, changedAt);
+  const id = conditionChangeId(after.id, changedAt.key);
   const existing = await timelineEntryModel.getById(id, { authUser: SYSTEM_USER, tx, includeDeleted: true });
   if (isError(existing)) return existing;
   if (existing) return existing;
@@ -171,7 +172,7 @@ const writeChange = async (
 
   const content = timelineEntryContentZSchema.safeParse({
     kind: "conditionChange",
-    occurredAt: changedAt,
+    occurredAt: changedAt.date,
     timeZone,
     details: { conditionId: after.id, ...change },
   });
@@ -185,7 +186,7 @@ const writeChange = async (
       groupId: after.groupId,
       recipientId: after.recipientId,
       kind: "conditionChange",
-      occurredAt: changedAt,
+      occurredAt: changedAt.date,
       timeZone,
       title: null,
       body: null,
@@ -449,9 +450,9 @@ const recordManagers = async (
   condition: RecipientCondition,
   before: readonly ConditionProviderRef[],
   after: readonly ConditionProviderRef[],
-  changedAt: string,
+  changedAt: ChangeTimes,
 ) => {
-  const id = conditionChangeId(condition.id, changedAt);
+  const id = conditionChangeId(condition.id, changedAt.key);
   const existing = await timelineEntryModel.getById(id, { authUser: SYSTEM_USER, tx, includeDeleted: true });
   if (isError(existing)) return existing;
   if (!existing) {
@@ -578,7 +579,7 @@ export const setManagers = (
     const { conditionId } = parsed.data;
     const wanted = new Set(parsed.data.providerIds.map((id) => id.toLowerCase()));
     // One time for every link, so they all land in one entry.
-    const once = { changedAt: changeTimeOf(opts) };
+    const once = { changedAt: changeTimeOf(opts).key };
 
     const condition = await visibleCondition(ctx, tx, conditionId);
     if (isError(condition)) return condition;

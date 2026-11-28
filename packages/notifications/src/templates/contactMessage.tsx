@@ -1,7 +1,7 @@
-import { CONTACT_TOPIC_LABELS, CONTACT_TOPICS } from "@caretook/data/schema";
 import { z } from "zod";
 import { defineNotification } from "../define";
 import { EmailLayout, Muted, Paragraph } from "./layout";
+import { CONTACT_TOPIC_LABELS, CONTACT_TOPICS } from "@caretook/data/domain";
 
 // A message from the marketing site's contact form, to the team's support
 // address (SUPPORT_EMAIL; marketing slice 4). It carries what the visitor

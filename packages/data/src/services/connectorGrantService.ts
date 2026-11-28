@@ -25,7 +25,6 @@ import { isSystemUser } from "../permissions";
 // Every write here is the system's, after checking the actor; tokens and
 // consents are revoked with their grant, in the same transaction.
 
-export const serviceName = "connectorGrant";
 export const schemaName = connectorGrantModel.schemaName;
 
 const live = { revokedAt: { type: "isNull" as const } };

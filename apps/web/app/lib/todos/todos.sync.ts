@@ -7,29 +7,32 @@ import {
   ASSIGNEE_NOT_MEMBER_ISSUE,
   BAD_PARENT_ISSUE,
   BAD_TODO_LINK_ISSUES,
+  entryTodoId,
+  NOTE_DOCUMENT_KINDS,
+  REPEAT_WITH_SUBTASKS_ISSUE,
+  todoContentOf,
+  todoContentZSchema,
+  todoCreateZSchema,
+  todoUpdateZSchema,
+} from "@caretook/data/schema";
+import {
   canCompleteTodo,
   canHaveSubtask,
   clampDue,
   DUE_AFTER_PARENT_ISSUE,
-  entryTodoId,
   inheritedDue,
   isDueAfterParent,
   isTodoCompleter,
   isTodoWriter,
   MAX_TODO_DEPTH,
-  NOTE_DOCUMENT_KINDS,
-  REPEAT_WITH_SUBTASKS_ISSUE,
   repeatColumnsFor,
   ROLLUP_METADATA,
   rollupOf,
   SIBLING_ORDER_SQL,
-  todoContentOf,
-  todoContentZSchema,
-  todoCreateZSchema,
-  todoUpdateZSchema,
+  TICK_NEXT_METADATA,
   UNDO_NEXT_METADATA,
-} from "@caretook/data/schema";
-import { eq, inArray, sql } from "drizzle-orm";
+} from "@caretook/data/domain";
+import { eq, getTableColumns, inArray, sql } from "drizzle-orm";
 import { noteDocuments, recordTags, timelineEntryTodos, todos } from "../sync/schema";
 import { recordTagRow } from "../tags/tags.sync";
 import { forbidden, fromLocalTimestamp, groupFor, nowTimestamp, readRows } from "../timeline/timeline.sync";
@@ -756,14 +759,47 @@ const recipientToday = async (db: SyncDb, recipientId: string) => {
 };
 
 /**
+ * Insert a todo row, its upload flagged with `metadata` when given.
+ * `_metadata` is PowerSync's, outside the Drizzle table, so a flagged insert
+ * names the columns itself (a later UPDATE of it alone would upload a second op).
+ */
+const insertTodo = async (tx: Tx, row: typeof todos.$inferInsert, metadata: string | null) => {
+  if (!metadata) return tx.insert(todos).values(row);
+  const columns = getTableColumns(todos);
+  const set = Object.entries(row).flatMap(([key, value]) => {
+    const column = columns[key as keyof typeof columns];
+    return column && value !== undefined ? [{ column, value }] : [];
+  });
+  return tx.run(
+    sql`INSERT INTO ${todos} (${sql.join(
+      set.map(({ column }) => sql.identifier(column.name)),
+      sql`, `,
+    )}, _metadata) VALUES (${sql.join(
+      set.map(({ column, value }) => sql.param(value, column)),
+      sql`, `,
+    )}, ${metadata})`,
+  );
+};
+
+/**
  * Write the occurrence after `todo` (ticked or skipped today) in `tx`,
  * unless a live open row with its id exists; a live done one, like `todo`
  * itself, is passed over for the rule's following day (B-386), and a
  * soft-deleted one (an Undo took it away) comes back as new. As
- * `todoService`'s `insertNext`, so both write the same row.
+ * `todoService`'s `insertNext`, so both write the same row. `now` is the
+ * tick's time: the next is made then (and after `todo`, whose `created_at`
+ * may be the server's, ahead of this clock), so `reopenTodo` finds it.
+ * `metadata` flags a new row's upload (a tick's: `TICK_NEXT_METADATA`).
  */
-const planNext = async (db: SyncDb, todo: LocalTodo) => {
+const planNext = async (
+  db: SyncDb,
+  todo: LocalTodo,
+  { tickedAt = nowTimestamp(), metadata = null }: { tickedAt?: string; metadata?: string | null } = {},
+) => {
   if (!todo.repeatRule) return null;
+  const made = todo.createdAt ? new Date(todo.createdAt).getTime() + 1 : 0;
+  const now =
+    new Date(fromLocalTimestamp(tickedAt)).getTime() >= made ? tickedAt : toLocalTimestamp(new Date(made));
   const { nextOccurrence } = await import("@caretook/data/series");
   const today = await recipientToday(db, todo.recipientId);
   const passOver = new Set<string>();
@@ -776,7 +812,6 @@ const planNext = async (db: SyncDb, todo: LocalTodo) => {
   }
   if (!next) return null;
   if (row && !row.deleted_at) return null;
-  const now = nowTimestamp();
   // The group and recipient never change; `event_id` isn't this device's to write.
   const { id, groupId, recipientId, eventId: _e, ...content } = next;
   // The ticked todo's tags go on the next (tags PRD), with the link ids the
@@ -790,21 +825,27 @@ const planNext = async (db: SyncDb, todo: LocalTodo) => {
   });
   return async (tx: Tx) => {
     if (row) {
+      // Made again: `created_at` is now, so `reopenTodo` finds it as the
+      // occurrence made after this tick (`laterInChain`), as the server's restore.
       await tx
         .update(todos)
-        .set({ ...content, updatedAt: now, updatedBy: db.userId })
+        .set({ ...content, createdAt: now, updatedAt: now, updatedBy: db.userId })
         .where(eq(todos.id, id));
     } else {
-      await tx.insert(todos).values({
-        id,
-        groupId,
-        recipientId,
-        ...content,
-        createdAt: now,
-        updatedAt: now,
-        createdBy: db.userId,
-        updatedBy: db.userId,
-      });
+      await insertTodo(
+        tx,
+        {
+          id,
+          groupId,
+          recipientId,
+          ...content,
+          createdAt: now,
+          updatedAt: now,
+          createdBy: db.userId,
+          updatedBy: db.userId,
+        },
+        metadata,
+      );
     }
     for (const { tag_id: tagId } of tagLinks) {
       await tx.insert(recordTags).values(recordTagRow(db, groupId, tagId, "todo", id));
@@ -829,8 +870,10 @@ export const completeTodo = async (db: SyncDb, id: string): Promise<TodoWriteRes
   const refusal = await doneRefusal(db, existing);
   if (refusal) return refusal;
   if (existing.doneAt) return { ok: true, id };
-  const next = await planNext(db, existing);
+  // The tick's time is the next's `created_at` too: `laterInChain` finds it as
+  // made at or after `done_at`. A new next is flagged as the tick's (B-387).
   const now = nowTimestamp();
+  const next = await planNext(db, existing, { tickedAt: now, metadata: TICK_NEXT_METADATA });
   const rollup = await planRollup(db, { id, parentId: existing.parentId, doneAt: now, deletedAt: null }, now);
   await db.drizzle.transaction(async (tx) => {
     // Only the done columns change, so the upload maps it to complete.
@@ -841,14 +884,23 @@ export const completeTodo = async (db: SyncDb, id: string): Promise<TodoWriteRes
   return { ok: true, id };
 };
 
-/** The next live row of `todo`'s chain after its due day, if any (what ticking it made). */
+/**
+ * What ticking `todo` made (its successor): the live row of its chain, other
+ * than it, made at or after its `done_at` and after `todo` itself, the
+ * earliest first (then id), whatever its due day now (B-383), as
+ * todoService's `laterInChain` (which says why both). The tick writes both
+ * times from this device's clock, the next made after `todo` (`planNext`);
+ * synced rows carry the server's. `julianday` compares the device's and
+ * PowerSync's timestamp texts alike.
+ */
 const laterInChain = async (db: SyncDb, todo: LocalTodo) => {
-  if (!todo.repeatId || !todo.dueOn) return null;
+  if (!todo.repeatId || !todo.doneAt) return null;
   const [row] = await readRows<TodoRow>(db, {
-    sql: `SELECT * FROM todo WHERE group_id = ? AND repeat_id = ? AND id != ? AND due_on > ?
+    sql: `SELECT * FROM todo WHERE group_id = ? AND repeat_id = ? AND id != ?
+            AND julianday(created_at) >= julianday(?) AND julianday(created_at) > julianday(?)
             AND deleted_at IS NULL
-          ORDER BY due_on, id LIMIT 1`,
-    params: [todo.groupId, todo.repeatId, todo.id, todo.dueOn],
+          ORDER BY julianday(created_at), id LIMIT 1`,
+    params: [todo.groupId, todo.repeatId, todo.id, todo.doneAt, todo.createdAt],
   });
   return row ? toTodo(row) : null;
 };
@@ -1017,7 +1069,7 @@ export const createTodoDocument = async (db: SyncDb, todoId: string): Promise<Ac
 
 // Kept with this block (not at the top) so parallel slices' additions merge
 // as separate hunks; imports are hoisted either way.
-import { addDays, localDate, todoOrder } from "@caretook/data/schema";
+import { addDays, localDate, todoOrder } from "@caretook/data/domain";
 import { useMemo } from "react";
 import { useNow } from "../live-notes/editors.sync";
 import { useRememberedQuery } from "../sync/useRememberedQuery";

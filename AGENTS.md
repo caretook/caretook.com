@@ -5,7 +5,7 @@ The **core**: rules every session needs, and pointers to role and area docs (_Ar
 ## Working rules
 
 - **Build only what the user asks for.** Planned work is in the backlog and PRDs; start one only when the user says so.
-- **No new dependencies without the user's approval.** Pin approved ones exactly.
+- **No new dependencies without the user's approval.** Pin approved ones exactly (`scripts/build/pins.test.mjs` refuses ranges).
 - **Commit only when the user explicitly asks** ("run before committing" isn't asking). Exceptions: loops on their `slice/` branch; `risa backlog`; an orchestrator's `risa land` on the user's word (or landing mode). Never commit on `staging`/`main`.
 - **Small changes go straight onto `dev`** in the main checkout (docs, tooling, config, small fixes). Work needing a stack, running alongside other work, touching a running PRD's hot file or adding a migration is a PRD or fixes slice; a small fix in its own worktree is a [hotfix](docs/agents/hotfix.md). **Unsure? Ask.**
 - **Checks:** `pnpm check` before handing off. If every changed file is Markdown or tooling (`scripts/project/`, `.githooks/`, `risa.json`), just `pnpm exec prettier --check <files>` and `pnpm test:tooling`. Any other file, even a comment: `pnpm check` (`risa check` in a worktree).
@@ -35,7 +35,7 @@ Caretook: mobile-first tools for caretakers: a timeline (real-time **and** offli
 ## Architecture
 
 - **Two targets** (`BUILD_TARGET`): **web** (SSR on Vercel) and **native** (a static Capacitor SPA). `/app/*`, `/sign-in`, `/sign-out` are shared; `/`, `/api/auth/*`, `/rpc/*` web only. **Shared routes never export a server `loader` or `action`** (`clientLoader`/`clientAction`, local database, oRPC); `HydrateFallback` only in `root.tsx`.
-- **Data** ([data-layer](docs/domain/data-layer.md)): `@caretook/data` is server only (`/schema`, `/errors`, `/permissions`, `/series` are client-safe). Errors are returned; models enforce RBAC in SQL; **write through the services**; UUID keys, `timestamps`, `audits`.
+- **Data** ([data-layer](docs/domain/data-layer.md)): `@caretook/data` is server only (`/schema`, `/domain`, `/errors`, `/permissions`, `/series` are client-safe; pure logic lives in `/domain`). Errors are returned; models enforce RBAC in SQL; **write through the services**; UUID keys, `timestamps`, `audits`.
 - **Sync** ([sync](docs/domain/sync.md)): Postgres is the truth; devices keep a PowerSync SQLite copy and upload through our API. Last write wins per row; live notes merge through Yjs. Device queries are `lib/<area>/*.sync.ts`. Screens read the local database; server work is oRPC ([api](docs/domain/api.md)).
 - **Hosting** ([ops](ops/runbook.md)): Vercel, Neon, PowerSync Cloud; staging and production, deployed only by `deploy.yml`. Migrations stay additive (expand, then contract later).
 

@@ -1,8 +1,7 @@
-import type { DuePass } from "~/lib/medications/duePasses";
-
 import { TriangleAlert } from "lucide-react";
 import { Badge } from "~/components/ui";
-import { extraDoseText, medicationTitle } from "~/lib/medications/medicationDisplay";
+import type { DuePass } from "@caretook/data/schema";
+import { extraDoseText, medicationTitle } from "@caretook/data/schema";
 
 /**
  * A double dose called out: a warning badge ("Double dose") and the plain

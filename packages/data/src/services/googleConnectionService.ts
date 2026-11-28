@@ -28,8 +28,6 @@ import { careGroupMemberModel } from "../models";
 import { googleTokenKeyConfigured, openGoogleToken, sealGoogleToken } from "../utils/googleToken";
 import * as calendarSyncService from "./calendarSyncService";
 
-export const serviceName = "googleConnection";
-
 // A member's Google Calendar connection for one care group (appointments-2,
 // slice 7). Connect: `start` stores a state (hashed) and a PKCE verifier
 // (sealed) for 10 minutes and gives Google's consent URL; the callback's

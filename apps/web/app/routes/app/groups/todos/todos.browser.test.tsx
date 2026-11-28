@@ -1,7 +1,6 @@
 import type { DeviceRoute } from "../../../../../test/device";
 import type { GroupRole } from "../../../../../test/fixtures";
 
-import { addDays, localDate } from "@caretook/data/schema";
 import { afterEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import * as editSheet from "./edit/route";
@@ -14,6 +13,7 @@ import { at, fx, hoursAgo, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from ".
 import { clearTodoUndo } from "~/lib/todos/todoUndo";
 import { pickTime } from "../../../../../test/timeSelect";
 import { requiredLabels } from "../../../../../test/required";
+import { addDays, localDate } from "@caretook/data/domain";
 
 // The Planner's Todos tab (todos slice 1; tasks-2 put it under the Planner header): the list's Filter menu, sections, ticks with
 // Undo, Done with Reopen, what viewers see, and the add and edit sheets with
@@ -138,7 +138,7 @@ describe("the todo list", () => {
     expect(document.querySelector('main nav[aria-label="Filters on"]')).toBeNull();
     expect(device.location()).toBe(LIST);
 
-    // One section, Everyone first and checked.
+    // Assigned to (Everyone first and checked), then Subtasks on its default (todo-links-2).
     await openFilters();
     const menu = page.getByRole("menu", { name: "Filter todos" });
     await expect.element(menu).toBeVisible();
@@ -147,8 +147,12 @@ describe("the todo list", () => {
         document.getElementById(group.getAttribute("aria-labelledby") ?? "")?.textContent,
       [...group.querySelectorAll('[role="menuitemradio"]')].map((item) => item.textContent?.trim()),
     ]);
-    expect(sections).toEqual([["Assigned to", ["Everyone", "Mine", "Unassigned"]]]);
+    expect(sections).toEqual([
+      ["Assigned to", ["Everyone", "Mine", "Unassigned"]],
+      ["Subtasks", ["In their tree", "On their own"]],
+    ]);
     await expect.element(page.getByRole("menuitemradio", { name: "Everyone" })).toBeChecked();
+    await expect.element(page.getByRole("menuitemradio", { name: "In their tree" })).toBeChecked();
     expect(page.getByRole("menuitem", { name: "Clear filters" }).query()).toBeNull();
     await userEvent.keyboard("{Escape}");
     await expect.element(menu).not.toBeInTheDocument();

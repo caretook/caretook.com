@@ -1,9 +1,8 @@
-import type { TodoRuleFields } from "@caretook/data/schema";
 import type { TodoTree, TreeTodo } from "./todoTreeView";
 
-import { assigneeOf, localDate, todoState } from "@caretook/data/schema";
 import { matchingText } from "../core/textFilter";
-import { dayHeading } from "./todoDisplay";
+import type { TodoRuleFields } from "@caretook/data/domain";
+import { assigneeOf, localDate, todoState, dayHeading } from "@caretook/data/domain";
 
 // The todo list's shape (pure; web:unit tests it): which todos the
 // Everyone / Mine / Unassigned filter shows, its default, and the sections

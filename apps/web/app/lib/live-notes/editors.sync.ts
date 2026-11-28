@@ -1,16 +1,16 @@
-import type { NoteEdit, RecentEditor } from "@caretook/data/schema";
 import type { LiveDocument } from "./liveNow";
 import type { LocalQuery } from "../timeline/timeline.sync";
 
+import { useEffect, useState } from "react";
+import { liveDocuments } from "./liveNow";
+import { useLiveQuery } from "../sync/index";
+import type { NoteEdit, RecentEditor } from "@caretook/data/domain";
 import {
   parseNoteEditors,
   RECENT_EDITORS_TICK_MS,
   RECENT_EDITORS_WINDOW_MS,
   recentEditors,
-} from "@caretook/data/schema";
-import { useEffect, useState } from "react";
-import { liveDocuments } from "./liveNow";
-import { useLiveQuery } from "../sync/index";
+} from "@caretook/data/domain";
 
 // "Who's typing" on this device: each document's compacted `editors` plus
 // its pending updates' authors, through the shared pure `recentEditors`.

@@ -26,7 +26,6 @@ import { resolveRecipient } from "./medicationService";
 // is validated here, and adding an allergy clears "No known allergies"
 // (`care_recipient.no_known_allergies_at`) in the same transaction.
 
-export const serviceName = "recipientAllergy";
 export const schemaName = recipientAllergyModel.schemaName;
 
 const invalid = (error: z.ZodError) =>

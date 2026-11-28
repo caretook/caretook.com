@@ -9,7 +9,7 @@ import {
   FUTURE_START_ISSUE,
   isCarePeriodType,
 } from "./carePeriod";
-import { DEVICE_FUTURE_SKEW_MS, SERVER_FUTURE_SKEW_MS } from "../core/entryTiming";
+import { DEVICE_FUTURE_SKEW_MS, SERVER_FUTURE_SKEW_MS } from "../../../domain/core/entryTiming";
 
 const LA = "America/Los_Angeles";
 const NOW = new Date("2026-11-17T20:00:00.000Z");

@@ -1,7 +1,4 @@
-import type { ParsedSearch } from "@caretook/data/schema";
 import type { TimelineEntry } from "~/lib/core/rpc";
-
-import { highlightRanges } from "@caretook/data/schema";
 
 import { Link } from "react-router";
 import { Highlight } from "~/components/ui";
@@ -9,6 +6,8 @@ import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { useMedicationLinkState } from "~/lib/medications/medicationOrigin";
 import { entryMedication, medicationLabel } from "~/lib/medications/medicationEntries";
+import type { ParsedSearch } from "@caretook/data/domain";
+import { highlightRanges } from "@caretook/data/domain";
 
 /**
  * A dose's or change's heading: the medication ("Lisinopril 10 mg"), a link

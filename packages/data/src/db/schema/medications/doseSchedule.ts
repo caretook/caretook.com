@@ -1,8 +1,8 @@
 import type { DueMedication } from "./dueDoses";
 import type { PassLike } from "./medicationPass";
 
-import { addDays } from "../core/entryTiming";
-import { startOfDay } from "../core/zonedDay";
+import { addDays } from "../../../domain/core/entryTiming";
+import { startOfDay } from "../../../domain/core/zonedDay";
 import { doseSlotsBetween } from "./dueDoses";
 import { duePasses } from "./duePasses";
 

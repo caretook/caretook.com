@@ -6,7 +6,7 @@ import pg from "pg";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { createGroup, createWorld, ok, system } from "../../test/fixtures";
 import { appointmentSeriesSchema, getDb, noteDocumentSchema, timelineEntryProviderSchema } from "../db";
-import { entryProviderId, seriesVisitFallbackId, seriesVisitId } from "../db/schema";
+import { entryProviderId } from "../db/schema";
 import { isError } from "../errors";
 import { appointmentSeriesModel, timelineEntryModel } from "../models";
 import {
@@ -16,6 +16,7 @@ import {
   providerService,
   timelineEntryService,
 } from ".";
+import { seriesVisitFallbackId, seriesVisitId } from "../domain/appointments/repeatRule";
 
 // Each describe builds one world before its tests (none changes its members);
 // each test makes its own series. The clock is the appointments area's:

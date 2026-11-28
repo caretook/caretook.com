@@ -1,6 +1,5 @@
-import type { TodoRuleFields } from "@caretook/data/schema";
-
-import { siblingOrder, todoOrder, todoState } from "@caretook/data/schema";
+import type { TodoRuleFields } from "@caretook/data/domain";
+import { MAX_TODO_DEPTH, siblingOrder, todoOrder, todoState } from "@caretook/data/domain";
 
 // The one tree display's shape (todo-subtasks-3; pure, web:unit tests it):
 // every list of todos shows a subtask only inside its tree. `todoTrees`
@@ -97,6 +96,45 @@ export const todoTrees = <T extends TreeTodo>(
     ).map((lead) => byLead.get(lead.id)!),
     ...trees.filter((tree) => !tree.lead),
   ];
+};
+
+/**
+ * Subtasks on their own (todo-links-2): every live, open todo that matches
+ * as a tree of its own (no children, not context, its own lead), in
+ * `todoOrder`, so each is placed by its own due. Done and deleted todos are
+ * left out, and a match keeps no ancestors (there's no tree to place it in).
+ * The shape is `todoTrees`', so `todoSections` and `todoDayTrees` take it.
+ */
+export const splitTrees = <T extends TreeTodo>(
+  todos: readonly T[],
+  { now, timeZone, matches }: Omit<Options<T>, "rootId">,
+): TodoTree<T>[] =>
+  todoOrder(
+    todos.filter((t) => !t.deletedAt && !t.doneAt && (!matches || matches(t))),
+    now,
+    timeZone,
+  ).map((todo) => ({ todo, context: false, children: [], lead: todo }));
+
+/**
+ * A todo's ancestor chain (its parent, the parent's parent, …, up to the
+ * top) from the rows a list read (`parentOf`), for a split row's quick add
+ * (todo-links-2, B-994): on its own it's a top row, but its depth is its
+ * tree's. The walk stops at a parent the rows don't have, and never goes
+ * past `MAX_TODO_DEPTH`.
+ */
+export const ancestorChain = <P extends { parentId?: string | null }>(
+  todo: { parentId?: string | null },
+  parentOf: (parentId: string) => P | undefined,
+): P[] => {
+  const chain: P[] = [];
+  let parentId = todo.parentId;
+  while (parentId && chain.length < MAX_TODO_DEPTH) {
+    const parent = parentOf(parentId);
+    if (!parent) break;
+    chain.push(parent);
+    parentId = parent.parentId;
+  }
+  return chain;
 };
 
 /** The day view a todo is due in: "overdue", its due day, or null (done or undated). */

@@ -1,12 +1,12 @@
 import type { GroupRoleName } from "../constants";
 import type { AuthUser } from "../permissions";
-import type { CalendarItem, ShareLevel, TimelineEntry, TimelineEntryKind, Tx } from "../db";
+import type { ShareLevel, TimelineEntry, TimelineEntryKind, Tx } from "../db";
 import type { ServiceContext } from "./types";
 
 import { randomBytes } from "node:crypto";
 import { MAX_PAGE_SIZE, SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
-import { calendarItems, calendarWindow, hasDetailsConsent, shareLevel } from "../db/schema";
+import { hasDetailsConsent, shareLevel } from "../db/schema";
 import { isError, newError } from "../errors";
 import {
   careGroupMemberModel,
@@ -20,6 +20,8 @@ import {
   userModel,
 } from "../models";
 import { hashFeedToken } from "../models/memberCalendarSetting/memberCalendarSettingModel";
+import { calendarItems, calendarWindow } from "../domain/calendars/calendarItems";
+import type { CalendarItem } from "../domain/calendars/calendarItems";
 
 // A member's calendar feed for one care group (appointments-2, slice 5): a
 // secret URL that Apple, Google or Outlook calendars subscribe to. The token
@@ -30,7 +32,6 @@ import { hashFeedToken } from "../models/memberCalendarSetting/memberCalendarSet
 // request that the member is still in the group and their account is on,
 // and the feed is read as that member (RBAC in SQL) at their share level.
 
-export const serviceName = "calendarFeed";
 export const schemaName = memberCalendarSettingModel.schemaName;
 
 /** A token is 32 bytes in base64url: 43 characters. Anything else can't be one. */

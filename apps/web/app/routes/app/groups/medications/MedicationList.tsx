@@ -1,15 +1,14 @@
-import type { MedicationStatus, MedicationType } from "@caretook/data/schema";
-import type { DueDoses } from "~/lib/medications/dueDoses";
+import type { MedicationStatus, MedicationType, DueDoses, SchedulePass } from "@caretook/data/schema";
 import type { MedicationList as Listed } from "~/lib/medications/medicationList";
-import type { SchedulePass } from "~/lib/medications/medicationDisplay";
 import type { LocalMedication } from "~/lib/medications/medications.sync";
 import type { TagsByRecord } from "~/lib/providers/providerDirectory";
 
 import { EmptyState, List, TITLE_SUB } from "~/components/ui";
 import { useGroup } from "~/lib/app-shell/group";
 import { sectionAccent } from "~/lib/app-shell/sectionAccents";
-import { MEDICATION_TYPE_LABELS, STATUS_LABELS } from "~/lib/medications/medicationDisplay";
 import { MedicationListItem } from "./MedicationListItem";
+import { MEDICATION_TYPE_LABELS } from "@caretook/data/domain";
+import { STATUS_LABELS } from "@caretook/data/schema";
 
 const countLabel = (n: number) => `${n} ${n === 1 ? "medication" : "medications"}`;
 

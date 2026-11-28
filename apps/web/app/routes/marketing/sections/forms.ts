@@ -1,6 +1,5 @@
-import type { WaitlistSource } from "@caretook/data/schema";
-
-import { UTM_PARAMS } from "@caretook/data/schema";
+import type { WaitlistSource } from "@caretook/data/domain";
+import { UTM_PARAMS } from "@caretook/data/domain";
 
 // Pure helpers for the marketing site's public forms (the waitlist and
 // contact). The form components are in PublicForm.tsx.

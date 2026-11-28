@@ -1,7 +1,7 @@
 import type { TimedEntry } from "../../../../lib/appointments/upcoming";
 
-import { dayLabel } from "../../../../lib/core/format";
 import { timeRange } from "../../../../lib/appointments/upcomingLabels";
+import { dayLabel } from "@caretook/data/domain";
 
 // The todo sheet's links, their pure parts (web:unit tests it, so imports
 // stay relative): when an event is, and what a chosen link's chip says. The

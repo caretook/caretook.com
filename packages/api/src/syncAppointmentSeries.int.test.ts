@@ -4,13 +4,13 @@ import {
   entryProviderService,
   noteDocumentService,
   providerService,
-  seriesVisitId,
   timelineEntryService,
 } from "@caretook/data";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../data/test/fixtures";
 import { clientFor, upload } from "./testing";
+import { seriesVisitId } from "@caretook/data/domain";
 
 // sync.upload for repeating series (appointments-2): rows as a device's
 // SQLite holds them (snake_case, JSON as text, booleans as 1/0). Each test

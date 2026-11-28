@@ -1,5 +1,5 @@
 import type { ReminderGroupInputs } from "@caretook/data";
-import type { ReminderItem, ReminderSend, ShareLevel } from "@caretook/data/schema";
+import type { ShareLevel } from "@caretook/data/schema";
 import type { ReminderEmailData } from "./templates/reminders";
 import type { Sender } from "./senders";
 
@@ -11,9 +11,11 @@ import {
   newError,
   withTransaction,
 } from "@caretook/data";
-import { calendarItems, calendarText, planReminders, shareLevel } from "@caretook/data/schema";
+import { shareLevel } from "@caretook/data/schema";
 import { deliverSoon, notify } from "./outbox";
 import { reminderUnsubscribePath } from "./templates/reminders";
+import type { ReminderItem, ReminderSend } from "@caretook/data/domain";
+import { calendarItems, calendarText, planReminders } from "@caretook/data/domain";
 
 // The reminder sweep (appointments-2 slice 6), the calendar cron's first
 // step. Each run, in one transaction: lock `calendars.lastReminderRunAt`,

@@ -3,8 +3,8 @@ import type { QuickEntryContext, QuickEntryReading } from "./quickEntry";
 import { describe, expect, test } from "vitest";
 import { assistantActionZSchema } from "./assistantActions";
 import { editDistance, parseQuickEntry, splitQuickEntry } from "./quickEntry";
-import { findTime } from "./quickEntryTime";
-import { QUICK_ENTRY_VOCABULARY } from "./quickEntryVocabulary";
+import { findTime } from "../../../domain/assistant/quickEntryTime";
+import { QUICK_ENTRY_VOCABULARY } from "../../../domain/assistant/quickEntryVocabulary";
 
 // The quick-entry parser, table-driven (in the style of search.test.ts):
 // each row is a line and what its parts should read as. The clock is fixed in

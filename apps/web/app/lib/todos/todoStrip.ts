@@ -1,6 +1,5 @@
-import type { TodoRuleFields } from "@caretook/data/schema";
-
-import { todoState } from "@caretook/data/schema";
+import type { TodoRuleFields } from "@caretook/data/domain";
+import { todoState } from "@caretook/data/domain";
 
 // The timeline's todo strip: one line, there while the group has open todos
 // overdue or due today. Which todo it names (`todoStrip`) and what it says

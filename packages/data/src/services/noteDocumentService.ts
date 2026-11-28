@@ -10,16 +10,7 @@ import type { ServiceContext } from "./types";
 
 import { SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
-import {
-  buildNoteDoc,
-  canHaveNoteDocument,
-  encodeNoteDoc,
-  mergeEditors,
-  noteDocumentCreateZSchema,
-  noteText,
-  noteUpdateCreateZSchema,
-  parseNoteEditors,
-} from "../db/schema";
+import { canHaveNoteDocument, noteDocumentCreateZSchema, noteUpdateCreateZSchema } from "../db/schema";
 import { isError, newError } from "../errors";
 import {
   carePeriodModel,
@@ -33,6 +24,8 @@ import {
 } from "../models";
 import { isWriterRole } from "../constants";
 import { isSystemUser, rejectError } from "../permissions";
+import { buildNoteDoc, encodeNoteDoc, noteText } from "../domain/live-notes/noteYjs";
+import { mergeEditors, parseNoteEditors } from "../domain/live-notes/noteEditors";
 
 // Live documents (collaborative notes) on note and event entries, on
 // providers, medications, care periods and todos. Write documents and updates through here, not the models: this
@@ -42,7 +35,6 @@ import { isSystemUser, rejectError } from "../permissions";
 // ever append updates; `compact` folds them into the snapshot and refreshes
 // the plain text.
 
-export const serviceName = "noteDocument";
 export const schemaName = noteDocumentModel.schemaName;
 
 const invalid = (error: z.ZodError) =>

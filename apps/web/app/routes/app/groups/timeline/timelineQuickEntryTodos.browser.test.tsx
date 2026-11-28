@@ -1,6 +1,5 @@
 import type { DeviceRoute } from "../../../../../test/device";
 
-import { addDays, localDate } from "@caretook/data/schema";
 import { afterEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
@@ -11,6 +10,7 @@ import * as newTodo from "../todos/new/route";
 import * as timeline from "./route";
 import { rowWith, TIMELINE_URL } from "./timelineWorld";
 import { found, waitUntil } from "../../../../../test/found";
+import { addDays, localDate } from "@caretook/data/domain";
 
 // Quick entry adds todos (todos slice 7), on the test device (offline): a
 // `todo:` line previews as a todo card ("Todo · Due tomorrow 17:00", its

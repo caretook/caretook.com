@@ -36,7 +36,7 @@
 //      button offline and the confirm are home/pendingRequests.browser.test.tsx's.)
 //  13. An access code's /join: one call makes the account, its group (as
 //      owner) and the redemption; the emailed confirmation opens the new
-//      group's timeline with the Invite someone card. A revoked code says so
+//      group on its setup pages, and Later reaches its timeline. A revoked code says so
 //      with no form, and signed out, staff pages ask to sign in.
 //
 // The invite page's views, the wrong-account view, the sign-in tabs, the
@@ -1066,14 +1066,15 @@ test("13. /join: sign up with a code, confirm, the new group opens; a closed cod
     ).toBe("owner|1|1");
   });
 
-  await test.step("the confirmed link opens the new group's timeline, with the Invite someone card", async () => {
+  await test.step("the confirmed link opens the new group on its setup pages; Later reaches its timeline", async () => {
     const mail = await waitForMail(joiner, "verifyEmail");
     const link = mail.links.find((l) => l.includes("/verify-email?token="));
     await p.goto(pathAndSearch(link));
     await expect(heading(p)).toHaveText("Email confirmed", { timeout: 20_000 });
     await mainLink(p, "Continue to Caretook").click();
+    await p.waitForURL((u) => /\/setup\/providers$/.test(u.pathname), { timeout: 45_000 });
+    await p.locator("[data-setup-later]").click();
     await p.waitForURL((u) => /\/timeline$/.test(u.pathname), { timeout: 45_000 });
-    await expect(p.locator("[data-invite-card]")).toBeVisible({ timeout: 45_000 });
   });
 
   await test.step("a revoked code says so, with no form", async () => {

@@ -73,12 +73,6 @@ export const emergencyEntries = (
   });
 };
 
-/** The primary contact's name, if there is one (on the list or not). */
-export const primaryContactName = (members: readonly EmergencyMemberRow[]) => {
-  const primary = members.find((m) => !!m.is_primary_contact);
-  return primary ? memberName(primary.name) : null;
-};
-
 /** An entry's numbers as call (and text) links. */
 export const emergencyPhoneLines = (entry: EmergencyEntry): MemberContactLine[] =>
   entry.phones.flatMap((phone) => {

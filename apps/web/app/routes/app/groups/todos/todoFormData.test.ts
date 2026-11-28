@@ -1,7 +1,7 @@
-import { ruleText } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import { choiceRule } from "../../../../lib/appointments/repeatChoice";
 import { initialRepeat, isFieldIssue, prefillRepeat, repeatOnDay, todoFromForm } from "./todoFormData";
+import { ruleText } from "@caretook/data/domain";
 
 const form = (entries: Record<string, string>) => {
   const f = new FormData();

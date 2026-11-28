@@ -11,7 +11,7 @@ import {
   VITAL_TYPES,
   VITALS,
 } from "@caretook/data/schema";
-import { dayKeyIn } from "./timelineDays";
+import { dayKeyIn } from "../../../../lib/timeline/timelineDays";
 
 // The one line under each day's heading on the timeline: how the day went,
 // from its entries and the 7 days before it. Pure, so web:unit tests it; the

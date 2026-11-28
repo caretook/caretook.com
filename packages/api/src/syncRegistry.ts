@@ -18,14 +18,13 @@ import {
   providerService,
   recipientAllergyService,
   recipientConditionService,
-  ROLLUP_METADATA,
   symptomTypeService,
   tagService,
   timelineEntryService,
   todoService,
-  UNDO_NEXT_METADATA,
   withTransaction,
 } from "@caretook/data";
+import { ROLLUP_METADATA, TICK_NEXT_METADATA, UNDO_NEXT_METADATA } from "@caretook/data/domain";
 
 // The upload registry: which device tables `sync.upload` writes, and how each
 // op maps onto the services (never the models, so RBAC and validation apply
@@ -406,12 +405,15 @@ const todo = softDelete({
   handled: ["done_at", "repeat_id", "repeat_starts_on"],
   serverSet: ["done_by", "via"],
   // A repeating todo's later occurrence (its chain is another todo's): the
-  // twin of the row the server makes on the tick, or a device's skip.
+  // twin of the row the server makes on the tick (flagged: it never creates,
+  // B-387), or a device's skip.
   put: (ctx, op, input) => {
     const repeatId = text(op.data?.repeat_id);
     if (!repeatId || repeatId === op.id) return todoService.upsert(ctx, input as never);
     const occurrence = { ...input, repeatId, repeatStartsOn: text(op.data?.repeat_starts_on) };
-    return todoService.upsertOccurrence(ctx, occurrence as never);
+    return todoService.upsertOccurrence(ctx, occurrence as never, {
+      fromTick: op.metadata === TICK_NEXT_METADATA,
+    });
   },
   afterPut: async (ctx, op) => (op.data?.done_at ? setTodoDone(ctx, op.id, op.data.done_at) : applied),
   patch: async (ctx, op, { remove, update }) => {

@@ -7,8 +7,6 @@ import type {
   DueDose,
   DueMedication,
   EntryEditAction,
-  NoteMention,
-  NoteSectionLine,
   SheetDoseOutcome,
   TimelineEntryCreateInput,
   TimelineEntryUpdateInput,
@@ -20,35 +18,25 @@ import type { ServiceContext } from "./types";
 import { z } from "zod";
 import { withTransaction } from "../db";
 import {
-  appendNoteSection,
   assistantActionZSchema,
   BAD_TODO_LINK_ISSUES,
   conditionActionZSchema,
   canHaveNoteDocument,
   entryEditActionZSchema,
-  DEVICE_FUTURE_SKEW_MS,
   doseRecord,
   doseSlotIdFor,
   dueDoses,
   duePasses,
-  encodeNoteDoc,
   FALLBACK_TIME_ZONE,
-  FUTURE_DATE_MESSAGE,
   givenAllWrites,
   isDoseDetails,
   isSymptomDetails,
-  isTooFarAhead,
   normalizeSchedule,
-  noteDocFromText,
   passRoundId,
   SHEET_DOSE_MARKS_MAX,
   sheetDoseMarkZSchema,
   sheetDoseOutcomes,
-  addDays,
-  dayInZone,
-  startOfDay,
   timelineEntryContentZSchema,
-  toBase64,
 } from "../db/schema";
 import { SYSTEM_USER, isWriterRole } from "../constants";
 import { isError, newError } from "../errors";
@@ -69,6 +57,15 @@ import * as recipientConditionService from "./recipientConditionService";
 import * as symptomTypeService from "./symptomTypeService";
 import * as todoService from "./todoService";
 import * as timelineEntryService from "./timelineEntryService";
+import { appendNoteSection, encodeNoteDoc, noteDocFromText, toBase64 } from "../domain/live-notes/noteYjs";
+import {
+  DEVICE_FUTURE_SKEW_MS,
+  FUTURE_DATE_MESSAGE,
+  isTooFarAhead,
+  addDays,
+} from "../domain/core/entryTiming";
+import { dayInZone, startOfDay } from "../domain/core/zonedDay";
+import type { NoteMention, NoteSectionLine } from "../domain/live-notes/noteYjs";
 
 // Carrying out assistant actions on the server (connectors PRD): the twin of
 // the device's `runActions` (lib/assistant/quickEntry.sync.ts), for a
@@ -93,8 +90,6 @@ import * as timelineEntryService from "./timelineEntryService";
 // and `resolveCondition` go through `recipientConditionService` (its rules,
 // refusals and condition change entries; the change entry carries `via`).
 // Another group's condition id reads as not found.
-
-export const serviceName = "assistantAction";
 
 export type RunOptions = {
   /** The assistant the batch came through ("Claude"): stored on every entry and todo. */

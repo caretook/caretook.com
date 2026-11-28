@@ -18,7 +18,7 @@ import { careGroupSchema } from "../care-groups/careGroup";
 import { careRecipientSchema } from "../profiles/careRecipient";
 import { audits, id, timestamps } from "../core/columns";
 import { isPassSlot, medicationScheduleZSchema, scheduleTimeZSchema, toChangeTime } from "./medication";
-import { uuidV5 } from "../core/uuidV5";
+import { uuidV5 } from "../../../domain/core/uuidV5";
 
 // A care group's medication passes: the rounds medications are given in
 // ("Morning · 08:00", "Evening · 20:00"). A medication's schedule names the

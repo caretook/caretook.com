@@ -15,10 +15,10 @@
     "@caretook/data": "workspace:*",
     "@caretook/notifications": "workspace:*",
     "better-auth": "1.7.25",
-    "drizzle-orm": "^0.45.4"
+    "drizzle-orm": "0.45.4"
   },
   "devDependencies": {
-    "@types/node": "^24.19.2",
-    "typescript": "^5.9.3"
+    "@types/node": "24.19.2",
+    "typescript": "5.9.3"
   }
 }
