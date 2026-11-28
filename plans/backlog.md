@@ -253,7 +253,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-954 | bug | triaged | fixes-tooling |  | Browser checks and prd serve run on a stack whose applied migrations are behind the repo's, so a missing column fails a check far from its cause |
 | B-961 | change | triaged | shared-displays |  | Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down |
 | B-965 | change | triaged | fixes-perf |  | Group the tiny shared app helper chunks on the first /app load |
-| B-966 | change | in-progress | fixes-perf | prd/fixes-perf | Marketing and sign-in pages load the whole shared icons chunk (~5-10.5 KB gz) since slice 11 grouped lucide icons |
+| B-966 | change | ready | fixes-perf | prd/fixes-perf | Marketing and sign-in pages load the whole shared icons chunk (~5-10.5 KB gz) since slice 11 grouped lucide icons |
 | B-967 | bug | triaged | fixes-tooling |  | Browser check layout-offline fails at 'offline: a row's edit link opens its edit sheet': the row's tag chips cover the Edit link's centre |
 | B-972 | feature | triaged | tags-4 |  | Tags tab on the planner: a unified view listing all tags and the items tagged with each |
 | B-975 | change | landed | fixes-ui | prd/fixes-ui | Marketing home: AI providers 'will not' keep your data or train on it, not 'may not' (apps/web/app/routes/marketing/home/content.ts, the AI answer) |
@@ -265,6 +265,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-996 | bug | landed | fixes-bug |  | CI: scripts/project/project-data.test.mjs: this checkout's project data passes the tool's project-data check fails on d… |
 | B-997 | bug | landed | fixes-bug |  | CI: scripts/project/project-data.test.mjs: this checkout's role docs the sections the prompts and docs name are in the … |
 | B-998 | bug | triaged | fixes-tooling |  | search.sync.browser.test.tsx's 50 ms query budget flakes on CI runners (51.8 ms for 'the' on run 46097107440) |
+| B-999 | change | triaged | fixes-ui |  | Timeline day headers: on mobile, abbreviate the weekday (Mon, Tue, …) where a header shows day and date, so rows fit small screens without wrapping; full name on wider screens |
 
 ## Items
 
@@ -1498,15 +1499,17 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-27 (slice/fixes-perf/11): From fixes-perf slice 11 (B-960): after the icons group, the first /app load still fetches ~74 shared app chunks under 2 KB (lib/, components/, packages/data schema helpers) plus ~22 tiny React Router route-chunk stubs. A plain codeSplitting group over app code doesn't work: a group takes its modules' dependencies (includeDependenciesRecursively), so an entriesAware group with a merge threshold dragged rrule and yjs into the /app shell and blew the entry to 209 KB gz. includeDependenciesRecursively: false needs preserveEntrySignatures 'allow-extension' or false, which React Router's client build overrides to 'exports-only' (INVALID_OPTION). Options: a Vite plugin hook setting preserveEntrySignatures for the client build (check React Router's route exports still hold) with strictExecutionOrder, or Rolldown's experimentalInlineCommonChunks (experimental). Measure with the slice-11 bench (HTTP/1.1 is where it pays).
+- 2026-11-27 (prd/fixes-perf): Wave 3 (2026-11-27): written as fixes-perf slice 14 but not started: disk 5 GB free, under Risa's 10 GB stack line. Runs next wave as slice 14 (already in the plan) once there is space.
 
 ### B-966 · change · Marketing and sign-in pages load the whole shared icons chunk (~5-10.5 KB gz) since slice 11 grouped lucide icons
 
-- status: in-progress
+- status: ready
 - prd: fixes-perf
 - owner: prd/fixes-perf
-- commit:
+- commit: 341b757c7
 
 - 2026-11-27 (prd/fixes-perf): From fixes-perf slice 11 (B-960, merge c81f220e): the client build's codeSplitting 'icons' group (apps/web/vite.config.ts) puts every lucide-react icon in one chunk (40 KB raw, 13.2 KB gz). Sign-in and marketing pages that use one or two icons now fetch it: ~10.5 KB gz more on sign-in and marketing, ~5 KB on home/faq/about/features. The user: every KB there counts for Lighthouse and SEO. Fix: keep the icons group to /app routes only (e.g. a group test scoped to modules reached from app/routes/app/, or inline icons on public pages), then check Lighthouse on / and /sign-in and the budget (scripts/build/budget.json); budget's together: [lucide-react] rule may need scoping to the app group.
+- 2026-11-27 (slice/fixes-perf/13): Slice 13 (3d45fd5ef): icons split by who reaches them: icons (app only, 106 icons, 9.9 KB gz), icons-public (public pages' icons + lucide core, 2.0 KB gz), icons-marketing (marketing-only, 2.6 KB gz); a build plugin reads lucide imports (scripts/build/chunks.mjs). JS gz: / 161.6->152.5 KB, /sign-in 209.1->197.4 KB, /app timeline 541.6->542.8 KB (128->130 files). Budget: keepOut public/sign-in groups. Lighthouse not run (no dependency).
 
 ### B-967 · bug · Browser check layout-offline fails at 'offline: a row's edit link opens its edit sheet': the row's tag chips cover the Edit link's centre
 
@@ -1605,3 +1608,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-27 (prd/code-health): Seen on prd/code-health 5d4ee6ba (PR #299), full run 46097107440, components-1. The branch doesn't touch lib/search; it passed 3 of 3 locally. A hard 50 ms wall-clock bound is too tight for a loaded runner.
+
+### B-999 · change · Timeline day headers: on mobile, abbreviate the weekday (Mon, Tue, …) where a header shows day and date, so rows fit small screens without wrapping; full name on wider screens
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-27 (Robert Bo Davis): From the user 2026-11-27, triaged to fixes-ui (layout). Standard short weekday names (Intl weekday: "short"), mobile breakpoint only; desktop keeps the full name. The timeline's day label likely comes from dayFormat in apps/web/app/lib/core/format.ts (weekday and month long); check every day header that uses it so they stay one shared display. EasyTimeline.tsx has its own long format too.
