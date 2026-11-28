@@ -6,10 +6,12 @@
 
 | Slice | Wave | State   | Merge into `prd/sync-safety-2` (slice commits) |
 | ----- | ---- | ------- | ---------------------------------------------- |
-| 1     | 1    | planned |                                                |
-| 2     | 1    | planned |                                                |
+| 1     | 1    | started |                                                |
+| 2     | 1    | started |                                                |
 | 3     | 2    | planned |                                                |
-| 4     | 1    | planned |                                                |
+| 4     | 1    | started |                                                |
+
+- **Landing mode: run everything through** (dispatcher start, 2026-11-27). Wave 1: slices 1, 2, 4 started 2026-11-27 (worktrees `.loops/sync-safety-2-<n>`, agents on opus; items claimed). Start conditions met: `tags`, `todo-subtasks` landed (staging).
 
 ## Durable decisions
 
