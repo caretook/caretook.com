@@ -8,7 +8,7 @@
 
 **Landing mode:** run everything through (started run-through by the dispatcher, 2026-11-28).
 
-**Where it stands:** wave 1 merged 2026-11-28 (slices 1, 2; both opus); wave gate green (integration, run 46185645554, e43c7024); dev sync not needed; slice worktrees removed; PR #352 open, Codex review out; served at :6373. Slice worktrees kept until green. Follow-up idea from slice 2: the three email templates still each write out the role labels ("an owner"…).
+**Where it stands:** wave 1 merged 2026-11-28 (slices 1, 2; both opus); wave gate green (integration, run 46185645554, e43c7024); dev sync not needed; slice worktrees removed; PR #352 open, Codex clean on e43c702; care-groups.md folded; landing wave 1 next, then rotate for wave 2 (slices 3, 4, 5, all ready once wave 1 lands). Slice worktrees kept until green. Follow-up idea from slice 2: the three email templates still each write out the role labels ("an owner"…).
 
 | Slice | Wave | State   | Merge into `prd/code-health-4` (slice commits) |
 | ----- | ---- | ------- | ---------------------------------------------- |
