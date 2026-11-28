@@ -16,10 +16,10 @@ Small performance fixes: speed and load. There is no PRD: this plan is the whole
 
 **Wave 3** (2026-11-27, reopened run-through by the dispatcher): slice 13 (B-966, public pages without the app icons chunk) then slice 14 (B-965, group the tiny helper chunks); both edit `apps/web/vite.config.ts`, so in turn. Models: both Opus.
 
-| Slice | Item  | State               | Merge |
-| ----- | ----- | ------------------- | ----- |
-| 13    | B-966 | starting (Opus)     |       |
-| 14    | B-965 | waits for 13 (Opus) |       |
+| Slice | Item  | State                                  | Merge |
+| ----- | ----- | -------------------------------------- | ----- |
+| 13    | B-966 | working (Opus, worktree fixes-perf-13) |       |
+| 14    | B-965 | waits for 13 (Opus)                    |       |
 
 ## Wave 1
 
