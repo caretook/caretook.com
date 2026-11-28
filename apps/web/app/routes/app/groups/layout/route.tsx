@@ -6,6 +6,7 @@ import { getGroup, GroupProvider, setGroup, useGroup } from "~/lib/app-shell/gro
 import { sessionContext } from "~/lib/auth/session";
 import { MemberLooksProvider } from "~/lib/care-groups/useMemberLooks";
 import { easyRoleRedirect } from "~/lib/assistant/easyModeLock";
+import { setupRedirect } from "./setupRedirect";
 import { useSetupNudges } from "./useSetupNudges";
 
 // Shared by web + native. `/app/groups/:groupId`: every screen about one
@@ -24,25 +25,28 @@ import { useSetupNudges } from "./useSetupNudges";
 // (`lib/assistant/easyModeLock.ts`): by the middleware on each navigation, and
 // by `EasyRoleRedirect` when the role arrives by sync while they're on one.
 //
-// The person who sets the group up gets its setup nudges here, over every
-// group page but the setup pages (`useSetupNudges`).
+// The person who sets the group up is sent to its setup pages on their first
+// open of it, from any group page (`setupRedirect`), and gets its setup
+// nudges here, over every group page but the setup pages (`useSetupNudges`).
 
 export const clientMiddleware: Route.ClientMiddlewareFunction[] = [
   async ({ request, params, context }) => {
     const { db } = context.get(sessionContext);
     await setGroup(context, db, params.groupId);
-    let easyRole = false;
+    let group: ReturnType<typeof getGroup> | null = null;
     try {
-      easyRole = getGroup(context).easyRole;
+      group = getGroup(context);
     } catch {
       // No group: the loaders throw its error.
     }
     const to = easyRoleRedirect({
       groupId: params.groupId,
       pathname: new URL(request.url).pathname,
-      easyRole,
+      easyRole: group?.easyRole ?? false,
     });
     if (to) throw redirect(to);
+    const setup = group && (await setupRedirect({ request, db, group }));
+    if (setup) throw redirect(setup);
   },
 ];
 

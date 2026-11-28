@@ -1,11 +1,13 @@
 import type { DeviceRoute } from "../../../../../test/device";
 
-import { describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { apiCalls } from "../../../../../test/api";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 import { requiredLabels } from "../../../../../test/required";
+import * as setupLayout from "../setup/layout/route";
+import * as setupProviders from "../setup/providers/route";
 import { InviteSomeoneCard } from "../timeline/InviteSomeoneCard";
 import * as newGroup from "./route";
 
@@ -13,7 +15,8 @@ import * as newGroup from "./route";
 // the group menu's "New care group" opens it and closing it goes back; a
 // typed URL closes to /app; the group name defaults to the preferred name;
 // Create calls `careGroup.create` once and, when the new membership syncs
-// in, opens the new group's timeline with the Invite someone card; offline
+// in, opens the new group, on its setup pages' first step (the first-open
+// redirect, `layout/setupRedirect.ts`); offline
 // it says it needs a connection. The server's side (the group, recipient
 // and creator as owner in one go) is packages/api/src/groups.int.test.ts's;
 // the real create syncing into a signed-in device is first-sync.mjs's.
@@ -38,6 +41,11 @@ const ROUTES: DeviceRoute[] = [
     },
   },
   {
+    path: "/app/groups/:groupId/setup",
+    module: setupLayout,
+    children: [{ path: "/app/groups/:groupId/setup/providers", module: setupProviders }],
+  },
+  {
     path: "/app/groups/:groupId/timeline",
     module: {
       default: () => (
@@ -58,6 +66,8 @@ const open = (options: Partial<Parameters<typeof renderWithDevice>[0]> = {}) =>
 const sheet = () => page.getByRole("dialog", { name: "New care group", exact: true });
 // By accessible name: a required label's `*` is aria-hidden, so it isn't part of it.
 const field = (label: string) => sheet().getByRole("textbox", { name: label, exact: true });
+
+afterEach(() => localStorage.clear());
 
 describe("the New care group sheet", () => {
   test("the group menu's New care group opens it; closing it goes back to the timeline", async () => {
@@ -86,10 +96,14 @@ describe("the New care group sheet", () => {
     await expect.poll(device.location).toBe("/app");
   });
 
-  test("Create makes the group once, then opens its timeline when it syncs in, with the Invite someone card", async () => {
+  test("Create makes the group once, then opens it when it syncs in, on its providers setup step", async () => {
+    // This device knows the account's settings (it has opened another group before).
+    localStorage.setItem(`caretook:settings:${TEST_USER.id}`, "{}");
+    localStorage.setItem(`caretook:settings:${TEST_USER.id}:known`, "true");
     const calls = apiCalls();
     let arrive = (): Promise<void> => Promise.resolve();
     const device = await open({
+      noSetupRecord: true,
       api: calls.record({
         "careGroup.create": () => {
           // The new group reaches the device a moment after the API answers.
@@ -110,11 +124,11 @@ describe("the New care group sheet", () => {
     await expect.element(field("Group name")).toHaveAttribute("placeholder", "Lou's care");
     await userEvent.click(sheet().getByRole("button", { name: "Create care group" }));
 
-    await expect.poll(device.location).toBe(timelineUrl(NEW.group));
-    await expect.element(page.getByRole("heading", { name: "Invite someone" })).toBeVisible();
+    await expect.poll(device.location).toBe(`/app/groups/${NEW.group}/setup/providers`);
     await expect
-      .element(page.getByRole("link", { name: "Invite someone" }))
-      .toHaveAttribute("href", `/app/groups/${NEW.group}/settings/members`);
+      .element(page.getByRole("heading", { name: "Who helps with their care?", level: 1 }))
+      .toBeVisible();
+    expect(document.querySelector("[data-invite-card]")).toBeNull();
     // A new group takes the zone of the device creating it, wherever the test runs.
     const deviceZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     expect(calls.of("careGroup.create")).toEqual([
