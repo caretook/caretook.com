@@ -34,16 +34,26 @@ const MESSAGES: Record<SetupNudge, string> = {
 const lastShownKey = (userId: string) => `caretook:settings:${userId}:nudge-shown`;
 const sessionKey = (userId: string) => `caretook:setup-nudge-session:${userId}`;
 
+/**
+ * This page's own copy of each user's last nudge (ms), set with storage. When
+ * storage can't be written (private mode, a full quota), it still spaces the
+ * nudges: the session's first counts as shown, and the next waits its slot.
+ */
+const shownHere = new Map<string, number>();
+
 const readLastShown = (userId: string): number | null => {
+  const here = shownHere.get(userId) ?? null;
   try {
     const value = Number(localStorage.getItem(lastShownKey(userId)));
-    return Number.isFinite(value) && value > 0 ? value : null;
+    const stored = Number.isFinite(value) && value > 0 ? value : null;
+    return stored === null ? here : Math.max(stored, here ?? 0);
   } catch {
-    return null;
+    return here;
   }
 };
 
 const readSessionShown = (userId: string) => {
+  if (shownHere.has(userId)) return true;
   try {
     return sessionStorage.getItem(sessionKey(userId)) === "1";
   } catch {
@@ -51,15 +61,19 @@ const readSessionShown = (userId: string) => {
   }
 };
 
-/** Remember a nudge shown now, on this device and in this session. */
+/** Remember a nudge shown now: on this page first, then on this device and in this session. */
 const markShown = (userId: string, now: number) => {
+  shownHere.set(userId, now);
   try {
     localStorage.setItem(lastShownKey(userId), String(now));
     sessionStorage.setItem(sessionKey(userId), "1");
   } catch {
-    // No storage: the session's first nudge comes again next time.
+    // No storage: this page's copy spaces the nudges until it reloads.
   }
 };
+
+/** Forget this page's copy (tests, which start each one afresh). */
+export const forgetShownNudges = () => shownHere.clear();
 
 export function useSetupNudges() {
   const { id: groupId, userId, role } = useGroup();
