@@ -1,4 +1,3 @@
-import type { SetupFacts } from "./gettingStarted";
 import type { GroupSetupFacts } from "./groupSetup";
 import type { SyncDb } from "../sync";
 
@@ -7,18 +6,16 @@ import { useMemo } from "react";
 import { useLiveQuery } from "../sync";
 import { fromLocalTimestamp } from "../timeline/timeline.sync";
 
-// The setup card's and the setup pages' facts, from the device's synced
-// copy, so their steps tick themselves off offline and when another member
-// does the work: live for screens (`useSetupFacts`), once for loaders
-// (`readSetupFacts`).
+// The setup facts (the setup pages', the nudges' and the Timeline welcome's),
+// from the device's synced copy, so steps tick themselves off offline and
+// when another member does the work: live for screens (`useSetupFacts`),
+// once for loaders (`readSetupFacts`).
 
 type FactsRow = {
   joined_at: string | null;
   allergy_or_condition: number;
   medication: number;
   entry: number;
-  others: number;
-  connectors_enabled: number | null;
   provider: number;
   care_period: number;
   earliest_member_id: string | null;
@@ -43,8 +40,6 @@ const FACTS_SQL = `
       SELECT 1 FROM timeline_entry
       WHERE group_id = ?1 AND deleted_at IS NULL AND kind NOT IN (${KIND_MARKS})
     ) AS entry,
-    EXISTS (SELECT 1 FROM care_group_member WHERE group_id = ?1 AND user_id != ?2) AS others,
-    (SELECT connectors_enabled FROM care_group WHERE id = ?1) AS connectors_enabled,
     EXISTS (SELECT 1 FROM provider WHERE group_id = ?1 AND deleted_at IS NULL) AS provider,
     EXISTS (SELECT 1 FROM care_period WHERE group_id = ?1 AND deleted_at IS NULL) AS care_period,
     (
@@ -53,22 +48,19 @@ const FACTS_SQL = `
     ) AS earliest_member_id`;
 
 export type SetupFactsResult = {
+  /** When you joined (the Timeline welcome's window). */
   joinedAt: string | null;
-  /** The Timeline's setup card's. */
-  facts: SetupFacts;
+  facts: Readonly<{
+    /** An entry someone logged (not one written automatically with a medication or condition). */
+    hasEntry: boolean;
+  }>;
   /** The setup pages' (`groupSetup.ts`). */
   setup: GroupSetupFacts;
 };
 
 const toResult = (row: FactsRow): SetupFactsResult => ({
   joinedAt: row.joined_at ? fromLocalTimestamp(row.joined_at) : null,
-  facts: {
-    hasProfileBasics: !!row.allergy_or_condition,
-    hasMedication: !!row.medication,
-    hasEntry: !!row.entry,
-    hasOtherMembers: !!row.others,
-    connectorsEnabled: !!row.connectors_enabled,
-  },
+  facts: { hasEntry: !!row.entry },
   setup: {
     hasProvider: !!row.provider,
     hasProfileBasics: !!row.allergy_or_condition,
