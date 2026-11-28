@@ -16,7 +16,7 @@ PRD: [test-time-gates-2-prd.md](test-time-gates-2-prd.md). Items B-859, B-837, B
 
 **Slice 2 (merged 340667590, 2026-11-28):** the measuring quick check on 134128d4c (window a403, "now", decided for you, skeptic s91): judged `ok`, 142 s; loads 3.09 start, 5.41 end on 10 cores; steps typegen 1, static 80, count 2, unit 37, lint 1, docs 0, tooling 12. `quick` armed (8c1e1f5fa); `pnpm test:tooling` passes (605 tests). It didn't need RISA-1065.
 
-**Wave 1 gate:** `full` run 46163542256 on 79689c45: green. Test steps: components-1 231 s, -2 208, -3 223, -4 234; unit-1 47, unit-2 65. Synced with dev (9ac370aa9, brought migration 0050); the `full` recheck on the synced tip is running.
+**Wave 1 gate:** `full` run 46163542256 on 79689c45: green. Test steps: components-1 231 s, -2 208, -3 223, -4 234; unit-1 47, unit-2 65. Synced with dev (9ac370aa9, brought migration 0050); recheck `full` run 46164085462 on a31cf20a: green (components-1 303 s, warn, unarmed; -2 193, -3 293, -4 216; unit-1 57, unit-2 45: shard spread from the stale table, slice 3's). PR #336 open; Codex review running. Slice worktrees 1 and 2 removed.
 
 | Slice                                        | Wave | State   | Merge     |
 | -------------------------------------------- | ---- | ------- | --------- |
