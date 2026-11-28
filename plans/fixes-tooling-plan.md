@@ -21,15 +21,15 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 - **Wave 13 started 2026-11-28** (takeover after an interruption; no landing journal, no slices were in flight). Slices 102–108, all opus. Hot set to their paths. Fold at landing: slice 105 gave `web:unit` the `~/` alias; fix any doc saying web:unit uses relative imports only. Also fold slice 108's onboarding test account (`onboarding@example.com`, `pnpm datastore:reset:onboarding`, local or staging only) into docs/domain/app-shell.md's Setup part and a row in docs/seed-accounts.md (text in B-667's note). Not in this wave: B-791 (profile routes are data-rights' hot), B-1045 and B-954 (Risa's: RISA-1082), B-863 (held), B-907 (large), B-921 (close once quarantine steady), B-977 (feature), B-750/B-752 (parked).
 
-| Slice | Item  | State                                                                                             | Merge |
-| ----- | ----- | ------------------------------------------------------------------------------------------------- | ----- |
-| 102   | B-778 | agent spawned (opus)                                                                              |       |
-| 103   | B-782 | no change: already fixed by 273ba77a0 (B-332); item done; its quarantine line stays for `risa ci` | —     |
-| 104   | B-802 | handed off (50f0d1c17)                                                                            |       |
-| 105   | B-375 | handed off (a7a968442)                                                                            |       |
-| 106   | B-852 | handed off (d9cedc667)                                                                            |       |
-| 107   | B-757 | handed off (08ea23f63)                                                                            |       |
-| 108   | B-667 | handed off (1a1bff123)                                                                            |       |
+| Slice | Item  | State                                                                                             | Merge     |
+| ----- | ----- | ------------------------------------------------------------------------------------------------- | --------- |
+| 102   | B-778 | merged                                                                                            | 762a318ab |
+| 103   | B-782 | no change: already fixed by 273ba77a0 (B-332); item done; its quarantine line stays for `risa ci` | —         |
+| 104   | B-802 | merged                                                                                            | dfcad98c1 |
+| 105   | B-375 | merged                                                                                            | b2604ca66 |
+| 106   | B-852 | merged                                                                                            | d8619fb78 |
+| 107   | B-757 | merged                                                                                            | 50769fb60 |
+| 108   | B-667 | merged                                                                                            | 3428db815 |
 
 ## Wave 1
 
