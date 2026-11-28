@@ -32,7 +32,7 @@ PRD: [`tasks-prd`](../../plans/tasks-prd.md) (B-55). A todo: title, assignee, du
 
 ## Subtasks
 
-- ✅ **A subtask is a todo with `parent_id`** (`0047_todo_subtasks`; FK, index `(group_id, parent_id)`), set on create and upsert only.
+- ✅ **A subtask is a todo with `parent_id`** (`0047_todo_subtasks`, indexed), set on create and upsert only.
 - ✅ **Tree rules** (`todoTree.ts`, both sides): `MAX_TODO_DEPTH` 3, `depthOf`, `canHaveSubtask`, `rollupOf`, `subtaskProgress`, `inheritedDue`, `clampDue`, `upcomingListsSubtask` (connectors), `siblingOrder` (by day, time, created). Trees: `todoTreeView.ts` (`todoTrees`, `todoDayTrees`).
 - ✅ **Due:** a new subtask takes its parent's; never after the direct parent's day. The server clamps a writer's edit (a parent's new day clamps open descendants); the device refuses a moved day (`todos:dueAfterParent`).
 - ✅ **Service:** a bad parent (missing, deleted, other group, repeating, too deep) is `todoService:badParent`; a rule on a subtask or a parent is `todoService:repeatWithSubtasks`. `parentId` is in `completionOnly`'s fields.
@@ -40,18 +40,18 @@ PRD: [`tasks-prd`](../../plans/tasks-prd.md) (B-55). A todo: title, assignee, du
 - ✅ **Device:** `parentId` in the device schema; `createTodo` checks `canHaveSubtask` locally, `updateTodo` refuses a new repeat or a late day; `removeTodo` takes live descendants along. `subtasksQuery`, `subtaskProgressQuery(groupId)` (one query), `progressByParent`. Rollup: `planRollup` writes the chain in the change's transaction, flagged `ROLLUP_METADATA`; `todoOp` sends it to `rollUpUploaded` (any member; server rows decide).
 - ✅ **The page:** the Subtasks band (`TodoSubtasks`): "n of m done" (children), the descendants' `TodoTree` (`todoDescendantsQuery`, `rootId`), `TodoQuickAdd` (full); "Part of" links up.
 - ✅ **The parent's tick:** `TodoTick`'s `progress` (`waitsOnSubtasks`): open subtasks disable it, "n of m" (server-enforced); Mark done too. Delete counts descendants; `repeatable` hides Repeat on a tree.
-- ✅ **Lists:** the Todos page sections trees (`todoTreesQuery`: open todos, open trees' done steps; filters match, ancestors as context); Done flat (`doneListed`). Planner, easy view: day trees ([appointments](appointments.md)). **Subtasks on their own** (`todoView.ts`, `?subtasks=own`, one Filter section; Clear drops it): `splitTrees` (one row each, no ancestors, by own due), Done without `doneListed`, "Part of" via `parentOf`.
+- ✅ **Lists:** the Todos page sections trees (`todoTreesQuery`: open todos, open trees' done steps; filters match, ancestors as context); Done flat (`doneListed`). Planner, easy view: day trees ([appointments](appointments.md)). **Subtasks on their own** (`todoView.ts`, `?subtasks=own`; one Filter section on Todos and Upcoming, Clear drops it, `listSearch`/`tabSearch` keep it, easy roles stay on trees): `splitTrees` (one row each, by own due), Done without `doneListed`, "Part of" via `parentOf`, quick-add depth via `ancestorChain`.
 
 ## On the device (`lib/todos/todos.sync.ts`)
 
 - `todosQuery`/`doneCountQuery`/`todoQuery` read; `createTodo`, `updateTodo`, `completeTodo`, `reopenTodo`, `removeTodo` write. An unflagged done PATCH maps to `complete` or `reopen`.
 - `dueTodosQuery`, `dueTodosThrough`: the Today card; `linkedTodosQuery`, `linkOf`, `TodoLink`: provider and medication links.
-- Wording: `todoDisplay.ts`; filter and sections: `todoList.ts`; the tick's Undo: `todoUndo.ts`; `TodoUndoStatus` (stays mounted, not a `Notice`).
+- Wording: `todoDisplay.ts`; filter and sections: `todoList.ts`; Undo: `todoUndo.ts`, `TodoUndoStatus` (stays mounted).
 
 ## Screens
 
 - **The Todos tab** (`routes/app/groups/todos/`, `appUrls.todos`; the Planner's): no Add button. "Assigned to" (Everyone, Mine, Unassigned; `?who=`); sections Overdue, Today, by day, No date; Done newest first, 20 a page.
-- **Sheets:** `todos/new` (`appUrls.newTodo`), `todos/:todoId/edit` (`TodoForm`; `TodoLinkFields`: a `LinkToBox`, chips; posts `providerId`, `medicationId`, new `entryIds`; edit only its own `addEntryIds`, `removeEntryIds`). They close to their opener via link state (`TODO_SHEET_STATE`); a save from the Planner's Add menu (`PLANNER_TODO_STATE`) lands on Todos. `todos/new` prefills from `TODO_PREFILL_PARAMS`: link ids (`eventId`/`entryId` become `entryIds`), `dueOn`, quick entry's fields.
+- **Sheets:** `todos/new` (`appUrls.newTodo`), `todos/:todoId/edit` (`TodoForm`; `TodoLinkFields`: a `LinkToBox`, chips; posts `providerId`, `medicationId`, new `entryIds`; edit only its own `addEntryIds`, `removeEntryIds`). They close to their opener via link state (`TODO_SHEET_STATE`); a save from the Planner's Add menu (`PLANNER_TODO_STATE`) lands on Todos. `todos/new` prefills from `TODO_PREFILL_PARAMS` (link ids as `entryIds`, `dueOn`, quick entry's fields).
 - **The todo page** (`routes/app/groups/todo/`, `appUrls.todo`), banded ([ui-kit](ui-kit.md#bands)): `TodoHeader` (writers edit and delete), Details, Linked to (provider, medication, notes and events; writers' `LinkToBox`, Remove), Status (`TodoCompletion`), Notes (`useTodoNotes`, live); missing or deleted: 404.
 - **The tick** (`TodoTick`, `useTodoTick`) everywhere. **Easy roles:** the Planner (read-only), a todo's page (no edit or delete); they tick their own only.
 - **Links and backlinks:** **Link to box** (`LinkToBox`; `searchLinkables` in `lib/todos/linkSearch.sync.ts`; pure `linkOptions.ts`): site search's device index; providers, medications, live notes and events, `compareHits` order, linked ones out; type chips and a first or last type word (`linkTypeWord`; finding nothing, the whole text, chip off). Empty or a type word: `linkSuggestions` (came-from, next 3 events, last 5 viewed). `LinkedTodos` (provider, medication pages): open linked todos; writers' full `TodoQuickAdd` with the link (band titled even empty) and a compact one per open row.
