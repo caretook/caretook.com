@@ -24,8 +24,8 @@
 ## How to run this plan
 
 - **Wave 1** (slices 1 to 4, all at once): features copy, the accessibility page, the research note, the look module with the home page. They share no file and no check file.
-- **Wave 2** (slices 5 and 6, at once): the inner pages and the layout, on slice 4's look module. Slice 5 also needs slice 1's features order and slice 2's page (the legal page restyle).
-- The `marketing` browser check runs once, in slice 6 (the last to merge), with `RISA_BROWSER_SLOTS=4`.
+- **Wave 2** (slices 5 and 6, at once): the inner pages and the layout, on slice 4's look module. Slice 5 also needs slice 1's features order (the jump links follow the blocks).
+- The `marketing` browser check runs once, by the orchestrator at wave 2's landing (after slices 5 and 6 merge), with `RISA_BROWSER_SLOTS=4`; no slice runs it.
 - Slice 3 is docs only: no stack, no tests, prettier only.
 
 ## Slice 1: Features: "Log it in seconds" first, then easy mode
@@ -55,18 +55,18 @@ US 7 (B-563).
 
 **Build**
 
-- `site/pages.ts` `MARKETING_PAGES`: append `{ id: "accessibility", path: "/accessibility", label: "Accessibility", area: "legal" }` (at the end).
+- `site/pages.ts` `MARKETING_PAGES`: append `{ id: "accessibility", path: "/accessibility", label: "Accessibility", area: "site" }` (at the end; no `header`). Not `legal`: that area is the three accepted documents (`legalLinks()` and its test).
 - `routes.ts` `marketingRoutes`: append the route.
 - `accessibility/route.tsx` (new): like the privacy route, `LegalPage` with `marketingMeta`.
 - `accessibility/content.ts` (new): a `LegalPageContent`, `draft: true`, today's date. Sections: our standard (WCAG 2.2 AA, not independently audited), what we do (only what's true: the Atkinson Hyperlegible typeface, visible focus, reduced motion, native controls, light and dark themes, accessibility lint; check each in app.css, components.md and the ESLint config), known gaps (placeholder screenshots; no audit yet), how to report a barrier (`[text](/contact)`), and the date. No "secure", "HIPAA", "early access".
 
 **Acceptance**
 
-- [ ] `sections/legal.test.ts`: the page joins `PAGES` and passes the shape checks; it's in `MARKETING_PAGES` with area `legal`; it uses none of the claims test's banned words (a local list, since the claims test isn't edited).
-- [ ] `LEGAL_VERSIONS` and the sign-up checkbox are unchanged (the legal versions test passes untouched).
+- [ ] `sections/legal.test.ts`: the page joins `PAGES` and passes the shape checks; it's in `MARKETING_PAGES` with area `site`; it uses none of the claims test's banned words (a local list, since the claims test isn't edited).
+- [ ] `LEGAL_VERSIONS`, `legalLinks()` and the sign-up checkbox are unchanged (the legal versions and legal links tests pass untouched).
 - [ ] The SEO test passes untouched (sitemap and prerender follow the page list).
 
-**Blocks:** 5.
+**Blocks:** none.
 
 ## Slice 3: Research note: Caretook compared with Caring Village
 
@@ -109,7 +109,7 @@ US 1, 2, 3 (B-836, B-855).
 
 ## Slice 5: Inner pages: the look, uniform blocks and jump links
 
-Stack: no · Reads: docs/domain/marketing.md, docs/domain/components.md · Tests: component · Blocked by: 1, 2, 4 · Check: apps/web/app/routes/marketing/sections/pages.browser.test.tsx
+Stack: no · Reads: docs/domain/marketing.md, docs/domain/components.md · Tests: component · Blocked by: 1, 4 · Check: apps/web/app/routes/marketing/sections/pages.browser.test.tsx
 
 US 1, 2, 4 (B-836).
 
@@ -118,6 +118,7 @@ US 1, 2, 4 (B-836).
 - `sections/PageSections.tsx`: `PageIntro` (the opening gradient), `Showcase` (cards and bands from the look module; with no image, its icon large in the image's column, `aria-hidden`), `Gallery`, `Prose`, `FaqList` read from slice 4's look module; drop the local `CONTAINER`. Add a new `JumpLinks`: `{ items: { id, heading }[] }`, a `nav` labelled "On this page" of React Router hash `Link`s, scrolling sideways on a phone.
 - `features/route.tsx`: render the new jump links from `content.showcases` under the intro.
 - `sections/LegalPage.tsx`: container and headings from the look module.
+- `contact/route.tsx`: its inline container from the look module.
 
 **Acceptance**
 
@@ -128,7 +129,7 @@ US 1, 2, 4 (B-836).
 
 ## Slice 6: Header and footer
 
-Stack: yes · Reads: docs/domain/marketing.md, docs/domain/components.md · Tests: component, e2e:marketing · Blocked by: 4 · Check: apps/web/app/routes/marketing/layout/layout.browser.test.tsx
+Stack: no · Reads: docs/domain/marketing.md, docs/domain/components.md · Tests: component · Blocked by: 4 · Check: apps/web/app/routes/marketing/layout/layout.browser.test.tsx
 
 US 1, 2 (B-836).
 
@@ -136,11 +137,9 @@ US 1, 2 (B-836).
 
 - `layout/MarketingHeader.tsx`: sticky, translucent with a backdrop blur (opaque under `prefers-reduced-transparency: reduce`), container from the look module, `aria-current="page"` on the current page's link (desktop nav and phone menu).
 - `layout/MarketingFooter.tsx`: columns from `sm` (brand, site pages, legal pages), container from the look module.
-- Run the `marketing` browser check with `RISA_BROWSER_SLOTS=4` once the wave's other slice has merged, or at the topic's end.
 
 **Acceptance**
 
-- [ ] `layout.browser.test.tsx`: the current page's header link has `aria-current="page"`; the footer has a site group and a legal group, each a labelled list; the skip link and menu tests pass.
-- [ ] The `marketing` browser check passes.
+- [ ] `layout.browser.test.tsx`: the current page's header link has `aria-current="page"`; the footer has a site group (Accessibility among it) and a legal group, each a labelled list; the skip link and menu tests pass.
 
 **Blocks:** none.
