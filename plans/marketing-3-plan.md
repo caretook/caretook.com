@@ -66,7 +66,7 @@ US 7 (B-563).
 - [ ] `LEGAL_VERSIONS`, `legalLinks()` and the sign-up checkbox are unchanged (the legal versions and legal links tests pass untouched).
 - [ ] The SEO test passes untouched (sitemap and prerender follow the page list).
 
-**Blocks:** none.
+**Blocks:** 6.
 
 ## Slice 3: Research note: Caretook compared with Caring Village
 
@@ -129,17 +129,18 @@ US 1, 2, 4 (B-836).
 
 ## Slice 6: Header and footer
 
-Stack: no · Reads: docs/domain/marketing.md, docs/domain/components.md · Tests: component · Blocked by: 4 · Check: apps/web/app/routes/marketing/layout/layout.browser.test.tsx
+Stack: no · Reads: docs/domain/marketing.md, docs/domain/components.md · Tests: component · Blocked by: 2, 4 · Check: apps/web/app/routes/marketing/layout/layout.browser.test.tsx
 
 US 1, 2 (B-836).
 
 **Build**
 
-- `layout/MarketingHeader.tsx`: sticky, translucent with a backdrop blur (opaque under `prefers-reduced-transparency: reduce`), container from the look module, `aria-current="page"` on the current page's link (desktop nav and phone menu).
-- `layout/MarketingFooter.tsx`: columns from `sm` (brand, site pages, legal pages), container from the look module.
+- `layout/MarketingHeader.tsx`: already sticky and blurred, with `NavLink`'s `aria-current`; keep that. Change only: the container and surface from the look module, opaque under `prefers-reduced-transparency: reduce`.
+- `layout/MarketingFooter.tsx`: already three columns with labelled Site and Legal navs; keep that. Change only: the container and band from the look module.
+- `scripts/browser-checks/marketing.spec.mjs` `PAGES`: append `/accessibility` (slice 2's page), so the sitemap and one-h1 tests cover it. The orchestrator runs this check at wave 2's landing.
 
 **Acceptance**
 
-- [ ] `layout.browser.test.tsx`: the current page's header link has `aria-current="page"`; the footer has a site group (Accessibility among it) and a legal group, each a labelled list; the skip link and menu tests pass.
+- [ ] `layout.browser.test.tsx`: (new assertions on what exists) the current page's header link has `aria-current="page"`; the footer has a site group (Accessibility among it) and a legal group, each a labelled list; the skip link and menu tests pass.
 
 **Blocks:** none.
