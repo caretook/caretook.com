@@ -1,3 +1,4 @@
+import { isManagerRole } from "@caretook/data/permissions";
 import { UserPlus } from "lucide-react";
 import { Button, Card } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -7,8 +8,6 @@ import { useLiveQuery } from "~/lib/sync";
 // The prompt on a new group's timeline: while its owners and admins are the
 // only one in it, invite the others who help (Members, in group settings).
 // Live from the local copy, so it goes once someone joins.
-
-const MANAGERS = ["owner", "admin"];
 
 /** Until the query reports: unknown, so the card stays hidden. Stable (useLiveQuery compares it). */
 const UNKNOWN: { others: number }[] = [{ others: -1 }];
@@ -22,7 +21,7 @@ export function InviteSomeoneCard({ className = "" }: { className?: string }) {
   const { id, userId, role, displayName } = useGroup();
   const query = othersQuery(id, userId);
   const [row] = useLiveQuery<{ others: number }>(query.sql, query.params, UNKNOWN);
-  if (!role || !MANAGERS.includes(role) || (row?.others ?? -1) !== 0) return null;
+  if (!isManagerRole(role) || (row?.others ?? -1) !== 0) return null;
   return (
     <Card title="Invite someone" headingId="invite-someone" className={className} data-invite-card="">
       <p className="text-muted text-sm">

@@ -12,9 +12,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 | PRD | Flags | After | Hot files | Doc and notes |
 | --- | ----- | ----- | --------- | ------------- |
-| `fixes-bug` | standing | — | — | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
+| `fixes-bug` | standing | — | `apps/web/app/routes/app/groups/timeline/offscreenRows`, `apps/web/app/routes/app/groups/timeline/TimelineEntryList.tsx`, `apps/web/app/routes/app/groups/timeline/timelineBlank.browser.test.tsx`, `apps/web/app/routes/app/groups/timeline/timelineScroll.browser.test.tsx` | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
 | `fixes-ui` | standing | — | — | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
-| `marketing-3` | hold | — | `apps/web/app/routes/marketing/sections/`, `apps/web/app/routes/marketing/home/`, `apps/web/app/routes/marketing/features/`, `apps/web/app/routes/marketing/layout/`, `apps/web/app/routes/marketing/accessibility/`, `apps/web/app/routes/marketing/contact/route.tsx`, `apps/web/app/routes/marketing/site/pages.ts`, `apps/web/app/routes/marketing/routes.ts`, `scripts/browser-checks/marketing.spec.mjs`, `docs/research/` | to write: marketing copy and site refresh (B-887, B-888, B-855, B-836, B-563, B-829); split from the held marketing topic 2026-11-28 by the user |
+| `marketing-3` | — | — | `apps/web/app/routes/marketing/sections/`, `apps/web/app/routes/marketing/home/`, `apps/web/app/routes/marketing/features/`, `apps/web/app/routes/marketing/layout/`, `apps/web/app/routes/marketing/accessibility/`, `apps/web/app/routes/marketing/contact/route.tsx`, `apps/web/app/routes/marketing/site/pages.ts`, `apps/web/app/routes/marketing/routes.ts`, `scripts/browser-checks/marketing.spec.mjs`, `docs/research/` | to write: marketing copy and site refresh (B-887, B-888, B-855, B-836, B-563, B-829); split from the held marketing topic 2026-11-28 by the user |
 | `account-security` | done | — | `packages/auth/`, `packages/api/src/rateLimit.ts`, `packages/api/src/procedures.ts`, `packages/api/src/connectors/http.ts`, `packages/api/src/calendars/feed.ts`, `packages/api/src/marketing/publicForms.ts`, `packages/data/src/services/careGroupMemberService.ts`, `packages/data/src/services/careGroupInviteService.ts`, `packages/data/src/services/joinRequestService.ts`, `packages/data/src/services/connectorGrantService.ts`, `packages/data/src/services/groupAdminService.ts`, `packages/data/src/services/accountAdminService.ts`, `packages/data/src/services/adminAuditService.ts`, `packages/data/src/db/roles/`, `packages/notifications/`, `scripts/browser-checks/session-end.spec.mjs`, `scripts/browser-checks/roundtrip.spec.mjs` | to write (B-85: two-factor required for owners, admins and staff; breached-password check) · Depends on: `invites` (done); B-80 (the Devices page) first (soft) · Hot files: `packages/auth`, account settings, group settings Members, `careGroupService` and the access-code and invite flows (owners must enrol) |
 | `free-limits` | done | — | `packages/data/src/services/careGroupService.ts`, `packages/data/src/services/groupLimitService.ts`, `packages/data/src/db/schema/admin/appSettings.ts`, `packages/data/src/db/schema/admin/staffRules.ts`, `packages/data/src/db/schema/admin/adminAudit.ts`, `packages/data/src/db/schema/auth/user.ts`, `packages/data/src/db/migrations/`, `packages/data/src/permissions/auth.ts`, `packages/api/src/admin/usersAdmin.ts`, `apps/web/app/routes/admin/user/` | — |
 | `onboarding-2` | done | — | `apps/web/app/routes/app/groups/setup/`, `apps/web/app/lib/app-shell/groupSetup`, `apps/web/app/lib/app-shell/setupNudges`, `apps/web/app/lib/app-shell/gettingStarted`, `apps/web/app/lib/app-shell/me.ts`, `apps/web/app/routes/app/groups/layout/`, `apps/web/app/components/ui/toastQueue.ts`, `apps/web/app/routes/app/groups/timeline/GettingStartedCard.tsx`, `apps/web/app/routes/app/groups/timeline/WelcomeCard.tsx`, `apps/web/test/device.tsx`, `packages/data/src/db/schema/app-shell/userPreferences.ts`, `packages/data/src/services/userService.ts`, `packages/data/src/db/seeds/setupDismissed`, `packages/api/src/app-shell/me.ts`, `scripts/browser-checks/first-sync.spec.mjs`, `scripts/browser-checks/invites.spec.mjs`, `apps/web/app/components/providers/` | — |
@@ -46,7 +46,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `code-health-3` | — | `code-health-2`, `data-rights` | `apps/web/app/lib/`, `apps/web/app/libLayout.test.ts`, `packages/data/src/models/base/`, `packages/api/src/sync` | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** to write (B-364, B-368, B-369), cut from code-health by its planner, 2026-11-21: device row types derived from the device schema and the layout guard refusing SQL outside *.sync.ts (17 files today), the list count only on request and the sync PATCH's round trips (that slice after sync-safety-2), plan-pointing comments (a count that may only fall, then a sweep) |
 | `code-health-4` | — | `simple-mode` | `packages/data/src/constants/roles.ts`, `packages/data/src/constants/roleCopies.test.ts`, `packages/data/src/domain/todos/todoRules.ts`, `packages/data/scripts/googleSmoke.ts`, `packages/notifications/src/templates/groupInvite.tsx`, `packages/notifications/src/templates/joinRequests.tsx`, `packages/notifications/src/templates/staffGroupChange.tsx`, `apps/web/app/lib/app-shell/groupSetup.ts`, `apps/web/app/routes/app/groups/layout/setupRedirect.ts`, `apps/web/app/routes/app/groups/settings/assistants/assistants.ts`, `apps/web/app/routes/app/groups/settings/groupSettings.ts`, `apps/web/app/routes/app/groups/settings/members/invites.ts`, `apps/web/app/routes/app/groups/timeline/InviteSomeoneCard.tsx`, `apps/web/app/routes/admin/group/`, `apps/web/app/routes/connectors/connect/ConnectConsent.tsx`, `scripts/eslint/`, `eslint.config.js` | to write (B-363), cut from code-health-2 by its planner, 2026-11-28; the planner's findings are in plans/code-health-2-prd.md Notes. The call-site sweep touches data-rights' and account-security-2's hot files: that part waits for both. |
 | `code-health-5` | — | `code-health-4`, `data-rights`, `account-security-2` | — | The services' and API's role-name sweep (B-1060), cut from code-health-4 |
-| `contract-migrations` | — | — | — | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** Contract steps tracked from fixes-nit (B-379): B-455, B-456, B-457. Migrations: run alone in its wave. To write. |
+| `contract-migrations` | — | `data-rights` | `packages/data/src/db/migrations/`, `packages/data/src/services/todoService.ts`, `packages/data/src/services/entryTodoService.ts`, `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/appointmentSeriesService.ts`, `packages/data/src/db/schema/appointments/appointmentSeries.ts`, `packages/data/src/db/schema/care-groups/`, `packages/data/src/permissions/care-groups.ts`, `packages/data/src/db/roles/rolesSql.ts`, `packages/api/src/syncRegistry.ts`, `powersync/sync-config.yaml` | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** Contract steps tracked from fixes-nit (B-379): B-455, B-456, B-457. Migrations: run alone in its wave. To write. |
+| `contract-migrations-2` | hold (2026-11-28: starts only once contract-migrations is on origin/staging (a column drop waits a deploy)) | `contract-migrations`, `code-health-4` | — | — |
+| `contract-migrations-3` | hold (2026-11-28: starts only once contract-migrations-2 is on origin/staging) | `contract-migrations-2` | — | — |
 | `marketing-2` | done | — | `apps/web/app/routes/marketing/`, `apps/web/public/og-default.png` | Light copy wave before sharing the link (B-417) |
 | `planner-3` | done | `simple-mode` | `packages/data/src/db/schema/todos/`, `packages/data/src/db/schema/assistant/`, `packages/data/src/permissions/todos.ts`, `packages/data/src/services/entryTodoService.ts`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `packages/api/src/connectors/tools/listTodos.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/lib/appointments/`, `apps/web/app/lib/assistant/quickEntry.sync.ts`, `apps/web/app/components/todos/`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `scripts/browser-checks/sync-matrix.mjs` | Replanned 2026-11-23: entries and todos many to many (B-245) and quick entry repeats (B-254). |
 | `inbox-agent` | done | `orchestration-3` | `scripts/backlog/`, `scripts/loops/lib.sh`, `scripts/loops/prd.sh`, `scripts/loops/prompt.sh`, `scripts/loops/tidy`, `scripts/loops/queue`, `scripts/loops/session.sh`, `scripts/loops/sessions.mjs`, `scripts/loops/rotate`, `scripts/loops/bye`, `scripts/loops/dispatch`, `scripts/loops/session`, `scripts/loops/keep-alive`, `scripts/loops/open-session` | Replanned 2026-11-23 (16d3b807): inbox agent on fast Opus, origin/dev writes, duplicate checks, auto archive, always-on session, bye for every role (B-425, B-435, B-474, B-515, B-551). Next up (B-406) dropped; priority stays with the backlog session. |
@@ -125,9 +127,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `member-avatars` | done | `onboarding`, `ui-kit-5` | `packages/data/src/db/schema/auth/user.ts`, `packages/data/src/models/user/userModel.ts`, `packages/data/src/permissions/blocks.ts`, `packages/api/src/app-shell/me.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/app-shell/me.ts`, `apps/web/app/components/ui/UserAvatar.tsx`, `apps/web/app/components/ui/AvatarStack.tsx`, `apps/web/app/components/notes/EditorAvatars.tsx`, `apps/web/app/components/entry/KindIcon.tsx`, `apps/web/app/routes/app/settings/account/`, `apps/web/app/routes/app/layout/UserMenu.tsx`, `apps/web/app/routes/app/groups/settings/members/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `apps/web/app/routes/app/groups/timeline/PassLogItem.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/planner/`, `scripts/browser-checks/roundtrip.spec.mjs` | Released 2026-11-23 by the user. Members choose an avatar color and icon; no photos or image storage. |
 | `orchestration-split-2` | done | `orchestration-split` | `scripts/loops/`, `scripts/project/`, `packages/data/test/`, `apps/web/test/`, `docs/agents/`, `docs/orchestration.md`, `AGENTS.md`, `risa.json` | — |
 | `sync-safety-3` | done | `sync-safety-2` | `packages/data/src/db/client.ts`, `packages/data/src/domain/sync/`, `packages/data/src/errors/sync.ts`, `packages/api/src/sync.ts`, `packages/api/src/syncRegistry.ts`, `packages/api/src/testing.ts`, `apps/web/app/lib/sync/uploader.ts`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/app-shell/unsavedChanges`, `apps/web/app/routes/app/settings/not-saved/` | A device write lands whole (B-294): savepoints, the server applies a write in one transaction, the uploader sends whole writes, one line per write on Changes not saved. Plan: plans/sync-safety-3-plan.md |
-| `care-booklet` | — | — | — | Printed care booklet (B-918): profile front page, medication list, weekly sheet, emergency sheet, providers list; pick pages by hand. Released 2026-11-28 after inline triage; guide pages (B-919) in care-booklet-2. |
+| `care-booklet` | — | `data-rights` | `apps/web/app/routes/app/groups/booklet/`, `apps/web/app/lib/booklet/`, `apps/web/app/lib/app-shell/appUrls.ts`, `apps/web/app/routes.ts`, `scripts/project/check-areas.d/booklet`, `apps/web/app/routes/app/groups/profile/ProfileHeader.tsx`, `apps/web/app/routes/app/groups/profile/profile.browser.test.tsx`, `apps/web/app/routes/app/groups/profile/print/index.ts`, `apps/web/app/routes/app/groups/medications/print/index.ts`, `apps/web/app/routes/app/groups/medications/print/week/index.ts` | Printed care booklet (B-918): profile front page, medication list, weekly sheet, emergency sheet, providers list; pick pages by hand. Released 2026-11-28 after inline triage; guide pages (B-919) in care-booklet-2. |
 | `marketing-4` | — | `care-booklet` | — | Marketing for the printed care booklet (B-1035), once care-booklet lands. Describe two-way (written notes coming back through a connected AI) only for sheets whose read-back has shipped: the weekly medication sheet (B-917) now, the rest with care-booklet-2. **The user reviews and approves the copy during planning:** the planner files an ask (--waits) with each proposed page change and its draft text, and lands the plan only after the user approves. |
-| `care-booklet-2` | hold (2026-11-28: needs a guide content source; WAY off (user, 2026-11-26)) | `care-booklet` | — | Printed medication guide pages (B-919), split from care-booklet on the user's word 2026-11-28: needs a source for guide content (vendor or member-written) and a look at what we may print. |
+| `care-booklet-2` | hold (2026-11-28: needs a guide content source; WAY off (user, 2026-11-26)) | `care-booklet`, `care-booklet-3` | — | Printed medication guide pages (B-919), split from care-booklet on the user's word 2026-11-28: needs a source for guide content (vendor or member-written) and a look at what we may print. |
 | `med-intervals` | — | `connectors-3` | `packages/data/src/db/schema/medications/`, `apps/web/app/lib/medications/`, `apps/web/app/routes/app/groups/medications/`, `packages/data/src/services/assistantActionService.ts`, `packages/data/src/services/medicationService.ts`, `packages/api/src/connectors/tools/` | Every-N-hours schedules for medications and Med times (B-938). |
 | `i18n` | alone | `simple-mode` | `apps/web/app/components/`, `apps/web/app/lib/core/format.ts`, `packages/data/`, `apps/web/app/root.tsx`, `packages/notifications/`, `pnpm-workspace.yaml`, `scripts/build/budget.json` | [PRD](i18n-prd.md), [plan](i18n-plan.md): 11 slices, waves 1 → 2 → (3, 4, 5, 6) → (7, 8, 9, 10) → 11: a per-user language (English and Spanish, AI-drafted, review before launch) in `user.preferences` with a cookie for server rendering; typed catalogs on `i18next` and `react-i18next`; format helpers, error codes and label maps take the language; the app swept area by area; emails, the invite's language, calendar text and the public site at `/es/`; a lint rule against literal text (`eslint-plugin-i18next`, dev). Quick entry is a plain box for non-English users; search matching, the connector and `/admin` stay English (B-209). Slice 8 adds a migration (one nullable invite column); three dependencies approved 2026-11-21; slice 1 needs a stack. **Ready to start** once its start condition holds · Depends on: `list-filters` (last item B-249), `planner-2` (last item B-248), the current `quick-fixes` wave and `simple-mode` (last items B-221, B-400) in `dev`; **runs alone** (tooling-only work beside it) · Hot files: every user-facing string: all `/app`, sign-in and marketing routes, `components/`, `lib/core/format.ts` and the other format helpers, the label maps in `packages/data` schema, `userPreferences.ts`, `root.tsx`, the service worker, `packages/notifications` templates and registry, the invite schema and service, `calendarText.ts`, ESLint config, `pnpm-workspace.yaml`, `scripts/build/budget.json` |
 | `med-intervals-2` | — | `med-intervals` | — | Interval Med times and as-needed Med times; part 2 of B-938 (B-981) |
@@ -142,6 +144,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `account-security-3` | — | `account-security-2` | — | — |
 | `account-security-4` | — | `account-security-3` | — | — |
 | `connectors-6` | — | `account-security-2` | — | — |
+| `care-booklet-3` | — | `care-booklet` | — | — |
 
 ## Summary
 
@@ -190,7 +193,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-378 | chore | triaged | i18n |  | File the translations PRD's promised follow-ups: Spanish quick entry, language-aware search, a human review of the Spanish; and note 48 hard-coded 'en-US' formatters and English messages in schemas and the errors catalogue |
 | B-455 | chore | triaged | contract-migrations |  | Drop the old per-member simple mode columns (simple_mode, simple_mode_locked) once Easy roles replace them |
 | B-456 | chore | triaged | contract-migrations |  | Retire the leftover reminder data planner-2 left in place: the note kind on appointment_series and stored future notes and note series |
-| B-457 | chore | triaged | contract-migrations |  | Give groups that predate the default medication passes (Morning 08:00 and Evening 20:00) their two passes |
+| B-457 | chore | dropped | contract-migrations |  | Give groups that predate the default medication passes (Morning 08:00 and Evening 20:00) their two passes |
 | B-561 | feature | triaged | demo-site |  | Shared demo site: demo.caretook.com with a fictional care group, generic logins and a nightly reset, to link from invites |
 | B-562 | change | triaged | data-rights-2 |  | Notice before a material change to the legal pages: the privacy policy promises notice and consent where required, and nothing does this yet |
 | B-563 | feature | triaged | marketing-3 |  | Accessibility statement page |
@@ -257,15 +260,15 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1019 | bug | triaged | account-security-2 |  | Staff Change role and Remove read the member's role before the membership lock, so a racing owner change makes the staffGroupChange email skip a demoted owner and name the wrong previous role |
 | B-1020 | bug | triaged | account-security-2 |  | Membership locks use two orders (lockForChange by id, lockGroupMembers by createdAt), so a role change racing an emergency-contact save can deadlock and abort one |
 | B-1024 | feature | triaged | care-booklet |  | Printed todo sheet, hand-fillable (check off, write in new todos), as a care booklet page |
-| B-1025 | feature | triaged | care-booklet |  | Printed schedule sheet (upcoming Events and med times), as a care booklet page |
+| B-1025 | feature | triaged | care-booklet-3 |  | Printed schedule sheet (upcoming Events and med times), as a care booklet page |
 | B-1026 | feature | triaged | care-booklet-2 |  | Connector: a member's AI reads a photo of a hand-filled printed todo sheet and applies it (ticks done, adds new todos), adding only what isn't already there |
-| B-1027 | feature | triaged | care-booklet |  | Printed Timeline sheet, hand-fillable: notes, symptoms (the group's symptom catalog), vitals (pain, temperature, blood pressure, meals, fluids) and shift handoffs by time, as a care booklet page |
-| B-1028 | feature | triaged | care-booklet |  | Printed as-needed dose log: time given, dose, reason and whether it helped, with each medicine's minimum gap printed, as a care booklet page |
-| B-1029 | feature | triaged | care-booklet |  | Printed visit notes sheet per upcoming Event: the visit-prep questions with space for answers, med changes and follow-ups, as a care booklet page |
-| B-1030 | feature | triaged | care-booklet |  | Printed medication changes sheet: write in a doctor's new, stopped or changed medicine, as a care booklet page |
+| B-1027 | feature | triaged | care-booklet-3 |  | Printed Timeline sheet, hand-fillable: notes, symptoms (the group's symptom catalog), vitals (pain, temperature, blood pressure, meals, fluids) and shift handoffs by time, as a care booklet page |
+| B-1028 | feature | triaged | care-booklet-3 |  | Printed as-needed dose log: time given, dose, reason and whether it helped, with each medicine's minimum gap printed, as a care booklet page |
+| B-1029 | feature | triaged | care-booklet-3 |  | Printed visit notes sheet per upcoming Event: the visit-prep questions with space for answers, med changes and follow-ups, as a care booklet page |
+| B-1030 | feature | triaged | care-booklet-3 |  | Printed medication changes sheet: write in a doctor's new, stopped or changed medicine, as a care booklet page |
 | B-1031 | feature | triaged | care-booklet |  | Printed care team contacts sheet: group members and who to call for what, with after-hours and pharmacy numbers, as a care booklet page |
-| B-1032 | feature | triaged | care-booklet |  | Printed daily routine and preferences sheet from the profile (meals, mobility, sleep, likes and dislikes), as a care booklet page |
-| B-1033 | feature | triaged | care-booklet |  | Care booklet cover page: what each sheet is for, how to mark it, and how to photograph it so a connected agent brings it back |
+| B-1032 | feature | triaged | care-booklet-3 |  | Printed daily routine and preferences sheet from the profile (meals, mobility, sleep, likes and dislikes), as a care booklet page |
+| B-1033 | feature | triaged | care-booklet-3 |  | Care booklet cover page: what each sheet is for, how to mark it, and how to photograph it so a connected agent brings it back |
 | B-1034 | feature | triaged | care-booklet-2 |  | Connector: a member's AI reads photos of the booklet's write-in sheets (Timeline sheet, as-needed dose log, visit notes, medication changes) and applies them, adding only what isn't already there; medication changes wait for a member to confirm |
 | B-1035 | feature | triaged | marketing-4 |  | Marketing: the printed care booklet where it fits (features page, home, how-it-works): Caretook is designed for non-technical caregivers who prefer pen and paper, with two-way communication when a connector is used |
 | B-1037 | change | triaged | fixes-perf |  | Bring the components tier's first shard under 275 s so the components time gate can be armed |
@@ -277,7 +280,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1043 | feature | triaged | quick-entry-find |  | Quick entry find, switch and contact: 'find <text>' opens search, 'switch to <group>', 'call <provider>' opens the dialer |
 | B-1044 | feature | triaged | quick-entry-find |  | Quick entry 'go to <provider or medication>' by name (after moving the parser's name matchers into the assistant domain) |
 | B-1045 | bug | triaged | fixes-tooling |  | Inbox handoff (risa rotate --self) didn't work |
-| B-1046 | bug | triaged | fixes-bug |  | Timeline sometimes renders blank: only the Today header and vitals summary show, the rest of the… |
+| B-1046 | bug | in-progress | fixes-bug | prd/fixes-bug | Timeline sometimes renders blank: only the Today header and vitals summary show, the rest of the… |
 | B-1047 | feature | triaged | fixes-ui |  | Pull down to refresh in the installed PWA (no browser reload control there; a tester had to close… |
 | B-1048 | feature | triaged | fixes-ui |  | Symptom catalog list: make each symptom's entry count a link to the timeline already filtered to… |
 | B-1049 | bug | triaged | data-rights |  | A deleted medication pass's name is scrubbed, so the connector's listMedications shows blank pass names in an old schedule (it reads deleted passes on purpose) |
@@ -287,11 +290,20 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1053 | bug | triaged | data-rights |  | A note upload that overlaps a delete can append a note_update after the scrub cleared the document, so the deleted note keeps new content |
 | B-1054 | bug | landed | fixes-tooling | prd/fixes-tooling | Browser check session-end fails at line 120: no symptom row in the caretaker's first timeline page, so main a[href*=kind=symptom] is never visible (assumes seed data in view) |
 | B-1055 | change | triaged | code-health-3 |  | The device side of the one-helper cleanup and the services' one invalid: refuse, invalid and canWrite repeated in the *.sync.ts writers, FormData reads that skip core/form.ts formString, the identical shouldRevalidate in the group routes, the 24 local invalid definitions in services, and todoService's upsert onto createIfAbsent (empties code-health-2's upsert guard's todoService exception) |
-| B-1056 | bug | triaged | fixes-bug |  | Quick entry on a provider's page: a visit line naming no provider ("saw her yesterday") reads as a note, not the event "saw Dr. Lee yesterday" gives; the fallback event card has no providerIds |
+| B-1056 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry on a provider's page: a visit line naming no provider ("saw her yesterday") reads as a note, not the event "saw Dr. Lee yesterday" gives; the fallback event card has no providerIds |
 | B-1057 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/settings/tagsSettings.browser.test.tsx: the Tags page an owner merges Urgent i… |
-| B-1058 | bug | triaged | fixes-bug |  | Quick entry shortcut: / and Cmd/Ctrl+K open the sheet while a native <dialog> confirm is open (the layer guard matches only [role=dialog], not dialog elements) |
+| B-1058 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry shortcut: / and Cmd/Ctrl+K open the sheet while a native <dialog> confirm is open (the layer guard matches only [role=dialog], not dialog elements) |
 | B-1059 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/layout/frame.browser.test.tsx: the group menu and the last group names the current gr… |
 | B-1060 | change | triaged | code-health-5 |  | The services' and the API's group-role-name checks onto the role module (careGroupMemberService, careGroupInviteService, careGroupService, groupAdminService, assistantRequestService, calendarSettingService, connectors connect and groupOverview), the group details settings page and the profile test world (its isWriter treats easy roles as writers): empties the role guard's 'swept by code-health-5' entries |
+| B-1061 | chore | triaged | contract-migrations-2 |  | Drop the simple-mode columns (care_group_member.simple_mode, simple_mode_locked, care_group.simple_tiles) and strip the user.preferences simpleMode key, after contract-migrations takes them out of the Drizzle schema |
+| B-1062 | chore | triaged | contract-migrations-2 |  | Take todo.event_id out of the Drizzle schema, the device schema, todoRules.ts and the test fixtures, after contract-migrations stops every write and sync of it |
+| B-1063 | chore | triaged | contract-migrations-3 |  | Drop the todo.event_id column and take todo off REPLICATION_WHOLE_TABLES |
+| B-1064 | change | triaged | fixes-nit |  | The group invite, join request and staff group change emails each write out role labels ('an owner', 'a caretaker'…) by hand: one label per role from the role module |
+| B-1065 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/todayCard.browser.test.tsx: the Today card's rows every row but vital… |
+| B-1066 | bug | triaged | data-rights-2 |  | Deleting a care group leaves a pending joinDeclined email unskipped: its key is joinDeclined:<requestId>:<userId> and it links only to /app, so skipGroupMail misses it |
+| B-1067 | chore | triaged | fixes-nit |  | careGroupService.remove and the Details route compare group roles as strings ('owner'), against care-groups' rule to use isOwnerRole; also the connectors check at careGroupService.ts:102 |
+| B-1068 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineTagEdit.browser.test.tsx: deleting a tag an owner deletes a tag after a dialog naming its records |
+| B-1069 | chore | triaged | fixes-tooling |  | Recheck the realpath wrapper in pnpm test:tooling once Risa ships RISA-1093 |
 
 ## Items
 
@@ -713,6 +725,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-21 (slice/fixes-nit/2): Contract step for simple-mode (plans/simple-mode-plan.md line 121: slice 3 moves locked caretakers to easy_helper, locked viewers to easy_viewer and takes the two columns out of Drizzle reads and writes, sync, device schema and grants, leaving them for a later contract migration). Columns: care_group_member.simple_mode and simple_mode_locked (migration 0021_simple_mode.sql; schema packages/data/src/db/schema/care-groups/careGroupMember.ts:64-65). Today (2026-11-21) still read and written: packages/api/src/care-groups/careGroup.ts:194-223 (setMemberMode), packages/data/src/permissions/care-groups.ts:48-49, careGroupMemberService. Precondition: simple-mode slices 1-3 landed in dev and the conversion has run on staging and production; then a drop migration (expand/contract, adds a migration: run it alone). Also check care_group.simple_tiles stays (still used by group settings) and the user_preferences simpleMode key.
 - 2026-11-21 (prd/simple-mode): 2026-11-21 (prd/simple-mode landed, PR #44, bd13f73): the conversion is migration 0036. Retired and now unread everywhere: care_group_member.simple_mode, simple_mode_locked AND care_group.simple_tiles (replaced by easy_tiles, 0034) and the user.preferences.simpleMode key (copied to easyMode). setMemberMode/setMode are deleted. care_group and care_group_member are in REPLICATION_WHOLE_TABLES only because of these retired columns: drop them from that list in the contract migration.
+- 2026-11-28 (plan/contract-migrations): Planned in contract-migrations (plans/contract-migrations-plan.md): B-625 slices 1, 2, 4 (step one; then B-1062, B-1063); B-456 slice 3; B-457 slice 5; B-455 slice 6 (step one; the drop is B-1061).
 
 ### B-456 · chore · Retire the leftover reminder data planner-2 left in place: the note kind on appointment_series and stored future notes and note series
 
@@ -722,15 +735,18 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-21 (slice/fixes-nit/2): Contract step for planner-2 (plans/planner-2-plan.md line 48: nothing dropped; no data migration; stored future notes and note series left, hidden from upcoming readers and never topped up). Still in schema: appointment_series.kind with check appointment_series_kind_check (packages/data/src/db/schema/appointments/appointmentSeries.ts:43-86; new series are events only via the z.literal at line 177) and note series rows; timeline_entry.all_day and series columns and reminder_override / member_calendar_setting are NOT dead: events and appointment reminders still use them (timelineEntry.ts:121-142, reminderOverrideService in packages/api/src/calendars/overrideProcedures.ts, calendarFeedService), so do not drop those. Decide: delete or convert the stored note series and future-dated notes (a data migration; staging only has test data), then drop the kind column and its check or narrow the check to event. Precondition: planner-2 landed (it is) and no reader of kind=note remains (grep sync.ts, seriesVisits, appointmentSeriesService); migration, run it alone.
+- 2026-11-28 (plan/contract-migrations): Planned in contract-migrations (plans/contract-migrations-plan.md): B-625 slices 1, 2, 4 (step one; then B-1062, B-1063); B-456 slice 3; B-457 slice 5; B-455 slice 6 (step one; the drop is B-1061).
 
 ### B-457 · chore · Give groups that predate the default medication passes (Morning 08:00 and Evening 20:00) their two passes
 
-- status: triaged
+- status: dropped
 - prd: contract-migrations
 - owner:
 - commit:
 
 - 2026-11-21 (slice/fixes-nit/2): medications-2 (plans/medications-2-plan.md line 38) creates the default passes for every new group through one helper (careGroupService.create, accessCodeService, staffGroupService) and says: no backfill for existing rows (dev data only). Staging has been live since 2026-11-20, so any group created before that change has no passes and medications moved to passes have no pass. Check staging with a query on medication_pass per care_group; if groups lack them, add a data migration (or one-off script) that inserts the two defaults per group with none, idempotent, and moves medications without a pass onto them. Precondition: confirm count of groups without passes on staging; production has none yet, so only staging needs it.
+- 2026-11-28 (plan/contract-migrations): Planned in contract-migrations (plans/contract-migrations-plan.md): B-625 slices 1, 2, 4 (step one; then B-1062, B-1063); B-456 slice 3; B-457 slice 5; B-455 slice 6 (step one; the drop is B-1061).
+- 2026-11-28 (plan/contract-migrations): Dropped by the user (a427, 2026-11-28): no migration for rows that don't exist; production has no data and staging is reset after. Every create path adds the defaults.
 
 ### B-561 · feature · Shared demo site: demo.caretook.com with a fictional care group, generic logins and a nightly reset, to link from invites
 
@@ -820,6 +836,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-23 (Robert Bo Davis): From planner-3 (B-245): link rows in timeline_entry_todo replace the column. Contract step: remove the column, the todoService mirror, the releaseEvent and unlink clears, and eventId on old upload paths.
+- 2026-11-28 (plan/contract-migrations): Planned in contract-migrations (plans/contract-migrations-plan.md): B-625 slices 1, 2, 4 (step one; then B-1062, B-1063); B-456 slice 3; B-457 slice 5; B-455 slice 6 (step one; the drop is B-1061).
 
 ### B-665 · change · Remove the standalone Invite someone notice from the Timeline; inviting lives in the onboarding setup steps
 
@@ -1080,6 +1097,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-25 (Robert Bo Davis): User 2026-11-26: 'way too much marketing speak in that hero'; the hotfix removes the 'Keep track of someone's care, together.' heading, the rest of the trim is this item
 - 2026-11-28 (Robert Bo Davis): Moved from the held marketing topic to marketing-3 on the user's word (2026-11-28): copy and refresh work that needs no hold.
 - 2026-11-28 (plan/marketing-3): Planned in plans/marketing-3-prd.md and -plan.md (plan/marketing-3, 2026-11-28): B-887/B-888 slice 1, B-563 slice 2 (a site page, draft), B-829 slice 3 (docs/research note), B-855/B-836 slices 4-6.
+- 2026-11-28 (Robert Bo Davis): Exact hero copy chosen by the user 2026-11-28 ("Yes. Exact text. Go"): descriptor 'A shared care journal, made by caregivers who've been there.' (also og-default.svg and site/meta.ts alt); lead 'Signal or not, caretakers can add today's notes, medications, visits and doctors' numbers, and it reaches everyone in the care group.' Badge, lockup and buttons unchanged. Passed to marketing-3's planner for slice 4 (a410).
 
 ### B-858 · feature · Connect your AI assistant setup nudge: the last onboarding toast, opening group settings Assistants
 
@@ -1168,6 +1186,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28 (inline triage): pages in order: the patient profile front page (allergies, conditions), medication list, weekly medication sheet, emergency sheet, and a providers list (a new sheet). 'Only the pages that changed' means a checklist of booklet pages picked by hand; nothing tracks what was printed. B-919 guide pages split to care-booklet-2.
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28: the booklet also takes a printed todo sheet (B-1024) and a schedule sheet (B-1025).
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28: the booklet also takes the Timeline sheet (B-1027), as-needed dose log (B-1028), visit notes (B-1029), medication changes (B-1030), care team contacts (B-1031), daily routine and preferences (B-1032) and a cover page (B-1033).
+- 2026-11-28 (plan/care-booklet): Planned in plans/care-booklet-prd.md and -plan.md (7 slices: the booklet frame, front page, existing sheets, providers list, contacts, todo sheet). Skeptics s106 (send-back, slice 1 split), s107 (go).
 
 ### B-919 · feature · Printed medication guide page for each medication, as booklet pages
 
@@ -1429,15 +1448,17 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28: todos and schedule get printed sheets that can go in the care booklet (B-918). The todo sheet is hand-fillable, and a connected agent later reads a photo of it (B-1026, like B-917 for the weekly medication sheet), so its marks should be easy for an AI to read.
+- 2026-11-28 (plan/care-booklet): Planned in plans/care-booklet-prd.md and -plan.md (7 slices: the booklet frame, front page, existing sheets, providers list, contacts, todo sheet). Skeptics s106 (send-back, slice 1 split), s107 (go).
 
 ### B-1025 · feature · Printed schedule sheet (upcoming Events and med times), as a care booklet page
 
 - status: triaged
-- prd: care-booklet
+- prd: care-booklet-3
 - owner:
 - commit:
 
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28: todos and schedule get printed sheets that can go in the care booklet (B-918). The todo sheet is hand-fillable, and a connected agent later reads a photo of it (B-1026, like B-917 for the weekly medication sheet), so its marks should be easy for an AI to read.
+- 2026-11-28 (plan/care-booklet): Cut to care-booklet-3 (after care-booklet) by the care-booklet planner: the PRD stays small. Builds on care-booklet's page contract (one page file per sheet in routes/app/groups/booklet/pages/; order numbers reserved in its PRD). Routine needs new profile fields (a migration); the as-needed log's minimum gap has no field yet.
 
 ### B-1026 · feature · Connector: a member's AI reads a photo of a hand-filled printed todo sheet and applies it (ticks done, adds new todos), adding only what isn't already there
 
@@ -1451,40 +1472,44 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-1027 · feature · Printed Timeline sheet, hand-fillable: notes, symptoms (the group's symptom catalog), vitals (pain, temperature, blood pressure, meals, fluids) and shift handoffs by time, as a care booklet page
 
 - status: triaged
-- prd: care-booklet
+- prd: care-booklet-3
 - owner:
 - commit:
 
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28: the goal is that someone who isn't in Caretook can manage the patient's care from the printed booklet (B-918) with written notes and all the info they need; anything written by hand comes back through a connected agent (B-1034, B-1026). Write-in sheets keep marks easy for an AI to read.
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28: one fillable Timeline sheet for notes, symptoms, vitals and handoffs (not separate sheets).
+- 2026-11-28 (plan/care-booklet): Cut to care-booklet-3 (after care-booklet) by the care-booklet planner: the PRD stays small. Builds on care-booklet's page contract (one page file per sheet in routes/app/groups/booklet/pages/; order numbers reserved in its PRD). Routine needs new profile fields (a migration); the as-needed log's minimum gap has no field yet.
 
 ### B-1028 · feature · Printed as-needed dose log: time given, dose, reason and whether it helped, with each medicine's minimum gap printed, as a care booklet page
 
 - status: triaged
-- prd: care-booklet
+- prd: care-booklet-3
 - owner:
 - commit:
 
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28: the goal is that someone who isn't in Caretook can manage the patient's care from the printed booklet (B-918) with written notes and all the info they need; anything written by hand comes back through a connected agent (B-1034, B-1026). Write-in sheets keep marks easy for an AI to read.
 - 2026-11-28 (Robert Bo Davis): Pairs with med-intervals (B-938 as-needed and interval schedules) for the minimum gap.
+- 2026-11-28 (plan/care-booklet): Cut to care-booklet-3 (after care-booklet) by the care-booklet planner: the PRD stays small. Builds on care-booklet's page contract (one page file per sheet in routes/app/groups/booklet/pages/; order numbers reserved in its PRD). Routine needs new profile fields (a migration); the as-needed log's minimum gap has no field yet.
 
 ### B-1029 · feature · Printed visit notes sheet per upcoming Event: the visit-prep questions with space for answers, med changes and follow-ups, as a care booklet page
 
 - status: triaged
-- prd: care-booklet
+- prd: care-booklet-3
 - owner:
 - commit:
 
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28: the goal is that someone who isn't in Caretook can manage the patient's care from the printed booklet (B-918) with written notes and all the info they need; anything written by hand comes back through a connected agent (B-1034, B-1026). Write-in sheets keep marks easy for an AI to read.
+- 2026-11-28 (plan/care-booklet): Cut to care-booklet-3 (after care-booklet) by the care-booklet planner: the PRD stays small. Builds on care-booklet's page contract (one page file per sheet in routes/app/groups/booklet/pages/; order numbers reserved in its PRD). Routine needs new profile fields (a migration); the as-needed log's minimum gap has no field yet.
 
 ### B-1030 · feature · Printed medication changes sheet: write in a doctor's new, stopped or changed medicine, as a care booklet page
 
 - status: triaged
-- prd: care-booklet
+- prd: care-booklet-3
 - owner:
 - commit:
 
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28: the goal is that someone who isn't in Caretook can manage the patient's care from the printed booklet (B-918) with written notes and all the info they need; anything written by hand comes back through a connected agent (B-1034, B-1026). Write-in sheets keep marks easy for an AI to read.
+- 2026-11-28 (plan/care-booklet): Cut to care-booklet-3 (after care-booklet) by the care-booklet planner: the PRD stays small. Builds on care-booklet's page contract (one page file per sheet in routes/app/groups/booklet/pages/; order numbers reserved in its PRD). Routine needs new profile fields (a migration); the as-needed log's minimum gap has no field yet.
 
 ### B-1031 · feature · Printed care team contacts sheet: group members and who to call for what, with after-hours and pharmacy numbers, as a care booklet page
 
@@ -1494,25 +1519,28 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28: the goal is that someone who isn't in Caretook can manage the patient's care from the printed booklet (B-918) with written notes and all the info they need; anything written by hand comes back through a connected agent (B-1034, B-1026). Write-in sheets keep marks easy for an AI to read.
+- 2026-11-28 (plan/care-booklet): Planned in plans/care-booklet-prd.md and -plan.md (7 slices: the booklet frame, front page, existing sheets, providers list, contacts, todo sheet). Skeptics s106 (send-back, slice 1 split), s107 (go).
 
 ### B-1032 · feature · Printed daily routine and preferences sheet from the profile (meals, mobility, sleep, likes and dislikes), as a care booklet page
 
 - status: triaged
-- prd: care-booklet
+- prd: care-booklet-3
 - owner:
 - commit:
 
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28: the goal is that someone who isn't in Caretook can manage the patient's care from the printed booklet (B-918) with written notes and all the info they need; anything written by hand comes back through a connected agent (B-1034, B-1026). Write-in sheets keep marks easy for an AI to read.
 - 2026-11-28 (Robert Bo Davis): The profile may not hold routine and preference fields yet; the planner checks and adds them if needed.
+- 2026-11-28 (plan/care-booklet): Cut to care-booklet-3 (after care-booklet) by the care-booklet planner: the PRD stays small. Builds on care-booklet's page contract (one page file per sheet in routes/app/groups/booklet/pages/; order numbers reserved in its PRD). Routine needs new profile fields (a migration); the as-needed log's minimum gap has no field yet.
 
 ### B-1033 · feature · Care booklet cover page: what each sheet is for, how to mark it, and how to photograph it so a connected agent brings it back
 
 - status: triaged
-- prd: care-booklet
+- prd: care-booklet-3
 - owner:
 - commit:
 
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28: the goal is that someone who isn't in Caretook can manage the patient's care from the printed booklet (B-918) with written notes and all the info they need; anything written by hand comes back through a connected agent (B-1034, B-1026). Write-in sheets keep marks easy for an AI to read.
+- 2026-11-28 (plan/care-booklet): Cut to care-booklet-3 (after care-booklet) by the care-booklet planner: the PRD stays small. Builds on care-booklet's page contract (one page file per sheet in routes/app/groups/booklet/pages/; order numbers reserved in its PRD). Routine needs new profile fields (a migration); the as-needed log's minimum gap has no field yet.
 
 ### B-1034 · feature · Connector: a member's AI reads photos of the booklet's write-in sheets (Timeline sheet, as-needed dose log, visit notes, medication changes) and applies them, adding only what isn't already there; medication changes wait for a member to confirm
 
@@ -1625,15 +1653,18 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1046 · bug · Timeline sometimes renders blank: only the Today header and vitals summary show, the rest of the…
 
-- status: triaged
+- status: in-progress
 - prd: fixes-bug
-- owner:
+- owner: prd/fixes-bug
 - commit:
 
 - 2026-11-28 (Robert Bo Davis): From the inbox: Timeline sometimes renders blank: only the Today header and vitals summary show, the rest of the screen is empty until the user scrolls, then everything appears (alpha tester, mobile)
 - 2026-11-28 (Robert Bo Davis): Timeline paints empty below the header until a scroll; likely the infinite list measuring before layout or data arrives. Screenshot from an alpha tester, 2026-11-28.
 - 2026-11-28 (Robert Bo Davis): Second report, same tester, installed PWA: tapping the logo top left led to Today with an empty timeline (no vitals line either); scrolling did NOT fix it this time and the app felt stuck; closing and reopening the PWA fixed it. Points at a stale state or a client navigation that never loads, not only a layout measure.
 - 2026-11-28 (Robert Bo Davis): Third report, same tester, Safari (not only the PWA): (1) a filtered timeline with several filter categories at once showed Today's header and nothing else; (2) after closing and reopening Safari, day headers rendered (Today, Yesterday, Thu Nov 26, each with its care-period chip and + button) but every day's entries were empty; a page refresh fixed it. So the day list loads but the entries query returns nothing or never re-renders: suspect the entries query/subscription (filters combined, or the local database not ready on resume) rather than layout. Repro to try: iOS Safari, combine several filter categories; background Safari and resume.
+- 2026-11-28 (slice/fixes-bug/96): Slice 96: none of the three data paths reproduces in Chromium component tests (timelineBlank.browser.test.tsx). Lead: WebKit painting content-visibility:auto rows (offscreenRows.ts, B-139, 2026-11-20) once Today's day is settled (after paging, Back, or the logo on a long window); needs a WebKit repro. The no-vitals report looks like the local database on resume (e2e).
+- 2026-11-28 (prd/fixes-bug): wave 28 slice 96 (2e7ac9335): 6 component tests, no repro in Chromium. Decided (skeptic s105, for the user's veto): wave 29 slice stops content-visibility: auto on WebKit or the newest days (offscreenRows.ts). Report 2 (empty after logo, reopen fixed it) looks like the local DB not answering after an iOS resume: stays open here.
+- 2026-11-28 (prd/fixes-bug): wave 29 slice 99 (e51817358): Today and later days never contained; no content-visibility on WebKit. Stays open for report 2 (empty after logo, reopen fixed it).
 
 ### B-1047 · feature · Pull down to refresh in the installed PWA (no browser reload control there; a tester had to close…
 
@@ -1726,13 +1757,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1056 · bug · Quick entry on a provider's page: a visit line naming no provider ("saw her yesterday") reads as a note, not the event "saw Dr. Lee yesterday" gives; the fallback event card has no providerIds
 
-- status: triaged
+- status: landed
 - prd: fixes-bug
-- owner:
-- commit:
+- owner: prd/fixes-bug
+- commit: 19a8a6163
 
 - 2026-11-28 (prd/quick-entry-3): Codex on PR #344 (thread PRRT_kwDOVx-WLM69HDyw, quickEntry.ts:1856): the event eligibility check runs before aboutProvider, so the page provider doesn't count as named. Care needed: slice 3 kept the page provider out of naming on purpose (else every line on a provider's page, e.g. 'refill sent', becomes an event); fix only the visit-verb case and give the fallback event the page provider.
 - 2026-11-28 (prd/quick-entry-3): quick-entry-3 finished (PR #344, #345); follow-up moved to fixes-bug for the user's review
+- 2026-11-28 (prd/fixes-bug): slice 97 (8c66c1612): visit verbs count the page provider except loose 'had'/'went' (bare); 'went to the store' on a provider's page now reads as an event with that provider: a known edge, file a follow-up if a tester hits it
 
 ### B-1057 · bug · CI flake: apps/web/app/routes/app/groups/settings/tagsSettings.browser.test.tsx: the Tags page an owner merges Urgent i…
 
@@ -1747,10 +1779,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1058 · bug · Quick entry shortcut: / and Cmd/Ctrl+K open the sheet while a native <dialog> confirm is open (the layer guard matches only [role=dialog], not dialog elements)
 
-- status: triaged
+- status: landed
 - prd: fixes-bug
-- owner:
-- commit:
+- owner: prd/fixes-bug
+- commit: 19a8a6163
 
 - 2026-11-28 (prd/quick-entry-3): Codex P2 on PR #345 (thread PRRT_kwDOVx-WLM69HOQZ): add 'dialog' to inOtherLayer's selector in useQuickEntryShortcut.ts, with a row in quickEntryShortcut.browser.test.tsx
 - 2026-11-28 (prd/quick-entry-3): Codex P2 on PR #345; quick-entry-3 finished, so moved to fixes-bug
@@ -1773,3 +1805,85 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (plan/code-health-4): Cut from code-health-4 (B-363) by its planner, 2026-11-28: the six-slice cap, and careGroupInviteService, careGroupService and the details and profile routes are data-rights' hot files, groupAdminService account-security-2's. Uses code-health-4's isOwnerRole and the guard's exempt list (scripts/eslint/role-guard.mjs). Plan: plans/code-health-4-prd.md Out of scope.
+
+### B-1061 · chore · Drop the simple-mode columns (care_group_member.simple_mode, simple_mode_locked, care_group.simple_tiles) and strip the user.preferences simpleMode key, after contract-migrations takes them out of the Drizzle schema
+
+- status: triaged
+- prd: contract-migrations-2
+- owner:
+- commit:
+
+- 2026-11-28 (plan/contract-migrations): B-455 step two (contract-migrations plan). Precondition: contract-migrations on origin/staging. Hand-written custom migration; care_group and care_group_member leave REPLICATION_WHOLE_TABLES.
+
+### B-1062 · chore · Take todo.event_id out of the Drizzle schema, the device schema, todoRules.ts and the test fixtures, after contract-migrations stops every write and sync of it
+
+- status: triaged
+- prd: contract-migrations-2
+- owner:
+- commit:
+
+- 2026-11-28 (plan/contract-migrations): B-625 step two (contract-migrations plan). Precondition: contract-migrations on origin/staging. Plain generate with its DROP replaced by a comment (--custom keeps the old snapshot). Also the releaseEvent comment in apps/web/app/lib/timeline/timeline.sync.ts.
+
+### B-1063 · chore · Drop the todo.event_id column and take todo off REPLICATION_WHOLE_TABLES
+
+- status: triaged
+- prd: contract-migrations-3
+- owner:
+- commit:
+
+- 2026-11-28 (plan/contract-migrations): B-625 step three. Precondition: contract-migrations-2 on origin/staging. Hand-written custom migration.
+
+### B-1064 · change · The group invite, join request and staff group change emails each write out role labels ('an owner', 'a caretaker'…) by hand: one label per role from the role module
+
+- status: triaged
+- prd: fixes-nit
+- owner:
+- commit:
+
+- 2026-11-28 (prd/code-health-4): Follow-up from code-health-4 slice 2 (B-363): the templates' role enums now come from the role module, the prose labels don't.
+
+### B-1065 · bug · CI flake: apps/web/app/routes/app/groups/timeline/todayCard.browser.test.tsx: the Today card's rows every row but vital…
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): [ci-key 99624022e8e6] Flaked (passed on its rerun); found by prd/fixes-bug. First failure: Error: Cannot find element with locator: getByRole('heading', { name: 'Probe /app/groups/7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f1b01/todos?who=everyone' }) ARIA tree: - main: - heading "Timeline" [level=1] - button "Easy mode" - region "Today": - heading "Today" [level=2]: - button "Today" [expanded] - list: - listitem: - text: "Needs attention: Latest vitals: BP 130/85 mmHg" - time: 2d ago - listitem: - text: "Coming up soon:" - link "N…
+
+### B-1066 · bug · Deleting a care group leaves a pending joinDeclined email unskipped: its key is joinDeclined:<requestId>:<userId> and it links only to /app, so skipGroupMail misses it
+
+- status: triaged
+- prd: data-rights-2
+- owner:
+- commit:
+
+- 2026-11-28 (prd/data-rights): Codex on PR #353 (careGroupService.ts:145, skipGroupMail). Fix: collect the group's join-request ids before the cascade and match joinDeclined:<id>:% (and any other join-request keys) in the skip. data-rights-2 reuses deleteGroup, so it fits there.
+
+### B-1067 · chore · careGroupService.remove and the Details route compare group roles as strings ('owner'), against care-groups' rule to use isOwnerRole; also the connectors check at careGroupService.ts:102
+
+- status: triaged
+- prd: fixes-nit
+- owner:
+- commit:
+
+- 2026-11-28 (prd/data-rights): Seen at data-rights wave 3's dev sync: dev added GROUP_ROLE_CAPABILITIES and isOwnerRole; slice 6's ownerOnly check and the Delete card's owner gate use === 'owner', like the older lines beside them.
+
+### B-1068 · bug · CI flake: apps/web/app/routes/app/groups/timeline/timelineTagEdit.browser.test.tsx: deleting a tag an owner deletes a tag after a dialog naming its records
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-28 (prd/code-health-4): Flaked in components-4 on prd/code-health-4 run 46187226019 (049e799a); the branch didn't touch it; passed on the recheck run 46187839305.
+
+### B-1069 · chore · Recheck the realpath wrapper in pnpm test:tooling once Risa ships RISA-1093
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): From the inbox: package.json's test:tooling calls Risa's runner through $(realpath …), a workaround for RISA-1048 (through the node_modules symlink the runner ran nothing and exited 0). v0.2.3 (pinned 2026-11-28) fixes the runner: the plain path ran all 35 files. Kept on the user's word until RISA-1093 (about 20 other Risa entry points with the same symlink no-op) is in a pinned release; then drop the wrapper and trim step 4 of docs/agents/project-config.md (Updating Risa).
+- 2026-11-28 (Robert Bo Davis): Triaged to fixes-tooling: a one-line script change plus a doc step. Not runnable until RISA-1093 is in a release Caretook pins; Risa's backlog session was asked to say when.

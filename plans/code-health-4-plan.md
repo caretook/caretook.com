@@ -4,15 +4,19 @@
 
 ## Status
 
-**Where it stands:** planned; nothing started.
+**From the user:** none yet.
+
+**Landing mode:** run everything through (started run-through by the dispatcher, 2026-11-28).
+
+**Where it stands:** wave 1 (slices 1, 2) landed in dev 2026-11-28 as 2f2b7361b (PR #352, integration green run 46185645554, Codex clean); report filed; care-groups.md folded. Wave 2 started 2026-11-28: dev needed no sync (`risa sync`: no shared files); worktrees code-health-4-3, -4, -5 made, one opus agent each; all three handed off and merged clean (each added the same `isOwnerRole` re-export to `permissions.ts`; one copy kept). Wave gate: components flake (run 46187226019, timelineTagEdit, a file the branch never touched); `risa sync --force` merged dev (d43091e6); components recheck running; PR #355 open, Codex review waiting. Slice 5 notes `admin/groupDisplay.ts` `ROLE_ORDER` (a sort order of role literals) for slice 6's guard. Slice 2's follow-up (the email templates' hand-written role labels) filed as B-1064 (fixes-nit, triaged).
 
 | Slice | Wave | State   | Merge into `prd/code-health-4` (slice commits) |
 | ----- | ---- | ------- | ---------------------------------------------- |
-| 1     | 1    | planned |                                                |
-| 2     | 1    | planned |                                                |
-| 3     | 2    | planned |                                                |
-| 4     | 2    | planned |                                                |
-| 5     | 2    | planned |                                                |
+| 1     | 1    | merged  | df3ba0af8 (c4c7c0275)                          |
+| 2     | 1    | merged  | 7dadcc354 (0a14230d1)                          |
+| 3     | 2    | merged  | 165e59d4e (f89bcae4f)                          |
+| 4     | 2    | merged  | f4edfff71 (362ee84d8)                          |
+| 5     | 2    | merged  | 1cc353989 (fef308324)                          |
 | 6     | 3    | planned |                                                |
 
 **Backlog:** claim B-363 when slice 1 starts; run `risa backlog done B-363` when slice 6 has merged.
