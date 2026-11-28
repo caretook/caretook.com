@@ -1,5 +1,5 @@
 import type { CarePeriodContentInput } from "@caretook/data/schema";
-import type { NewPlace } from "../../../../lib/care-periods/carePeriods.sync";
+import type { NewPlace } from "./carePeriods.sync";
 
 import { parseZonedDateTime } from "@internationalized/date";
 import { dayStart, localDate } from "@caretook/data/domain";

@@ -13,9 +13,10 @@ import { sessionContext } from "~/lib/auth/session";
 import { useLiveQuery } from "~/lib/sync";
 import { carePeriodQuery, toCarePeriod, updateCarePeriod } from "~/lib/care-periods/carePeriods.sync";
 import { readRows } from "~/lib/timeline/timeline.sync";
-import { PeriodForm } from "../PeriodForm";
-import { periodFromForm } from "../periodFormData";
-import { loadPlaceRows, useClosePeriodSheet, usePlaceChoices } from "../periodSheet";
+import { PeriodForm } from "~/components/care-periods";
+import { periodFromForm } from "~/lib/care-periods/periodFormData";
+import { loadPlaceRows, usePlaceChoices } from "~/lib/care-periods/placeChoices";
+import { useClosePeriodSheet } from "../periodSheet";
 import { scheduleZoneNote } from "@caretook/data/schema";
 
 // Shared by web + native. `periods/:periodId/edit`: the edit sheet, over the

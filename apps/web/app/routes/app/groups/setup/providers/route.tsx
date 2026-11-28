@@ -6,6 +6,7 @@ import type { ProviderRow } from "~/lib/providers/providers.sync";
 import { isPracticeType } from "@caretook/data/schema";
 import { useCallback, useId, useMemo, useState } from "react";
 import { ProviderForm, ProviderListItem } from "~/components/providers";
+import { useGroupRecordTags } from "~/components/tags";
 import { Card, List, TITLE_SUB } from "~/components/ui";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
@@ -17,7 +18,7 @@ import { readRows } from "~/lib/timeline/timeline.sync";
 // Shared by web + native. The setup flow's providers step: the provider form
 // on the page, posting here, written on the device as the directory's add
 // sheet writes it (offline too), then a fresh form; below it, what's added,
-// live, as the directory lists it.
+// live, as the directory lists it (with each one's tags).
 
 export async function clientLoader({ context }: Route.ClientLoaderArgs) {
   const group = getGroup(context);
@@ -47,6 +48,7 @@ export default function SetupProviders({ loaderData }: Route.ComponentProps) {
   const providers = useMemo(() => toProviders(rows), [rows]);
   const practices = useMemo(() => providers.filter((p) => isPracticeType(p.type)), [providers]);
   const practiceNames = useMemo(() => new Map(providers.map((p) => [p.id, p.name])), [providers]);
+  const recordTags = useGroupRecordTags(groupId, "provider");
   // Each save starts a new, empty form.
   const [formKey, setFormKey] = useState(0);
   const added = useCallback(() => setFormKey((k) => k + 1), []);
@@ -67,6 +69,7 @@ export default function SetupProviders({ loaderData }: Route.ComponentProps) {
                 key={p.id}
                 provider={p}
                 practiceName={p.practiceId ? (practiceNames.get(p.practiceId) ?? null) : null}
+                tags={recordTags.get(p.id)}
                 condensed
               />
             ))}

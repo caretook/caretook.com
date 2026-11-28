@@ -14,8 +14,8 @@ import { useLiveQuery } from "~/lib/sync";
 import { carePeriodsQuery, toPeriodSpans } from "~/lib/care-periods/carePeriods.sync";
 import { readRows } from "~/lib/timeline/timeline.sync";
 import { useNow } from "~/lib/live-notes/editors.sync";
-import { PeriodList } from "./PeriodList";
-import { loadPlaceRows, usePlaceChoices } from "./periodSheet";
+import { PeriodList } from "~/components/care-periods";
+import { loadPlaceRows, usePlaceChoices } from "~/lib/care-periods/placeChoices";
 
 // Shared by web + native. A group's care periods: where the recipient's care
 // has happened, newest first, read from the device's local copy (live, so it

@@ -31,8 +31,8 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
                           VitalReadingRow, VitalField, VitalTypeMenu, useEntryFormSave, useEntryRemoval, new/, edit/),
                           groups/entry/ (loadEntry, useLiveEntry, EntryPageHeader, EntryHeader, EntryTitleRegion,
                           EntryTimeChip, EventTitleChips, ShareButton, share),
-                          groups/providers/ (DirectoryFilters, DirectoryResults, ProviderListItem, ProviderForm, PhoneFields,
-                          providerSheet, providerFormData, new/, edit/),
+                          groups/providers/ (DirectoryFilters, DirectoryResults, PhoneFields, providerSheet, new/, edit/),
+                          groups/setup/ (layout/: SetupProgress, setupPages; providers/, profile/, medications/, period/, step/),
                           groups/provider/ (loadProvider, useProviderNotes, ProviderHeader, ContactList),
                           groups/settings/ (layout, index, details/ + DetailsForms, members/ + MembersList; api, groupSettings)
                           groups/planner/ (the Planner: Upcoming list, past/), groups/medications/, groups/medication/ (a medication's page),
@@ -51,7 +51,10 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
                           ui/plain (the light entry), entry/ (EntryBody, EntryActions, KindIcon, TimelineEntryRow,
                           EntryOpenTarget, LiveDot, OpenTodosMark),
                           groups/ (NewGroupFields),
-                          notes/ (LiveNotesEditor, EditorAvatars), providers/ (ContactActions, ProviderTypeIcon),
+                          notes/ (LiveNotesEditor, EditorAvatars), providers/ (ContactActions, ProviderTypeIcon, ProviderForm,
+                          ProviderListItem, ProviderRowContact),
+                          medications/ (MedicationCard, MedicationForm and its fields), care-periods/ (PeriodForm,
+                          PlacePickerField, PeriodList), profiles/ (AllergiesSection, ConditionsSection),
                           settings/ (SettingsFrame, SettingsPage parts), shell/ (FirstSyncPending),
                           todos/ (TodoTick, TodoUndoStatus, LinkedTodos)
   app/lib/<area>/         every lib module, in a folder named after its docs/domain/ area (admin, app-shell, appointments, assistant,

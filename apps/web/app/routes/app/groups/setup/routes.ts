@@ -6,6 +6,9 @@ import { type RouteConfigEntry, route } from "@react-router/dev/routes";
 export const setupRoutes: RouteConfigEntry[] = [
   route("setup", "routes/app/groups/setup/layout/route.tsx", [
     route("providers", "routes/app/groups/setup/providers/route.tsx"),
+    route("profile", "routes/app/groups/setup/profile/route.tsx"),
+    route("medications", "routes/app/groups/setup/medications/route.tsx"),
+    route("period", "routes/app/groups/setup/period/route.tsx"),
     route(":step?", "routes/app/groups/setup/step/route.tsx"),
   ]),
 ];

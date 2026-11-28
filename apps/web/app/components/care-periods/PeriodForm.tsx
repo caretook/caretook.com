@@ -10,7 +10,7 @@ import { CARE_PERIOD_LIMITS, CARE_PERIOD_TYPES } from "@caretook/data/schema";
 import { CheckField, ChoiceGroup, Field, FormFooter, Message } from "~/components/ui";
 import { DateTimeField } from "~/components/ui/date";
 import { PERIOD_TYPE_META } from "~/lib/care-periods/periodDisplay";
-import { FIELD, isFieldIssue } from "./periodFormData";
+import { FIELD, isFieldIssue } from "~/lib/care-periods/periodFormData";
 import { PlacePickerField } from "./PlacePickerField";
 
 const issueFor = (issues: FieldIssue[], path: string) => issues.find((i) => i.path === path)?.message;
@@ -19,7 +19,7 @@ const TYPE_OPTIONS = CARE_PERIOD_TYPES.map((type) => ({ value: type, label: PERI
 
 /**
  * Start a care period, or add one in the past; with `period`, edit that one
- * (its values fill the form, and a moved start moves its neighbours' ends). Posts to its sheet route's
+ * (its values fill the form, and a moved start moves its neighbours' ends). Posts to its route's
  * clientAction, which writes on the device (with a place added here, in one
  * transaction); the shared Zod schema's messages show on the fields. The
  * start defaults to now, in the recipient's zone, and can't be later.
@@ -41,7 +41,8 @@ export function PeriodForm({
   timeZone: string;
   zoneNote: string | null;
   onDone: () => void;
-  onCancel: () => void;
+  /** Without it there's no Cancel (the setup pages' form stays on its page). */
+  onCancel?: () => void;
 }) {
   const fetcher = useFetcher<ActionResult>();
   const formRef = useRef<HTMLFormElement>(null);
@@ -163,7 +164,7 @@ export function PeriodForm({
       <FormFooter
         submitLabel={period ? "Save changes" : "Save period"}
         busy={busy}
-        cancel={{ label: "Cancel", onCancel }}
+        cancel={onCancel ? { label: "Cancel", onCancel } : undefined}
       />
     </fetcher.Form>
   );
