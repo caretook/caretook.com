@@ -27,6 +27,9 @@
 
 - Cause (backlog session): the disk filled (ENOSPC) at about 09:13Z, hanging Docker and the dispatcher; about 7 GB freed; the user is rebooting. Codex clean on f9313cb. **Resume after reboot** (`risa recover` restarts Docker): `risa rm sync-safety-3-1`, `risa rm sync-safety-3-4`, `risa serve --restart`, `risa browser --changed --base dev`, `risa pr sync-safety-3` (pushes the Status commits), `risa review sync-safety-3 --wait` (or `--no-review` if only Markdown changed since the clean verdict), `risa land sync-safety-3 --tier components -m "feat(sync-safety-3): savepoint transactions and the shared write limit (wave 1, B-294)"`, the landing report, `risa status-trim`, then rotate (wave 2: slice 2, opus).
 
+- **Wave 1 landed** in dev through PR #322 (dev 26eb8f0), tier components; flake filed on B-1000; report a387; to-test `2026-11-28-0803-sync-safety-3.md`. Slice worktrees 1 and 4 removed after the reboot; browser 11/11.
+- **Next session (wave 2):** `risa backlog ingest` and `list`, `risa sync`, then `risa slice sync-safety-3 2` and one opus agent on `risa prompt slice sync-safety-3 2`. Slice 2 imports `SYNC_WRITE_LIMIT` from `@caretook/data/domain` (the api's own `SYNC_BATCH_LIMIT = 100` stays or moves beside it: slice 2's call). Watch for the anchor warning: slice 2's build names 5 files (budget about 4); left as is. B-294 stays in progress until slice 5.
+
 ## Durable decisions
 
 - **A write is a device transaction:** the op's `write` is PowerSync's transaction id; consecutive ops with the same one are applied together or not at all. An op with no `write` is its own write.
