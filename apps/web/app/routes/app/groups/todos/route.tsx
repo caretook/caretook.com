@@ -15,6 +15,7 @@ import { tagsQuery } from "~/lib/tags/tags.sync";
 import { subtaskProgressQuery, todosQuery, todoTreesQuery } from "~/lib/todos/todos.sync";
 import { membersQuery, readRows } from "~/lib/timeline/timeline.sync";
 import { emptyTodosText, todoQueryOf, whoOf } from "~/lib/todos/todoList";
+import { todoViewOf } from "~/lib/todos/todoView";
 import { PlannerHeader } from "../planner/PlannerHeader";
 import { DoneTodos } from "./DoneTodos";
 import { todoFilterBar } from "./TodoFilters";
@@ -27,7 +28,8 @@ import { DONE_PAGE, useTodoList } from "./useTodoList";
 // follows other members' changes): the open ones the Filter menu's Assigned
 // to shows (Everyone, or `?who=` Mine / Unassigned) and the search box's text
 // (`?q=`) keeps, as trees (todo-subtasks-3: a subtask shows only in its tree,
-// with a quick add on each row for writers) in sections by due, then Done. A tick
+// with a quick add on each row for writers; or, with `?subtasks=own`, each on
+// its own row with "Part of": todo-links-2) in sections by due, then Done. A tick
 // completes a todo on the device, with Undo. The add and edit sheets render
 // over it (the header's Add menu opens the add sheet).
 
@@ -48,7 +50,7 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
     db,
     todosQuery(params.groupId, {
       done: true,
-      doneListed: true,
+      doneListed: todoViewOf(search) === "tree",
       who,
       userId: group.userId,
       tagId: tag?.id,
@@ -95,12 +97,20 @@ export default function Todos({ loaderData, params }: Route.ComponentProps) {
     busy,
     tagsOf,
     progressOf: list.progressOf,
+    parentOf: list.parentOf,
   };
 
   return (
     <Page>
       <PlannerHeader
-        bar={todoFilterBar({ who: list.who, tags: list.tags, value: text, urlQuery, onChange: setText })}
+        bar={todoFilterBar({
+          who: list.who,
+          view: list.view,
+          tags: list.tags,
+          value: text,
+          urlQuery,
+          onChange: setText,
+        })}
       />
 
       <TodoUndoStatus groupId={params.groupId} />

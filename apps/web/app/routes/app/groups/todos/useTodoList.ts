@@ -18,7 +18,8 @@ import { membersQuery } from "~/lib/timeline/timeline.sync";
 import { matchesText, textTokens } from "~/lib/core/textFilter";
 import { tagFilterOf } from "~/lib/tags/tagFilter";
 import { showsTodo, todoSections, whoOf } from "~/lib/todos/todoList";
-import { todoTrees } from "~/lib/todos/todoTreeView";
+import { splitTrees, todoTrees } from "~/lib/todos/todoTreeView";
+import { todoViewOf } from "~/lib/todos/todoView";
 
 /** How many done todos a page of the Done list shows. */
 export const DONE_PAGE = 20;
@@ -56,7 +57,10 @@ const NO_COUNT: { count: number }[] = [];
  * filters (who, tag, text) as the match, so a match keeps its subtree and
  * its ancestors as context rows. Done stays flat (`doneListed`: a done
  * subtask of an open tree is struck in that tree instead). The group's one
- * progress query gives parents' "n of m done".
+ * progress query gives parents' "n of m done". With `?subtasks=own`
+ * (todo-links-2) each open matching todo is its own row (`splitTrees`, no
+ * context rows), Done lists every done todo (no `doneListed`), and
+ * `parentOf` gives a subtask's "Part of" from the open and done rows read.
  */
 export function useTodoList(groupId: string, initial: TodoListRows, text = "") {
   const group = useGroup();
@@ -78,6 +82,8 @@ export function useTodoList(groupId: string, initial: TodoListRows, text = "") {
   const progressOf = useCallback((todoId: string) => progress.get(todoId), [progress]);
 
   const who = whoOf(search);
+  const view = todoViewOf(search);
+  const doneListed = view === "tree";
   const tags = useGroupTags(groupId);
   const tag = tagFilterOf(search, tags);
   const tagsOf = useGroupRecordTags(groupId, "todo");
@@ -106,7 +112,7 @@ export function useTodoList(groupId: string, initial: TodoListRows, text = "") {
   // With text, every done todo is read and the matches paged here (a page of the table would miss older ones).
   const doneQuery = todosQuery(groupId, {
     done: true,
-    doneListed: true,
+    doneListed,
     who,
     userId: group.userId,
     tagId: tag?.id,
@@ -119,7 +125,7 @@ export function useTodoList(groupId: string, initial: TodoListRows, text = "") {
     [doneAll, filtering, matches],
   );
   const done = filtering ? doneMatching.slice(0, doneLimit) : doneMatching;
-  const countQuery = doneCountQuery(groupId, { who, userId: group.userId, tagId: tag?.id, doneListed: true });
+  const countQuery = doneCountQuery(groupId, { who, userId: group.userId, tagId: tag?.id, doneListed });
   const [count] = useLiveQuery<{ count: number }>(countQuery.sql, countQuery.params, NO_COUNT);
   const moreDone = (filtering ? doneMatching.length : (count?.count ?? 0)) > done.length;
   // The React Compiler memoizes it.
@@ -128,7 +134,7 @@ export function useTodoList(groupId: string, initial: TodoListRows, text = "") {
   const sections = useMemo(
     () =>
       todoSections(
-        todoTrees(open, {
+        (view === "own" ? splitTrees : todoTrees)(open, {
           now,
           timeZone,
           matches: (t) =>
@@ -139,11 +145,22 @@ export function useTodoList(groupId: string, initial: TodoListRows, text = "") {
         now,
         timeZone,
       ),
-    [open, who, tag, tagsOf, group.userId, now, timeZone, matches],
+    [view, open, who, tag, tagsOf, group.userId, now, timeZone, matches],
+  );
+
+  // On their own, a subtask's "Part of": its parent among the rows read (a parent in neither shows no line).
+  const parents = useMemo(
+    () => (view === "own" ? new Map([...open, ...doneAll].map((t) => [t.id, t])) : null),
+    [view, open, doneAll],
+  );
+  const parentOf = useMemo(
+    () => (parents ? (parentId: string) => parents.get(parentId) : undefined),
+    [parents],
   );
 
   return {
     who,
+    view,
     tags,
     tag,
     tagsOf,
@@ -153,6 +170,7 @@ export function useTodoList(groupId: string, initial: TodoListRows, text = "") {
     showMoreDone,
     nameOf,
     progressOf,
+    parentOf,
     now,
     timeZone,
   };
