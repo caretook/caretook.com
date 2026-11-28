@@ -307,6 +307,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1049 | bug | triaged | data-rights |  | A deleted medication pass's name is scrubbed, so the connector's listMedications shows blank pass names in an old schedule (it reads deleted passes on purpose) |
 | B-1050 | change | triaged | undo-first |  | Finishing a todo's last subtask silently completes the parent and it vanishes from the list;… |
 | B-1051 | bug | triaged | fixes-tooling |  | CI flake: assistantActionManyMedications.int.test.ts 'givePass gives every medication in the pass, past the first 100' times out at 5 s under load |
+| B-1052 | change | triaged | fixes-ui |  | Todo tick Undo shows in the page (an inline 'Done: … Undo' line under the list) instead of the… |
 
 ## Items
 
@@ -1978,6 +1979,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-28 (Robert Bo Davis): From the inbox: Finishing a todo's last subtask silently completes the parent and it vanishes from the list; instead the action message asks 'Mark <parent> done too?' with Undo there (alpha tester)
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28: 'that is one of those "too smart" things that isn't intuitive. ... I'll refine it once the flash messenger is in place (the little popup that tells you what happened and what you can do) to say something like "do you want to mark the main task as complete?" and put the undo there too.' Waits for undo-first's action message (B-1040). Today: todoService.rollUp completes the parent as the system (docs/domain/todos.md, Rollup). Open for the planner to ask: the tester also found a parent with open subtasks can't be ticked (TodoTick disables it) and likes adding already-done things to tick off; whether a parent tick should be allowed (completing its subtasks, with Undo) is the user's call.
+- 2026-11-28 (Robert Bo Davis): Builds on B-1052 (todo Undo moves into the shared toast).
 
 ### B-1051 · bug · CI flake: assistantActionManyMedications.int.test.ts 'givePass gives every medication in the pass, past the first 100' times out at 5 s under load
 
@@ -1987,3 +1989,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (prd/fixes-tooling): 2026-11-28 (fixes-tooling slice 102): timed out at 5000 ms once in 10 runs of packages/data integration at machine load 20-27; the earlier fix is archived B-986.
+
+### B-1052 · change · Todo tick Undo shows in the page (an inline 'Done: … Undo' line under the list) instead of the…
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): From the inbox: Todo tick Undo shows in the page (an inline 'Done: … Undo' line under the list) instead of the shared toast overlay; move it to the shared toast like other done actions
+- 2026-11-28 (Robert Bo Davis): User 2026-11-28: 'they sould appear in a small overlay'. The shared toast exists (B-669, ui/Toast, toast({ message, undo })) but todo ticks still use their own TodoUndoStatus region (components/todos/TodoUndoStatus.tsx, used in ~10 places: todos, planner, timeline EasyTodos, entry, todo page, linked todos). Replace it with toast(); keep B-192 (several quick ticks: one Undo covering all of them, e.g. 'Done: 3 to-dos · Undo') and the screen-reader announcement. B-1050 (ask before marking the parent done) builds on this.
