@@ -23,6 +23,8 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - react-i18next or some other internationalization library to support multiple languages for all text in the app. (B-209)
 - Tags tab on the planner: a unified view listing all tags and the items tagged with each (B-972)
   Has the common search/filter bar. Where possible, uses the shared component to display items in the list. Has condensed and full views, defaulting to condensed.
+- Free plan: cap how many care groups one user can create (owner of), with a clear message at the cap; staff can lift it per user
+  Part of 'reasonable limits on free'. Count groups the user created or owns, not ones they were invited to. Pick a default (e.g. 3) in the plan.
 
 ## Big plans
 
