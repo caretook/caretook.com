@@ -26,7 +26,7 @@ import {
   toTodo,
   updateTodo,
 } from "./todos.sync";
-import { addDays, localDate, UNDO_NEXT_METADATA } from "@caretook/data/domain";
+import { addDays, localDate, TICK_NEXT_METADATA, UNDO_NEXT_METADATA } from "@caretook/data/domain";
 
 // Repeating todos on the device (planner-2): a tick writes the todo done and
 // its next occurrence (the server's twin: the same id, `nextTodoId`) in one
@@ -123,6 +123,17 @@ describe("tick", () => {
     // Only the done columns: the upload maps it to complete.
     expect(Object.keys(ops[0]?.data ?? {}).sort()).toEqual(["done_at", "done_by"]);
     expect(oneTransaction(ops)).toBe(true);
+    // The next is flagged as the tick's, so a stale tick's never revives a
+    // stopped chain on the server (B-387); the tick itself isn't.
+    expect(ops.map((o) => o.metadata)).toEqual([null, TICK_NEXT_METADATA]);
+    expect(ops[1]?.data).toMatchObject({
+      group_id: TEST_GROUP.id,
+      title: "Put the bins out",
+      due_on: tomorrow,
+      repeat_rule: DAILY,
+      repeat_id: BINS_ID,
+      created_by: TEST_USER.id,
+    });
 
     expect(await completeTodo(db, BINS_ID)).toEqual({ ok: true, id: BINS_ID });
     expect(await queued(db)).toHaveLength(2);
@@ -347,6 +358,8 @@ describe("skip", () => {
     const ops = await queued(db);
     expect(ops.map((o) => `${o.op} ${o.id}`)).toEqual([`PATCH ${BINS_ID}`, `PUT ${NEXT_ID}`]);
     expect(oneTransaction(ops)).toBe(true);
+    // A skip's next is unflagged: the server makes it for a writer (B-387).
+    expect(ops.map((o) => o.metadata)).toEqual([null, null]);
   });
 });
 

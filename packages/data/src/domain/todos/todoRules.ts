@@ -236,3 +236,12 @@ export const todoRepeatText = (
  * explicit delete.
  */
 export const UNDO_NEXT_METADATA = "todo:undoNext";
+
+/**
+ * The upload's flag on a tick's next occurrence (the device's `_metadata` on
+ * the twin `completeTodo` writes, B-387): the server's own tick makes that
+ * row, so a flagged twin never creates one (`todoService.upsertOccurrence`).
+ * A stale tick's twin can't bring back a chain someone stopped meanwhile; a
+ * skip's twin is unflagged, a writer's create.
+ */
+export const TICK_NEXT_METADATA = "todo:tickNext";

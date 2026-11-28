@@ -29,9 +29,10 @@ import {
   ROLLUP_METADATA,
   rollupOf,
   SIBLING_ORDER_SQL,
+  TICK_NEXT_METADATA,
   UNDO_NEXT_METADATA,
 } from "@caretook/data/domain";
-import { eq, inArray, sql } from "drizzle-orm";
+import { eq, getTableColumns, inArray, sql } from "drizzle-orm";
 import { noteDocuments, recordTags, timelineEntryTodos, todos } from "../sync/schema";
 import { recordTagRow } from "../tags/tags.sync";
 import { forbidden, fromLocalTimestamp, groupFor, nowTimestamp, readRows } from "../timeline/timeline.sync";
@@ -758,6 +759,29 @@ const recipientToday = async (db: SyncDb, recipientId: string) => {
 };
 
 /**
+ * Insert a todo row, its upload flagged with `metadata` when given.
+ * `_metadata` is PowerSync's, outside the Drizzle table, so a flagged insert
+ * names the columns itself (a later UPDATE of it alone would upload a second op).
+ */
+const insertTodo = async (tx: Tx, row: typeof todos.$inferInsert, metadata: string | null) => {
+  if (!metadata) return tx.insert(todos).values(row);
+  const columns = getTableColumns(todos);
+  const set = Object.entries(row).flatMap(([key, value]) => {
+    const column = columns[key as keyof typeof columns];
+    return column && value !== undefined ? [{ column, value }] : [];
+  });
+  return tx.run(
+    sql`INSERT INTO ${todos} (${sql.join(
+      set.map(({ column }) => sql.identifier(column.name)),
+      sql`, `,
+    )}, _metadata) VALUES (${sql.join(
+      set.map(({ column, value }) => sql.param(value, column)),
+      sql`, `,
+    )}, ${metadata})`,
+  );
+};
+
+/**
  * Write the occurrence after `todo` (ticked or skipped today) in `tx`,
  * unless a live open row with its id exists; a live done one, like `todo`
  * itself, is passed over for the rule's following day (B-386), and a
@@ -765,8 +789,13 @@ const recipientToday = async (db: SyncDb, recipientId: string) => {
  * `todoService`'s `insertNext`, so both write the same row. `now` is the
  * tick's time: the next is made then (and after `todo`, whose `created_at`
  * may be the server's, ahead of this clock), so `reopenTodo` finds it.
+ * `metadata` flags a new row's upload (a tick's: `TICK_NEXT_METADATA`).
  */
-const planNext = async (db: SyncDb, todo: LocalTodo, tickedAt = nowTimestamp()) => {
+const planNext = async (
+  db: SyncDb,
+  todo: LocalTodo,
+  { tickedAt = nowTimestamp(), metadata = null }: { tickedAt?: string; metadata?: string | null } = {},
+) => {
   if (!todo.repeatRule) return null;
   const made = todo.createdAt ? new Date(todo.createdAt).getTime() + 1 : 0;
   const now =
@@ -803,16 +832,20 @@ const planNext = async (db: SyncDb, todo: LocalTodo, tickedAt = nowTimestamp()) 
         .set({ ...content, createdAt: now, updatedAt: now, updatedBy: db.userId })
         .where(eq(todos.id, id));
     } else {
-      await tx.insert(todos).values({
-        id,
-        groupId,
-        recipientId,
-        ...content,
-        createdAt: now,
-        updatedAt: now,
-        createdBy: db.userId,
-        updatedBy: db.userId,
-      });
+      await insertTodo(
+        tx,
+        {
+          id,
+          groupId,
+          recipientId,
+          ...content,
+          createdAt: now,
+          updatedAt: now,
+          createdBy: db.userId,
+          updatedBy: db.userId,
+        },
+        metadata,
+      );
     }
     for (const { tag_id: tagId } of tagLinks) {
       await tx.insert(recordTags).values(recordTagRow(db, groupId, tagId, "todo", id));
@@ -837,9 +870,10 @@ export const completeTodo = async (db: SyncDb, id: string): Promise<TodoWriteRes
   const refusal = await doneRefusal(db, existing);
   if (refusal) return refusal;
   if (existing.doneAt) return { ok: true, id };
-  // The tick's time is the next's `created_at` too: `laterInChain` finds it as made at or after `done_at`.
+  // The tick's time is the next's `created_at` too: `laterInChain` finds it as
+  // made at or after `done_at`. A new next is flagged as the tick's (B-387).
   const now = nowTimestamp();
-  const next = await planNext(db, existing, now);
+  const next = await planNext(db, existing, { tickedAt: now, metadata: TICK_NEXT_METADATA });
   const rollup = await planRollup(db, { id, parentId: existing.parentId, doneAt: now, deletedAt: null }, now);
   await db.drizzle.transaction(async (tx) => {
     // Only the done columns change, so the upload maps it to complete.
