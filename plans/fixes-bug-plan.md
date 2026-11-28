@@ -10,11 +10,11 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item  | State  | Merge     |
-| ----- | ----- | ------ | --------- |
-| 88    | B-993 | merged | 91d6467b7 |
+| Slice | Item  | State                                 | Merge     |
+| ----- | ----- | ------------------------------------- | --------- |
+| 89    | B-992 | merged (opus); CI integration run out | a83841058 |
 
-**Wave 24 (2026-11-27): slice 88 merged, CI components green (run 46086204846); sync skipped (no shared files); PR #293 open, Codex review out; no browser checks needed (`--changed`); slice worktree removed**; slice 88 (B-993, opus): link suggestions' `upcomingEvents` limits before dropping ended all-day events. Hot: `apps/web/app/lib/todos/linkSearch`. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Last landed: wave 23 (PR #285). Gotcha: run prettier on the plan after editing the Status table.
+**Wave 25** (session 2026-11-27): slice 89 (B-992, symptom catalog lock) started on opus; hot files set. Wave 24 landed through PR #293 (18720a3d2); see history.
 
 ## Wave 1
 
@@ -940,3 +940,14 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/todos.md, docs/domain/appo
 
 - Make the query's limit hold only for what can survive: either filter ended all-day events in SQL first (careful: an all-day event's day is in its own zone, which is why the window is two days), or page in `occurred_at, id` order until `limit` survive `upcomingItems` or the rows run out. Say which in the hand-off. Keep the change inside `upcomingEvents`; Upcoming's order and the in-progress all-day rule stay as they are.
 - Test (beside the existing `suggestLinkables` tests, or a new `linkSearch` sync test if none): a fictional group with `limit + 11` or more all-day events from yesterday and the day before (ended) and one timed event tomorrow; the suggestions include tomorrow's event.
+
+## Wave 25
+
+### Slice 89: a symptom entry write can't land on a symptom replace just retired (B-992)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/timeline.md, docs/domain/data-layer.md, docs/domain/sync.md · Tests: integration
+
+`timelineEntryService.update` reads the entry unlocked, and `symptomTypeFor` (`packages/data/src/services/timelineEntryService.ts`, about line 137) skips `ensure` (and its advisory lock) when the stored pointer matches the name-derived id; an edit read before `symptomTypeService.replace`'s bulk UPDATE and written after it puts back the old name and pointer, leaving the entry on a tombstone. A create naming an older tombstone A (A→B) racing replace(B→C) has the same shape: `ensure` locks only A's derived id, resolves to B before replace moves B's entries, and inserts after, so the entry stays on tombstone B.
+
+- One per-group symptom-catalog advisory lock (`pg_advisory_xact_lock` on a `symptom_catalog:<groupId>` key, as `tagService.ts` does for tags): `replace` takes it exclusive; every symptom entry write (create, update, the connector's log, the sync upload's path through the service) takes it shared before resolving the symptom, then checks the resolved row isn't a tombstone (follow it if it is). Non-symptom entry writes take no lock. Keep the change inside `symptomTypeService.ts` and `timelineEntryService.ts` (plus the models they use); don't touch `packages/api/src/sync.ts`.
+- Integration tests (fictional group, two transactions on the shared test Postgres): an update read before replace and committed after it ends on the replacement symptom; a create naming a tombstone A (A→B) racing replace(B→C) ends on C. Say in the hand-off how the tests force the interleaving.
