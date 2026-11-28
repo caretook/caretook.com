@@ -1,12 +1,12 @@
-import type { TimelineEntryCreateInput } from "../db";
+import type { TimelineEntryCreateInput, Tx } from "../db";
 
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { eq, sql } from "drizzle-orm";
+import { describe, expect, it, vi } from "vitest";
 import * as Y from "yjs";
 import { createWorld, ok, system, typeParagraph } from "../../test/fixtures";
-import { getDb } from "../db";
-import { noteUpdateSchema } from "../db/schema";
+import { getDb, withTransaction } from "../db";
+import { noteDocumentSchema, noteUpdateSchema } from "../db/schema";
 import { isError } from "../errors";
 import { noteDocumentModel, noteUpdateModel, timelineEntryModel } from "../models";
 import { COMPACT_AFTER_UPDATES } from "./noteDocumentService";
@@ -381,5 +381,85 @@ describe("deletion", () => {
       ok(await noteUpdateModel.list({ ...system, filter: { documentId: { type: "eq", value: doc.id } } }))
         .count,
     ).toBe(0);
+  });
+});
+
+/** Sessions in this test database waiting on a lock (a row another transaction holds). */
+const lockWaiters = async () => {
+  const res = await getDb().execute<{ n: number }>(
+    sql`SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'`,
+  );
+  return res.rows[0]?.n ?? 0;
+};
+
+/**
+ * `first` runs in a transaction held open; `second` starts on another
+ * connection then, and once it waits on a lock, the first commits and the
+ * second finishes after it.
+ */
+const racing = async <A, B>(first: (tx: Tx) => Promise<A>, second: () => Promise<B>) => {
+  let release = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  let ran = () => {};
+  const firstRan = new Promise<void>((resolve) => (ran = resolve));
+  const committed = withTransaction(async (tx) => {
+    const res = await first(tx);
+    ran();
+    if (!isError(res)) await held;
+    return res;
+  });
+  try {
+    await firstRan;
+    const later = second();
+    await vi.waitFor(async () => expect(await lockWaiters()).toBeGreaterThan(0), {
+      timeout: 10_000,
+      interval: 10,
+    });
+    release();
+    return { first: await committed, second: await later };
+  } finally {
+    release();
+  }
+};
+
+describe("an append racing its owner's delete (B-1053)", () => {
+  const stored = async (documentId: string) => {
+    const [doc] = await getDb()
+      .select({ text: noteDocumentSchema.text, snapshot: noteDocumentSchema.snapshot })
+      .from(noteDocumentSchema)
+      .where(eq(noteDocumentSchema.id, documentId));
+    const updates = await getDb()
+      .select({ id: noteUpdateSchema.id })
+      .from(noteUpdateSchema)
+      .where(eq(noteUpdateSchema.documentId, documentId));
+    return { doc, updates: updates.length };
+  };
+
+  it("is refused when the delete commits first, leaving the document scrubbed", async () => {
+    const { u, addDocument, append } = await setup();
+    const { entry, doc } = await addDocument();
+    ok(await append(u.caretaker.ctx, doc.id, typeParagraph(new Y.Doc(), "Before")));
+    ok(await noteDocumentService.compact(doc.id));
+
+    const { first, second } = await racing(
+      (tx) => timelineEntryService.remove({ ...u.owner.ctx, tx }, entry.id),
+      () => append(u.caretaker.ctx, doc.id, typeParagraph(new Y.Doc(), "Too late")),
+    );
+    ok(first);
+    expect(codeOf(second)).toBe("noteDocumentService:notFound");
+    expect(await stored(doc.id)).toEqual({ doc: { text: "", snapshot: null }, updates: 0 });
+  });
+
+  it("lands first when it holds the lock, and the delete then scrubs it", async () => {
+    const { u, addDocument, append } = await setup();
+    const { entry, doc } = await addDocument();
+
+    const { first, second } = await racing(
+      (tx) => append({ ...u.caretaker.ctx, tx }, doc.id, typeParagraph(new Y.Doc(), "Just in time")),
+      () => timelineEntryService.remove(u.owner.ctx, entry.id),
+    );
+    ok(first);
+    ok(second);
+    expect(await stored(doc.id)).toEqual({ doc: { text: "", snapshot: null }, updates: 0 });
   });
 });
