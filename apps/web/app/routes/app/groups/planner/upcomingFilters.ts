@@ -1,6 +1,8 @@
 import type { TimelineEntryKind } from "@caretook/data/schema";
 import type { FilterExtraChip, FilterSection } from "../../../../components/ui/filterModel";
 import type { TimelineFilters } from "../../../../lib/timeline/timelineFilters";
+import { SUBTASKS_PARAM, todoViewOf, todoViewSection } from "../../../../lib/todos/todoView";
+import type { TodoView } from "../../../../lib/todos/todoView";
 
 import { TAG_PARAM, tagFromParams } from "@caretook/data/schema";
 import { matchingText } from "../../../../lib/core/textFilter";
@@ -15,7 +17,9 @@ import {
 // Upcoming's and Past's filters: the timeline's `?kind=event` and `?author=`
 // (read and changed through `lib/timeline/timelineFilters`), for todos
 // only, `?show=todos`, and the tag (`?tag=`, events and todos alike; tags
-// PRD: a section on Upcoming, a chip carried to Past).
+// PRD: a section on Upcoming, a chip carried to Past), and the todo view
+// (`?subtasks=own`, todo-links-2: a section on Upcoming, carried to Past and
+// back like the tag, though Past shows no todos).
 // Pure, so web:unit tests it.
 
 /** What Upcoming lists: everything (default), events only, or todos only. */
@@ -43,6 +47,7 @@ type UpcomingFilters = Pick<TimelineFilters, "author">;
  * Upcoming's filters: what it shows, and the author. `kind` is what the
  * entry queries filter by (events, or none), `todosOnly` leaves out every
  * entry. A kind Upcoming doesn't list (`?kind=vital`, `?kind=note`) reads as All.
+ * `view` is the todos' (`todoViewOf`): in their tree, or on their own.
  */
 export const parseUpcomingFilters = (
   search: string,
@@ -52,12 +57,20 @@ export const parseUpcomingFilters = (
   todosOnly: boolean;
   /** `?tag=` as written: whether the group has it is the screen's to check (`activeTag`). */
   tag: string | null;
+  view: TodoView;
 } => {
   const { kind, author } = parseFilters(search);
   const params = new URLSearchParams(search);
   const todosOnly = params.get(SHOW_PARAM) === "todos";
   const show: UpcomingShow = todosOnly ? "todos" : kind === "event" ? "event" : "all";
-  return { kind: show === "event" ? "event" : null, author, show, todosOnly, tag: tagFromParams(params) };
+  return {
+    kind: show === "event" ? "event" : null,
+    author,
+    show,
+    todosOnly,
+    tag: tagFromParams(params),
+    view: todoViewOf(search),
+  };
 };
 
 /** The Past tab's filters: past events only, so the author and the tag. */
@@ -71,12 +84,14 @@ type Named = { id: string; name: string };
 
 /**
  * Upcoming's Filter menu sections: Show (All, Events, Todos), then Tag
- * when the group has tags (`tagFilterSection`).
+ * when the group has tags (`tagFilterSection`), then Subtasks (the todo
+ * lists' one view section, `todoViewSection`; todo-links-2).
  */
 export const upcomingFilterSections = (
   search: string,
   show: UpcomingShow,
   tags: readonly Named[],
+  view: TodoView = todoViewOf(search),
 ): FilterSection[] => {
   const tag = tagFilterSection(search, tags);
   return [
@@ -92,6 +107,7 @@ export const upcomingFilterSections = (
       })),
     },
     ...(tag ? [tag] : []),
+    todoViewSection(search, view),
   ];
 };
 
@@ -123,7 +139,8 @@ export const setShow = (search: string, show: UpcomingShow) => {
 
 /**
  * The search a link carries to the Planner tab (Upcoming: what it shows, the
- * author and the tag) or to Past (the author and the tag), never anything else.
+ * author, the tag and the todo view) or to Past (the author, the tag and the
+ * view, so going back to Upcoming keeps it), never anything else.
  */
 export const tabSearch = (search: string, tab: "planner" | "past") => {
   const { show, author } = parseUpcomingFilters(search);
@@ -132,6 +149,7 @@ export const tabSearch = (search: string, tab: "planner" | "past") => {
     [SHOW_PARAM]: tab === "planner" && show === "todos" ? "todos" : null,
     [AUTHOR_PARAM]: author,
     [TAG_PARAM]: tagFromParams(new URLSearchParams(search)),
+    [SUBTASKS_PARAM]: todoViewOf(search) === "own" ? "own" : null,
   };
 };
 

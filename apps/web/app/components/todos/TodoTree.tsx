@@ -3,6 +3,7 @@ import type { TodoRowLook } from "./TodoRow";
 import type { LocalTodo } from "~/lib/todos/todos.sync";
 import type { TodoTreeNode } from "~/lib/todos/todoTreeView";
 
+import { ancestorChain } from "~/lib/todos/todoTreeView";
 import { TodoQuickAdd } from "./TodoQuickAdd";
 import { TodoRow } from "./TodoRow";
 
@@ -18,7 +19,10 @@ type RowProps = Omit<Parameters<typeof TodoRow>[0], "todo" | "look" | "addSubtas
  * `rootId` tree: the root and its own ancestors), so depth holds. The
  * `card` look (the Planner) is the top level's only: the steps under a card
  * are the `list` look, indented to its text. The `easy` look (easy mode)
- * is every level's, but a context row's.
+ * is every level's, but a context row's. A split list (subtasks on their
+ * own, todo-links-2) passes `parentOf`: a top row that is a subtask then
+ * takes its quick add's chain from it (`ancestorChain`, B-994), so a todo at
+ * `MAX_TODO_DEPTH` offers none there either.
  */
 export function TodoTree({
   trees,
@@ -36,9 +40,14 @@ export function TodoTree({
   /** Classes for the top level's list. */
   className?: string;
 } & RowProps) {
-  const level = (nodes: readonly TodoTreeNode<LocalTodo>[], above: readonly QuickAddParent[], top: boolean) =>
+  const level = (nodes: readonly TodoTreeNode<LocalTodo>[], above: readonly unknown[], top: boolean) =>
     nodes.map((node) => {
       const nodeLook = node.context ? "context" : look === "card" && !top ? "list" : look;
+      // A split row is a top row but not a top-level todo: its chain is its tree's (B-994).
+      const chain =
+        top && !above.length && node.todo.parentId && row.parentOf
+          ? ancestorChain(node.todo, row.parentOf)
+          : above;
       return (
         <TodoRow
           key={node.todo.id}
@@ -46,7 +55,7 @@ export function TodoTree({
           look={nodeLook}
           addSubtask={
             adding && !node.context ? (
-              <TodoQuickAdd parent={node.todo} ancestors={above} form="compact" inline className="mt-1" />
+              <TodoQuickAdd parent={node.todo} ancestors={chain} form="compact" inline className="mt-1" />
             ) : undefined
           }
           {...row}
@@ -66,7 +75,7 @@ export function TodoTree({
               }
               data-todo-level={above.length + 2}
             >
-              {level(node.children, [node.todo, ...above], false)}
+              {level(node.children, [node.todo, ...chain], false)}
             </ul>
           )}
         </TodoRow>

@@ -15,7 +15,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `connectors-3` | done | `planner-3` | `packages/api/src/connectors/tools/`, `packages/api/src/connectors/links`, `packages/api/src/connectors/readTools.int.test.ts`, `packages/api/src/connectors/mcp.int.test.ts`, `packages/api/src/connectors/protocol.test.ts`, `packages/data/src/db/schema/medications/doseRecord`, `packages/data/src/db/schema/medications/dueDoses.ts`, `packages/data/src/db/schema/medications/index.ts`, `packages/data/src/services/assistantActionService.ts`, `packages/data/src/services/medicationService.ts`, `packages/data/src/db/schema/assistant/quickEntryNewItem.ts`, `apps/web/app/components/quick-entry/quickEntryCards.ts` | to write (B-252: a connector tool to read the dosing schedule beyond today; B-253: `add_todo` can make a repeating todo) · Depends on: B-253 after `planner-2` in `dev` (last item B-248); B-252 has none · Hot files: `packages/api/src/connectors/tools/` (`todaysDoses.ts` or a new schedule tool, `writes.ts`), the server instructions |
 | `orchestration-split-4` | done | `orchestration-split-3` | `scripts/loops/`, `scripts/ci/`, `scripts/project/project-data.test.mjs`, `vitest.config.ts`, `docs/agents/project-config.md` | Stage 1d of B-543, before the Risa move: the core's tests stand alone in a copy holding only the core files |
 | `orchestration-split-3` | done | `orchestration-split-2` | `scripts/loops/`, `scripts/backlog/`, `scripts/ci/`, `scripts/project/`, `scripts/deploy/workflows`, `.githooks/`, `package.json`, `vitest.config.ts`, `.github/workflows/`, `docs/`, `apps/web/test/`, `risa.json` | — |
-| `fixes-ui` | standing | — | — | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
+| `fixes-ui` | standing | — | `apps/web/app/routes/marketing/`, `apps/web/app/components/todos/TodoRow` | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
 | `todo-subtasks-2` | done | `todo-subtasks` | `apps/web/app/lib/todos/todoList.ts`, `apps/web/app/lib/todos/plannerTodos.ts`, `apps/web/app/lib/todos/todoStrip.ts`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/timeline/` | — |
 | `fixes-nit` | standing | — | — | plan: plans/fixes-nit-plan.md, rules: plans/fixes-rules.md |
 | `test-time-gates` | done | `orchestration-split-2` | `scripts/loops/check-`, `scripts/loops/metrics`, `scripts/loops/land.test.mjs`, `scripts/loops/recover.test.mjs`, `scripts/loops/rotate.test.mjs`, `scripts/loops/dispatch.test.mjs`, `scripts/project/check-body`, `scripts/ci/`, `.github/workflows/ci.yml`, `vitest.config.ts`, `risa.json` | to write (B-837): time limit gates for component tests, unit tests and the local quick check (aim 5 min, warn past 5, fail past 6, slowest files on a breach), with B-772 (trim slow component tests), B-781 (check time apart from waits) and B-370 (guards the quick check always runs). Cut from fixes-tooling by the user 2026-11-26 to run first |
@@ -127,7 +127,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `med-intervals-2` | — | `med-intervals` | — | Interval Med times and as-needed Med times; part 2 of B-938 (B-981) |
 | `tags-4` | hold | `tags-3` | — | — |
 | `shared-displays` | hold | `todo-subtasks-3`, `tags-3` | — | — |
-| `todo-links-2` | — | `todo-links` | `apps/web/app/lib/todos/todoView`, `apps/web/app/lib/todos/todoTreeView`, `apps/web/app/lib/todos/todoSheets`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/planner/` | — |
+| `todo-links-2` | done | `todo-links` | `apps/web/app/lib/todos/todoView`, `apps/web/app/lib/todos/todoTreeView`, `apps/web/app/lib/todos/todoSheets`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/planner/` | — |
 
 ## Summary
 
@@ -245,36 +245,22 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-907 | change | triaged | fixes-tooling |  | Tests: drop assertions that pin fixed UI copy word for word |
 | B-918 | feature | triaged | care-booklet |  | Printed care booklet: the profile (allergies, conditions) as the front page, then the medication list, weekly sheet and other sheets; print all of it or only the pages that changed |
 | B-919 | feature | triaged | care-booklet |  | Printed medication guide page for each medication, as booklet pages |
-| B-920 | feature | landed | symptom-catalog-3 | prd/symptom-catalog-3 | Delete a symptom on the Symptoms page by picking a replacement: entries move to it, and the deleted name keeps pointing there (B-890's delete half) |
 | B-921 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineTags.browser.test.tsx: tagging an entry a writer applies, rem… |
 | B-922 | bug | triaged | fixes-tooling |  | Browser check ui.spec: 420 add sheet measures the sheet before it lays out (0×0), a read-before-render race |
 | B-938 | feature | triaged | med-intervals |  | Interval schedules for medications and Med times: every N hours, changed often (hospice: PRN, then every 6 h, 4 h, 3 h), each next dose due from the last due time or from when it was given |
-| B-944 | feature | landed | todo-links | prd/todo-links | One 'Link to…' box replaces the todo's separate provider, event, medication and note pickers: backed by site search limited to linkable types; each result shows its type icon and a second line (event date, provider specialty, med dose) |
-| B-945 | feature | landed | todo-links | prd/todo-links | Link picker type filter: tappable type chips above the box (All, Providers, Events, Meds, Notes, like B-895's tag filter); a typed type word ('provider lee', 'med', 'appt') turns its chip on and keeps filtering on the rest |
-| B-946 | feature | landed | todo-links | prd/todo-links | Link picker matches more than names: provider practice, specialty, phone; med brand names (B-939) and conditions; event place and provider; note text; tags; ranked like site search |
-| B-947 | feature | landed | todo-links | prd/todo-links | Link picker empty state: before typing, suggest likely picks (upcoming events, recently viewed, the entry or provider you came from) |
-| B-948 | feature | landed | todo-links | prd/todo-links | Quick add a todo or subtask from a timeline entry and any other linkable page (provider, medication, event) without leaving it, linked automatically; reuse B-942's quick add part |
 | B-949 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/components/ui/sheetExit.browser.test.tsx: closed by navigating with reduced motion Back complete… |
 | B-950 | change | triaged | fixes-nit |  | Move TimelineEntryRow (and useOpenTodoCounts) out of routes/app/groups/timeline into components/entry, so the provider page's LinkedEntries and QuickEntryCard stop importing another route's folder |
 | B-954 | bug | triaged | fixes-tooling |  | Browser checks and prd serve run on a stack whose applied migrations are behind the repo's, so a missing column fails a check far from its cause |
 | B-961 | change | triaged | shared-displays |  | Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down |
-| B-964 | feature | in-progress | todo-links-2 | prd/todo-links-2 | View option to split todo trees into individual due todos (trees stay the default) |
 | B-965 | change | triaged | fixes-perf |  | Group the tiny shared app helper chunks on the first /app load |
 | B-966 | change | triaged | fixes-perf |  | Marketing and sign-in pages load the whole shared icons chunk (~5-10.5 KB gz) since slice 11 grouped lucide icons |
 | B-967 | bug | triaged | fixes-tooling |  | Browser check layout-offline fails at 'offline: a row's edit link opens its edit sheet': the row's tag chips cover the Edit link's centre |
 | B-972 | feature | triaged | tags-4 |  | Tags tab on the planner: a unified view listing all tags and the items tagged with each |
-| B-975 | change | triaged | fixes-ui |  | Marketing home: AI providers 'will not' keep your data or train on it, not 'may not' (apps/web/app/routes/marketing/home/content.ts, the AI answer) |
+| B-975 | change | ready | fixes-ui | prd/fixes-ui | Marketing home: AI providers 'will not' keep your data or train on it, not 'may not' (apps/web/app/routes/marketing/home/content.ts, the AI answer) |
 | B-977 | feature | triaged | fixes-tooling |  | Human deploy path run from GitHub: a workflow_dispatch 'Deploy to staging' (cut a release candidate from dev, run the candidate tier, promote on green) and 'Deploy to production' (staging to main PR, release gate, merge), today only the local risa ci candidate cut / promote and pnpm prd ci release |
-| B-980 | bug | triaged | fixes-ui |  | Subtask add button in the nested todo tree sits under the title; put it right-aligned on the title's line |
+| B-980 | bug | ready | fixes-ui | prd/fixes-ui | Subtask add button in the nested todo tree sits under the title; put it right-aligned on the title's line |
 | B-981 | feature | triaged | med-intervals-2 |  | Interval Med times: a Med time every N hours (from due or given) so a group's frequency changes in one edit, and as-needed Med times (B-938 part 2) |
 | B-983 | bug | triaged | fixes-tooling |  | Browser-check flake: ui.spec.mjs 'add sheet: the full screen' measured the Symptom sheet's surface at height 0 (expected 900) at 420px light and dark under load; passed alone |
-| B-988 | bug | landed | todo-links | prd/todo-links | Link to box: many matching doses, vitals, symptoms or cancelled events crowd out matching notes and events (entry hits are capped before the linkable-kind filter) |
-| B-989 | bug | landed | todo-links | prd/todo-links | Link to box doesn't refresh an open tag-name search when a tag is renamed or a record is tagged or untagged |
-| B-990 | bug | landed | todo-links | prd/todo-links | Todo edit sheet: saving overwrites note and event links another member changed while the sheet was open (entryIds is a first snapshot) |
-| B-991 | bug | landed | todo-links | prd/todo-links | Todo sheet chips name an offline-edited untitled note 'Note' or its old first line (chosenEntriesQuery ignores pending Yjs updates) |
-| B-992 | bug | landed | fixes-bug | prd/fixes-bug | A symptom entry edited on the server while an owner's replace runs can be written back onto the deleted symptom (the edit's read isn't locked against replace) |
-| B-993 | bug | landed | fixes-bug | prd/fixes-bug | Link to box suggestions: many all-day events from the last two days can crowd every upcoming event out of the suggestions (upcomingEvents limits before upcomingItems filters) |
-| B-994 | bug | in-progress | todo-links-2 | prd/todo-links-2 | Subtasks on their own: a split row at the depth limit offers Add subtask, which always fails (the quick add gets no ancestors) |
 
 ## Items
 
@@ -1429,15 +1415,6 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-26 (Robert Bo Davis): User 2026-11-26: WAY off; after the care booklet. Needs a source for guide content (vendor or member-written) and a look at what we may print.
 
-### B-920 · feature · Delete a symptom on the Symptoms page by picking a replacement: entries move to it, and the deleted name keeps pointing there (B-890's delete half)
-
-- status: landed
-- prd: symptom-catalog-3
-- owner: prd/symptom-catalog-3
-- commit: 692385602
-
-- 2026-11-26 (plan/symptom-catalog-2): Split from B-890 by the symptom-catalog-2 planner (2026-11-26): B-890's archive half and the page are symptom-catalog-2; the delete half is symptom-catalog-3 so each topic stays about six slices. PRD: plans/symptom-catalog-2-prd.md; plan: plans/symptom-catalog-3-plan.md.
-
 ### B-921 · bug · CI flake: apps/web/app/routes/app/groups/timeline/timelineTags.browser.test.tsx: tagging an entry a writer applies, rem…
 
 - status: triaged
@@ -1468,57 +1445,6 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-27 (plan/med-intervals): Planned in plans/med-intervals-prd.md and -plan.md (7 slices: per-medication interval schedules). Interval Med times and as-needed Med times split to med-intervals-2 (B-981). Topic held after two plan send-backs (s78, s79), pending the user (ask a335).
 - 2026-11-27 (plan/med-intervals): User (ask a335): keep the plan out until they have read it. Unlanded on branch plan/med-intervals (worktree .loops/plan-med-intervals), topic flagged hold.
 - 2026-11-27 (plan/med-intervals): User read the plan (2026-11-27): intervals 1-24 hours, everything else good. Landed in dev as 5374aef58, topic still flagged hold.
-
-### B-944 · feature · One 'Link to…' box replaces the todo's separate provider, event, medication and note pickers: backed by site search limited to linkable types; each result shows its type icon and a second line (event date, provider specialty, med dose)
-
-- status: landed
-- prd: todo-links
-- owner: prd/todo-links
-- commit: a8767eba0
-
-- 2026-11-27 (Robert Bo Davis): User 2026-11-27: todo-to-entry linking is rough; filed from the backlog session
-- 2026-11-27 (plan/todo-links): Planned 2026-11-27 in plans/todo-links-plan.md (6 slices, 3 waves): one Link to… box on site search, chips and type words, phone and linked conditions indexed, suggestions, quick add on linkable pages; one provider/medication slot kept (ask a330, decided).
-
-### B-945 · feature · Link picker type filter: tappable type chips above the box (All, Providers, Events, Meds, Notes, like B-895's tag filter); a typed type word ('provider lee', 'med', 'appt') turns its chip on and keeps filtering on the rest
-
-- status: landed
-- prd: todo-links
-- owner: prd/todo-links
-- commit: 4863752a2
-
-- 2026-11-27 (Robert Bo Davis): User 2026-11-27: todo-to-entry linking is rough; filed from the backlog session
-- 2026-11-27 (plan/todo-links): Planned 2026-11-27 in plans/todo-links-plan.md (6 slices, 3 waves): one Link to… box on site search, chips and type words, phone and linked conditions indexed, suggestions, quick add on linkable pages; one provider/medication slot kept (ask a330, decided).
-
-### B-946 · feature · Link picker matches more than names: provider practice, specialty, phone; med brand names (B-939) and conditions; event place and provider; note text; tags; ranked like site search
-
-- status: landed
-- prd: todo-links
-- owner: prd/todo-links
-- commit: 4863752a2
-
-- 2026-11-27 (Robert Bo Davis): User 2026-11-27: todo-to-entry linking is rough; filed from the backlog session
-- 2026-11-27 (plan/todo-links): Planned 2026-11-27 in plans/todo-links-plan.md (6 slices, 3 waves): one Link to… box on site search, chips and type words, phone and linked conditions indexed, suggestions, quick add on linkable pages; one provider/medication slot kept (ask a330, decided).
-
-### B-947 · feature · Link picker empty state: before typing, suggest likely picks (upcoming events, recently viewed, the entry or provider you came from)
-
-- status: landed
-- prd: todo-links
-- owner: prd/todo-links
-- commit: 347fd297a
-
-- 2026-11-27 (Robert Bo Davis): User 2026-11-27: todo-to-entry linking is rough; filed from the backlog session
-- 2026-11-27 (plan/todo-links): Planned 2026-11-27 in plans/todo-links-plan.md (6 slices, 3 waves): one Link to… box on site search, chips and type words, phone and linked conditions indexed, suggestions, quick add on linkable pages; one provider/medication slot kept (ask a330, decided).
-
-### B-948 · feature · Quick add a todo or subtask from a timeline entry and any other linkable page (provider, medication, event) without leaving it, linked automatically; reuse B-942's quick add part
-
-- status: landed
-- prd: todo-links
-- owner: prd/todo-links
-- commit: b7fb8d218
-
-- 2026-11-27 (Robert Bo Davis): User 2026-11-27: todo-to-entry linking is rough; filed from the backlog session
-- 2026-11-27 (Robert Bo Davis): User's word 2026-11-27 (shared UX rule, as for tags in B-955): quick add for todos and subtasks is ONE shared component everywhere it appears (the Todos list rows at any depth, the todo's own page, and B-948's entries and other linkable pages), same look and behavior, slightly tweaked per place (e.g. a row's compact form); an exception needs a good reason, written in the plan. Same idea as tags: an icon-only add button whose icon says what it adds, enough room from neighbors to avoid misclicks, controls only for whoever may add.
-- 2026-11-27 (plan/todo-links): Planned 2026-11-27 in plans/todo-links-plan.md (6 slices, 3 waves): one Link to… box on site search, chips and type words, phone and linked conditions indexed, suggestions, quick add on linkable pages; one provider/medication slot kept (ask a330, decided).
 
 ### B-949 · bug · CI flake: apps/web/app/components/ui/sheetExit.browser.test.tsx: closed by navigating with reduced motion Back complete…
 
@@ -1556,18 +1482,6 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-27 (Robert Bo Davis): User's word 2026-11-27: one look and one way per thing everywhere (docs/domain/components.md _Rules_, dev 90b1ecdb). Today timeline rows/cards, Planner rows, Todos rows, provider and medication list items and their pages each render their own way. First step: an inventory of the variants per record kind and the shared parts they could take (B-955 does tags; B-942/B-948 quick add todos). Needs a topic: likely its own PRD (touches most list and page screens), after tags-3 and todo-subtasks-3.
-
-### B-964 · feature · View option to split todo trees into individual due todos (trees stay the default)
-
-- status: in-progress
-- prd: todo-links-2
-- owner: prd/todo-links-2
-- commit:
-
-- 2026-11-27 (Robert Bo Davis): From the todo-subtasks-3 approval (2026-11-27): the user wants trees everywhere for now; this toggle comes later, after todo-subtasks-3.
-- 2026-11-27 (Robert Bo Davis): Backlog session 2026-11-27: triaged to todo-links, the next todos topic, which runs after todo-subtasks-3 as the note asks.
-- 2026-11-27 (plan/todo-links): Moved from todo-links to the follow-on topic todo-links-2 (2026-11-27 planner): unrelated to links, keeps todo-links at six slices (preference: cut into follow-on topics).
-- 2026-11-27 (plan/todo-links-2): Planned 2026-11-27 (plan/todo-links-2): two slices, Todos tab then Upcoming; a ?subtasks=own Filter menu view, trees stay the default.
 
 ### B-965 · change · Group the tiny shared app helper chunks on the first /app load
 
@@ -1607,10 +1521,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-975 · change · Marketing home: AI providers 'will not' keep your data or train on it, not 'may not' (apps/web/app/routes/marketing/home/content.ts, the AI answer)
 
-- status: triaged
+- status: ready
 - prd: fixes-ui
-- owner:
-- commit:
+- owner: prd/fixes-ui
+- commit: 1689bd40d
 
 ### B-977 · feature · Human deploy path run from GitHub: a workflow_dispatch 'Deploy to staging' (cut a release candidate from dev, run the candidate tier, promote on green) and 'Deploy to production' (staging to main PR, release gate, merge), today only the local risa ci candidate cut / promote and pnpm prd ci release
 
@@ -1621,10 +1535,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-980 · bug · Subtask add button in the nested todo tree sits under the title; put it right-aligned on the title's line
 
-- status: triaged
+- status: ready
 - prd: fixes-ui
-- owner:
-- commit:
+- owner: prd/fixes-ui
+- commit: c5e753432
 
 - 2026-11-27 (Robert Bo Davis): User report. TodoRow.tsx renders the addSubtask slot (TodoTree's per-row compact TodoQuickAdd) under the row's text (lines ~159, 205, 245). Move it to the end of the title line, right-aligned, keeping its tap target room. TodoRow.tsx is a tags-3 hot file: small edit, sync dev first. fixes-ui: layout.
 
@@ -1645,70 +1559,3 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-27 (prd/symptom-catalog-2): symptom-catalog-2 landing, 2026-11-27, load 15-19: ui.spec.mjs:83 read the box before the sheet's open animation laid it out (read-before-render race). Passed alone at once.
-
-### B-988 · bug · Link to box: many matching doses, vitals, symptoms or cancelled events crowd out matching notes and events (entry hits are capped before the linkable-kind filter)
-
-- status: landed
-- prd: todo-links
-- owner: prd/todo-links
-- commit: 4863752a2
-
-- 2026-11-27 (prd/todo-links): Codex P2 on PR #280 (linkSearch.sync.ts:127): searchGroup truncates the entry section before searchLinkables drops non-linkable kinds; the 5x overfetch can't guarantee results. Filter by kind before truncation or fetch until enough. Fits slice 3 (it extends searchLinkables) or a later slice.
-- 2026-11-27 (prd/todo-links): fold into slice 3 (linkSearch.sync.ts)
-
-### B-989 · bug · Link to box doesn't refresh an open tag-name search when a tag is renamed or a record is tagged or untagged
-
-- status: landed
-- prd: todo-links
-- owner: prd/todo-links
-- commit: 4863752a2
-
-- 2026-11-27 (prd/todo-links): Codex P2 on PR #280 (useLinkSearch.ts:33): the hook reruns only on search index changes; tag and record_tag aren't index sources. Observe the group's tags and tag assignments as useSearchPage does. Fits slice 3 or a later slice.
-- 2026-11-27 (prd/todo-links): fold into slice 3 (useLinkSearch.ts)
-
-### B-990 · bug · Todo edit sheet: saving overwrites note and event links another member changed while the sheet was open (entryIds is a first snapshot)
-
-- status: landed
-- prd: todo-links
-- owner: prd/todo-links
-- commit: 347fd297a
-
-- 2026-11-27 (prd/todo-links): Codex P2 on PR #288 (TodoLinkFields.tsx:83): the sheet posts its first snapshot of entryIds; updateTodo reconciles it against the current rows, so a title-only save deletes newly synced links or recreates removed ones. Send only the sheet's own adds and removes. Fold into slice 5 (edits TodoLinkFields).
-
-### B-991 · bug · Todo sheet chips name an offline-edited untitled note 'Note' or its old first line (chosenEntriesQuery ignores pending Yjs updates)
-
-- status: landed
-- prd: todo-links
-- owner: prd/todo-links
-- commit: 347fd297a
-
-- 2026-11-27 (prd/todo-links): Codex P2 on PR #288 (todos.sync.ts:1107): chosenEntriesQuery reads note_document.text only; read the snapshot and pending note_update rows and use previewText as linkSearch.sync.ts does. Fold into slice 5.
-
-### B-992 · bug · A symptom entry edited on the server while an owner's replace runs can be written back onto the deleted symptom (the edit's read isn't locked against replace)
-
-- status: landed
-- prd: fixes-bug
-- owner: prd/fixes-bug
-- commit: a83841058
-
-- 2026-11-27 (prd/symptom-catalog-3): Codex P2 on PR #289 (thread PRRT_kwDOVx-WLM689nN-): timelineEntryService.update reads the entry unlocked, and symptomTypeFor skips ensure (and its advisory lock) when the stored pointer matches the name-derived id; an edit read before replace's bulk UPDATE and written after it restores the old name and pointer, leaving the entry on a tombstone. Fix: take the shared symptom lock (or lock the entry row) before reading/revalidating the pointer in update. Narrow: needs a concurrent online edit during replace. Fits slice 4's wave or a fix before it.
-- 2026-11-27 (prd/symptom-catalog-3): Codex P2 round 2 on PR #289 (thread PRRT_kwDOVx-WLM689pQf), same family: a create naming an older tombstone A (A→B) races replace(B→C): ensure locks only A's derived id, resolves A to B before replace moves B's entries, and inserts after the bulk UPDATE, so the entry stays on tombstone B. One fix for both: a per-group symptom-catalog advisory lock (shared) that replace and every symptom entry write (create, update, connector log, sync upload) take before resolving, then revalidate the resolved row isn't a tombstone.
-- 2026-11-27 (prd/symptom-catalog-3): 2026-11-27 (prd/symptom-catalog-3): re-homed to fixes-bug at the PRD's end (decided for you, ask a353, skeptic s80); veto there. Touches timelineEntryService.ts, a hot file of the held sync-safety-2.
-
-### B-993 · bug · Link to box suggestions: many all-day events from the last two days can crowd every upcoming event out of the suggestions (upcomingEvents limits before upcomingItems filters)
-
-- status: landed
-- prd: fixes-bug
-- owner: prd/fixes-bug
-- commit: 91d6467b7
-
-- 2026-11-27 (prd/todo-links): Codex P2 on PR #290 (linkSearch.sync.ts:239): the SQL admits all-day events from the last two days and limits to n+10 before upcomingItems drops ended ones; page until enough survive, or filter in SQL first.
-
-### B-994 · bug · Subtasks on their own: a split row at the depth limit offers Add subtask, which always fails (the quick add gets no ancestors)
-
-- status: in-progress
-- prd: todo-links-2
-- owner: prd/todo-links-2
-- commit:
-
-- 2026-11-27 (prd/todo-links-2): Codex P2 on PR #294 (todoTreeView.ts:117, thread PRRT_kwDOVx-WLM68-Qqy). splitTrees rows render through TodoTree with an empty ancestor chain, so TodoQuickAdd shows on todos at MAX_TODO_DEPTH; createTodo's parentRefusal refuses. Fix: pass each split row's real ancestor chain (or depth) to the quick add. Folded into slice 2 (wave 2), which covers both tabs.

@@ -1,6 +1,6 @@
 import type { TodoRuleFields } from "@caretook/data/schema";
 
-import { siblingOrder, todoOrder, todoState } from "@caretook/data/schema";
+import { MAX_TODO_DEPTH, siblingOrder, todoOrder, todoState } from "@caretook/data/schema";
 
 // The one tree display's shape (todo-subtasks-3; pure, web:unit tests it):
 // every list of todos shows a subtask only inside its tree. `todoTrees`
@@ -115,6 +115,28 @@ export const splitTrees = <T extends TreeTodo>(
     now,
     timeZone,
   ).map((todo) => ({ todo, context: false, children: [], lead: todo }));
+
+/**
+ * A todo's ancestor chain (its parent, the parent's parent, …, up to the
+ * top) from the rows a list read (`parentOf`), for a split row's quick add
+ * (todo-links-2, B-994): on its own it's a top row, but its depth is its
+ * tree's. The walk stops at a parent the rows don't have, and never goes
+ * past `MAX_TODO_DEPTH`.
+ */
+export const ancestorChain = <P extends { parentId?: string | null }>(
+  todo: { parentId?: string | null },
+  parentOf: (parentId: string) => P | undefined,
+): P[] => {
+  const chain: P[] = [];
+  let parentId = todo.parentId;
+  while (parentId && chain.length < MAX_TODO_DEPTH) {
+    const parent = parentOf(parentId);
+    if (!parent) break;
+    chain.push(parent);
+    parentId = parent.parentId;
+  }
+  return chain;
+};
 
 /** The day view a todo is due in: "overdue", its due day, or null (done or undated). */
 export const todoDayOf = (todo: TreeTodo, now: Date | number, timeZone: string) => {

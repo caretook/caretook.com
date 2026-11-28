@@ -40,6 +40,9 @@ const NO_TAGS: readonly { id: string; name: string }[] = [];
 
 export type TodoRowLook = "list" | "card" | "easy" | "context";
 
+/** What a row needs of a subtask's parent: its title for "Part of", its own parent for the chain. */
+export type TodoParentRef = { id: string; title: string; parentId?: string | null };
+
 export function TodoRow({
   todo,
   nameOf,
@@ -65,8 +68,8 @@ export function TodoRow({
   tagsOf?: (todoId: string) => readonly { id: string; name: string }[] | undefined;
   /** A parent's subtask progress (the list's one progress query). */
   progressOf?: (todoId: string) => TodoTickProgress | undefined;
-  /** A subtask's parent, for "Part of". */
-  parentOf?: (parentId: string) => { id: string; title: string } | undefined;
+  /** A subtask's parent, for "Part of" (with its own `parentId`, a tree walks a split row's chain). */
+  parentOf?: (parentId: string) => TodoParentRef | undefined;
   /** `list` (the default), `card` (the Planner's), `easy` (easy mode's), or `context`: a dimmed ancestor placing a branch, with no tick. */
   look?: TodoRowLook;
   /** The row's quick add (a tree's `inline` one, with `adding`), at the end of the title's line. */
