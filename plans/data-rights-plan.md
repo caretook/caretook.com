@@ -12,11 +12,13 @@
 
 **Where it stands:** wave 1 (slices 1 to 4) was spawned 2026-11-28 on opus, rotated mid-wave for the account switch, and **respawned 2026-11-28 on opus with `--continue`** after the switch (slice 1: nothing committed yet; 2 and 4: uncommitted work; 3: one commit `60e80fbe7`). `risa watch data-rights --wait` runs. B-84 and B-53 claimed; B-357 is claimed when slice 5 starts. Backlog ingest at respawn: nothing new. dev has moved (fixes-bug, sync-safety-3 landed): `risa sync` at the wave boundary.
 
+**Open:** slice 3 saw a scrubbed (empty-name) place drop out because `toProvider` returned null; slice 2's `toProvider` now keeps a deleted row with no name, so check at the wave gate that a scrubbed place reads "Removed place" (and `toMedication` likewise) before filing a follow-up. Slices 2 (21 files) and 3 (14) passed the file-count warning: note for the next plan.
+
 | Slice | Wave | State       | Merge into `prd/data-rights` (slice commits) |
 | ----- | ---- | ----------- | -------------------------------------------- |
 | 1     | 1    | respawned   |                                              |
 | 2     | 1    | merged      | `288ff6273` (2677eadb0, e4cf04280)           |
-| 3     | 1    | respawned   |                                              |
+| 3     | 1    | merged      | `bfcdf7504` (60e80fbe7..f0745418d)           |
 | 4     | 1    | merged      | `9a7856062` (4b511c986)                      |
 | 5     | 2    | not started |                                              |
 | 6     | 3    | not started |                                              |
