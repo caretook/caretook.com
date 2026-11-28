@@ -501,6 +501,13 @@ describe("while signup.emailInvites is off (B-106)", () => {
 
   it("lets a staff owner invite to a group be previewed and accepted", async () => {
     const s = await setup();
+    // Staff invite an owner only into an ownerless group: the owner goes first.
+    ok(
+      await careGroupMemberModel.remove({
+        ...system,
+        filter: { groupId: { type: "eq", value: s.groupId }, userId: { type: "eq", value: s.owner.user.id } },
+      }),
+    );
     await withEmailInvitesOff(async (staff) => {
       const { sent, mail } = recordingMailer();
       const email = newAddress("staff-owner");
