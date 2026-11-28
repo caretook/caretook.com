@@ -40,6 +40,7 @@
     "datastore:clear": "pnpm --filter @caretook/data datastore:clear",
     "datastore:reset": "pnpm datastore:clear && pnpm datastore:migrate && pnpm datastore:seed && pnpm datastore:powersync",
     "datastore:reset:staging": "pnpm --filter @caretook/data datastore:reset:staging",
+    "datastore:reset:onboarding": "pnpm --filter @caretook/data datastore:reset:onboarding",
     "datastore:powersync": "pnpm --filter @caretook/data datastore:powersync",
     "datastore:studio": "pnpm --filter @caretook/data datastore:studio",
     "admin:grant": "pnpm --filter @caretook/data admin:grant",

@@ -28,12 +28,18 @@ let root, bin, calls, state;
 // goes in the JSON report and fails the run. $STUB_TIMES, "<file>:<seconds>"
 // pairs, are the passing files a first run reports with their times, each in its
 // project's run (integration for .int.test.ts, components for .browser.test.tsx).
+// $STUB_NY, comma-separated files, stands in for web:components:ny's include list.
 const STUB = `#!/usr/bin/env node
 const fs = require("node:fs");
 const args = process.argv.slice(2);
 const line = args.filter((a) => !a.startsWith("--reporter=") && !a.startsWith("--outputFile.json=")).join(" ");
 fs.appendFileSync(process.env.STUB_CALLS, line + "\\n");
 if (process.env.STUB_FAIL && line.includes(process.env.STUB_FAIL)) process.exit(7);
+// A listing of web:components:ny names the files in $STUB_NY (its include list) that
+// a filter matches, by substring as Vitest's do.
+if (args.includes("list") && args.includes("web:components:ny"))
+  for (const file of (process.env.STUB_NY || "").split(",").filter(Boolean))
+    if (args.some((a) => file.includes(a))) console.log("[web:components:ny (chromium)] " + file);
 const out = args.find((a) => a.startsWith("--outputFile.json="))?.split("=")[1];
 if (!out) process.exit(0);
 if (process.env.STUB_UNHANDLED) console.log("Vitest caught 1 unhandled error during the test run");
@@ -94,6 +100,7 @@ const body = (args, fail = "", extra = {}) => {
       STUB_TIMES: "",
       STUB_UNHANDLED: "",
       STUB_TITLE: "",
+      STUB_NY: "",
       RISA_CHECK_STATE: state,
       RISA_CHECK_COUNTS: "",
       ...extra,
@@ -195,6 +202,37 @@ describe("check-body.sh", () => {
       "exec vitest run --project web:components b.browser.test.tsx",
       "docs:budget",
     ]);
+  });
+
+  it("a slice check runs its own component files that web:components:ny includes in both zones (B-757)", () => {
+    const today = "apps/web/app/routes/app/groups/timeline/todayCard.browser.test.tsx";
+    mkdirSync(join(root, "apps/web/app/routes/app/groups/timeline"), { recursive: true });
+    writeFileSync(join(root, today), "");
+    writeFileSync(join(root, "b.browser.test.tsx"), "");
+    const ny = { STUB_NY: today };
+    const both = body(["slice", "base", today, "b.browser.test.tsx"], "", ny);
+    expect(both.status).toBe(0);
+    expect(both.ran).toContain(
+      `exec vitest list --filesOnly --project web:components:ny ${today} b.browser.test.tsx`,
+    );
+    expect(afterStatic(both)).toEqual([
+      UNIT,
+      `exec vitest run --project web:components --project web:components:ny ${today} b.browser.test.tsx`,
+      "docs:budget",
+    ]);
+    const la = body(["slice", "base", "b.browser.test.tsx"], "", ny);
+    expect(la.status).toBe(0);
+    expect(afterStatic(la)).toEqual([
+      UNIT,
+      "exec vitest run --project web:components b.browser.test.tsx",
+      "docs:budget",
+    ]);
+  });
+
+  it("an own file whose name only a longer included path contains runs in one zone", () => {
+    writeFileSync(join(root, "b.browser.test.tsx"), "");
+    const r = body(["slice", "base", "b.browser.test.tsx"], "", { STUB_NY: "xb.browser.test.tsx" });
+    expect(afterStatic(r)).toContain("exec vitest run --project web:components b.browser.test.tsx");
   });
 
   it("a slice check with no test files of its own runs only the unit tests", () => {

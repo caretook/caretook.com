@@ -12,3 +12,8 @@ packages/data/src/domain/live-notes/     live-notes
 # document, a burst of typing): roundtrip's 6b too.
 apps/web/app/lib/live-notes/liveEntry.sync.ts live-notes roundtrip
 apps/web/app/lib/live-notes/notes.sync.ts live-notes roundtrip
+# The services and models the upload switch writes notes through
+# (packages/api/src/syncRegistry.ts): the live-notes check and roundtrip's sync matrix (6b).
+packages/data/src/services/noteDocumentService.ts live-notes roundtrip
+packages/data/src/models/noteDocument/   live-notes roundtrip
+packages/data/src/models/noteUpdate/     live-notes roundtrip

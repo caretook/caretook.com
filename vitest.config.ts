@@ -219,9 +219,10 @@ export default defineConfig({
       },
       {
         // Pure apps/web logic (app/**/*.test.ts): no PowerSync, no React Router
-        // plugin (apps/web's vite.config.ts isn't loaded), so tests import
-        // relatively, not through "~/". Plus the test harness's own Node
-        // parts (test/*.test.ts: the browser lease helper).
+        // plugin (apps/web's vite.config.ts isn't loaded). "~/" resolves as in
+        // web:components, through apps/web's tsconfig paths (B-375). Plus the
+        // test harness's own Node parts (test/*.test.ts: the browser lease helper).
+        resolve: { tsconfigPaths: true },
         test: {
           name: "web:unit",
           ...unit,
