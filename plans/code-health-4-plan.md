@@ -8,16 +8,16 @@
 
 **Landing mode:** run everything through (started run-through by the dispatcher, 2026-11-28).
 
-**Where it stands:** wave 1 (slices 1, 2) landed in dev 2026-11-28 as 2f2b7361b (PR #352, integration green run 46185645554, Codex clean); report filed; care-groups.md folded. Next: wave 2, slices 3, 4, 5 all ready (opus each); sync first. Follow-up idea from slice 2: the three email templates each still write out the role labels ("an owner"…).
+**Where it stands:** wave 1 (slices 1, 2) landed in dev 2026-11-28 as 2f2b7361b (PR #352, integration green run 46185645554, Codex clean); report filed; care-groups.md folded. Wave 2 started 2026-11-28: dev needed no sync (`risa sync`: no shared files); worktrees code-health-4-3, -4, -5 made, one opus agent each, `risa watch` running. Slice 2's follow-up (the email templates' hand-written role labels) filed as B-1064 (fixes-nit, triaged).
 
-| Slice | Wave | State   | Merge into `prd/code-health-4` (slice commits) |
-| ----- | ---- | ------- | ---------------------------------------------- |
-| 1     | 1    | merged  | df3ba0af8 (c4c7c0275)                          |
-| 2     | 1    | merged  | 7dadcc354 (0a14230d1)                          |
-| 3     | 2    | planned |                                                |
-| 4     | 2    | planned |                                                |
-| 5     | 2    | planned |                                                |
-| 6     | 3    | planned |                                                |
+| Slice | Wave | State          | Merge into `prd/code-health-4` (slice commits) |
+| ----- | ---- | -------------- | ---------------------------------------------- |
+| 1     | 1    | merged         | df3ba0af8 (c4c7c0275)                          |
+| 2     | 1    | merged         | 7dadcc354 (0a14230d1)                          |
+| 3     | 2    | working (opus) |                                                |
+| 4     | 2    | working (opus) |                                                |
+| 5     | 2    | working (opus) |                                                |
+| 6     | 3    | planned        |                                                |
 
 **Backlog:** claim B-363 when slice 1 starts; run `risa backlog done B-363` when slice 6 has merged.
 
