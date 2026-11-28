@@ -15,6 +15,7 @@ import { APP_SETTINGS, staffCapabilities } from "@caretook/data/schema";
 // All names and addresses are made up.
 
 type UserPage = ApiOutputs["admin"]["users"]["get"];
+type GroupLimit = ApiOutputs["admin"]["users"]["groupLimit"];
 type UserRow = ApiOutputs["admin"]["users"]["search"]["users"][number];
 type GroupRow = ApiOutputs["admin"]["groups"]["search"]["groups"][number];
 type GroupPage = ApiOutputs["admin"]["groups"]["get"];
@@ -118,6 +119,9 @@ export const adminFx = {
     mail: [],
     ...v,
   }),
+
+  /** An account's care group limit (`admin.users.groupLimit`): 2 started of the default 3. */
+  groupLimit: (v: Partial<GroupLimit> = {}): GroupLimit => ({ started: 2, limit: 3, override: null, ...v }),
 
   /** One audit log entry, by the admin unless `actor` says otherwise. */
   auditEntry: (v: Partial<AuditEntryView> = {}): AuditEntryView => ({
