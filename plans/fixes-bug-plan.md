@@ -10,13 +10,13 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item   | State                                                                       | Merge     |
-| ----- | ------ | --------------------------------------------------------------------------- | --------- |
-| 90    | B-1002 | merged (opus)                                                               | 8340445bf |
-| 91    | B-1003 | merged (opus)                                                               | e7e35e32d |
-| 92    | B-1006 | test-only first hand-off 0706fcee6; sent back to build flag-and-drop (opus) | —         |
+| Slice | Item   | State         | Merge     |
+| ----- | ------ | ------------- | --------- |
+| 90    | B-1002 | merged (opus) | 8340445bf |
+| 91    | B-1003 | merged (opus) | e7e35e32d |
+| 92    | B-1006 | merged (opus) | 514da289a |
 
-**Wave 26 in flight** (2026-11-28): three sync-safety follow-ups, all parallel, all opus. First start was on a stale base (prd/fixes-bug lacked sync-safety-2); the agents stopped with nothing built, worktrees removed, `risa sync` brought dev in (0abec694c, timeline.md conflict resolved keeping the lock note), slices restarted. Fold at landing: todos.md's "⚠ unflagged: B-1003" note (a flagged PATCH restore never restores a chain with no open row). Hot files set on the fixes-bug row. Wave 25 landed through PR #295 (ef9445cb8); its notes are in the history file after the next status-trim. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table.
+**Wave 26 in flight** (2026-11-28): three sync-safety follow-ups, all parallel, all opus. First start was on a stale base (prd/fixes-bug lacked sync-safety-2); the agents stopped with nothing built, worktrees removed, `risa sync` brought dev in (0abec694c, timeline.md conflict resolved keeping the lock note), slices restarted. Fold at landing: medications.md/sync.md: `medication` tracks metadata, the server drops a `PASS_REWRITE_METADATA` PATCH's schedule (slice 92); todos.md's "⚠ unflagged: B-1003" note (a flagged PATCH restore never restores a chain with no open row). Hot files set on the fixes-bug row. Wave 25 landed through PR #295 (ef9445cb8); its notes are in the history file after the next status-trim. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table.
 
 ## Wave 1
 
