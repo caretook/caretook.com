@@ -259,6 +259,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1007 | bug | landed | onboarding-2 | slice/onboarding-2/3 | The setup page's providers step never shows a row's tags: Add tag saves, but no tags are passed to ProviderListItem, so QuickTags gets none |
 | B-1008 | bug | triaged | onboarding-2 |  | A setup nudge toast outlives its group and its eligibility: after switching groups or opening a setup page it stays, and Open goes to the old group's setup or new note |
 | B-1009 | bug | triaged | onboarding-2 |  | A medication opened from the setup medications step goes Back to the Medications list, not the setup step: medicationOrigin's labelFor doesn't know the setup route |
+| B-1010 | bug | triaged | onboarding-2 |  | The setup redirect can send a creator back to setup on a new device: settings that arrive during readSetupFacts are known but the decision uses the defaults captured before the await |
 
 ## Items
 
@@ -1530,3 +1531,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (prd/onboarding-2): Codex P2 on PR #314 (setup/medications/route.tsx:88): add the setup medications route to lib/medications/medicationOrigin.ts's recognised origins.
+
+### B-1010 · bug · The setup redirect can send a creator back to setup on a new device: settings that arrive during readSetupFacts are known but the decision uses the defaults captured before the await
+
+- status: triaged
+- prd: onboarding-2
+- owner:
+- commit:
+
+- 2026-11-28 (prd/onboarding-2): Codex on PR #318 (setupRedirect.ts:56): re-read cachedSettings(userId) in the known-settings branch. One-line fix plus a test; can ride with slice 6 or B-1008.
