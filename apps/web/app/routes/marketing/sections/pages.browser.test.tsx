@@ -107,6 +107,14 @@ describe("the features page's jump links", () => {
     const icon = document.getElementById(bare.id)?.querySelector("[data-showcase-icon]");
     expect(icon?.getAttribute("aria-hidden")).toBe("true");
     expect(icon?.getBoundingClientRect().width, "icon column").toBeGreaterThan(200);
+    // A flipped block (quick-entry, the second) keeps its text in the wider track.
+    const flipped = document.getElementById("quick-entry");
+    const panel = flipped?.querySelector("[data-showcase-icon]");
+    const text = flipped?.querySelector("h2")?.parentElement;
+    expect(panel, "quick-entry has the icon panel").toBeTruthy();
+    expect(text?.getBoundingClientRect().width ?? 0, "text wider than the icon panel").toBeGreaterThan(
+      panel?.getBoundingClientRect().width ?? Infinity,
+    );
   });
 });
 

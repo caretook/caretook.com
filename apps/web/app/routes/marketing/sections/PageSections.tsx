@@ -120,15 +120,15 @@ export function Showcase({
   band?: "page" | "alt";
 }) {
   const aside = flip ? "sm:order-1" : "";
+  // The text always takes the flexible track and the aside the 300px one, on either side.
+  const tracks = flip ? "sm:grid-cols-[300px_minmax(0,1fr)]" : "sm:grid-cols-[minmax(0,1fr)_300px]";
   return (
     <section
       id={content.id}
       aria-labelledby={`${content.id}-heading`}
       className={`${band === "alt" ? BAND_ALT : BAND_PAGE} scroll-mt-16`}
     >
-      <div
-        className={`${CONTAINER} ${SECTION} grid items-center gap-10 sm:grid-cols-[minmax(0,1fr)_300px] sm:gap-14`}
-      >
+      <div className={`${CONTAINER} ${SECTION} grid items-center gap-10 sm:gap-14 ${tracks}`}>
         <div className={flip ? "sm:order-2" : ""}>
           <span className={`${ICON_TILE} ${content.image ? "" : "sm:hidden"}`}>
             <MarketingIcon name={content.icon} className="size-6" />
