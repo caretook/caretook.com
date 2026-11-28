@@ -20,8 +20,11 @@ Notes for every wave:
 
 **Wave 21 landed 2026-11-27** as dev 40ff2e6 through PR #297 (Codex clean on 75f1874), CI components green on the synced tip (run 46092112343, 6f0b5cce); to-test/2026-11-27-2025-fixes-ui.md. Slices 108 (B-975 marketing AI 'will not', sonnet, 1689bd40d) and 109 (B-980 subtask add on the title line via `TodoQuickAdd inline`, opus, c5e753432). Sync conflict in TodoTree (todo-links-2's `chain`), kept both. Browser `--changed --base dev`: marketing pass. Docs folded into todos. Slice worktrees removed. Lesson: format the plan after every Status edit, not only after writing slices (slice 108's check tripped on it). No fixes-ui item waits: topic closed.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+**Restarted 2026-11-27 (next session), run-through:** landing mode run everything through. Anchors ok, ingest empty, prd/fixes-ui = dev (fae76d70c). Wave 22: B-999 (day headers abbreviate the weekday on phones) slice 110 on opus. Hot: `routes/app/groups/timeline/`, `lib/timeline/`.
+
+| Slice | Item  | State          | Merge |
+| ----- | ----- | -------------- | ----- |
+| 110   | B-999 | started (opus) |       |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
@@ -1587,3 +1590,21 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 - [ ] Component test: in each look that renders it, the add-subtask button is inside the title's line (the same row container as the title), after the title.
 - [ ] Component test: a row without `addSubtask` renders as before.
 - [ ] Existing TodoRow, TodoTree and planner/todos tests pass; grep tests and `scripts/browser-checks/` for the add-subtask button's label and update any that assert its old place.
+
+## Wave 22 (written 2026-11-27 by the orchestrator, from the triaged fixes-ui items)
+
+No migration, no dependency, and no edits under `packages/data/src/domain/` (code-health holds it; `dayLabel` stays as is).
+
+## Slice 110: Timeline day headers abbreviate the weekday on phones (B-999)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md · Tests: component
+
+**Problem.** A timeline day header that shows a day and date ("Wednesday, Nov 18") wraps on small phones, crowding the period, copy-link and + actions beside it.
+
+**Build.** Below the `sm` breakpoint the heading shows the short weekday ("Wed, Nov 18", "Wed, Nov 18, 2025"); from `sm` up, the full name as today. "Today", "Yesterday" and "Tomorrow" are unchanged. Derive the short form in the app (a small helper in `lib/timeline/`, from the day's key or moment, the viewer's zone and locale, or by passing a short label beside `label` from `groupByDay`), never by editing `dayLabel` in `packages/data`. Render both in `DayHeader.tsx`'s `<h3>` with CSS toggling (`sm:hidden` / `hidden sm:inline`), so there's no layout jump and SSR matches; the heading's accessible name stays the full label (the copy-link and + labels keep using `label`). Easy mode's header follows the same rule if it shows a weekday and date.
+
+**Acceptance criteria.**
+
+- [ ] Unit test for the helper: a past day gives "Wed, Nov 18"-style text, a past year adds the year, and Today/Yesterday/Tomorrow come back unchanged.
+- [ ] Component test (`DayHeader`/timeline): at phone width the visible heading text is the short form, at a wider width the full form, and the heading's accessible name is the full label at both.
+- [ ] Existing timeline tests pass; grep tests and `scripts/browser-checks/` for full weekday heading text they match and update any that break.
