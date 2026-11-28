@@ -47,3 +47,9 @@ apps/web/app/lib/timeline/symptomCatalogPage.sync.ts -
 apps/web/app/routes/app/groups/settings/symptoms/  -
 # Directory defaults: a new file here needs no rule.
 apps/web/app/lib/timeline/               -
+# The services and models the upload switch writes these tables through
+# (packages/api/src/syncRegistry.ts): roundtrip's sync matrix (6b) uploads each.
+packages/data/src/services/timelineEntryService.ts roundtrip
+packages/data/src/services/symptomTypeService.ts roundtrip
+packages/data/src/models/timelineEntry/  roundtrip
+packages/data/src/models/symptomType/    roundtrip

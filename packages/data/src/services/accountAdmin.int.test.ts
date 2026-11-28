@@ -196,21 +196,36 @@ describe("accountAdminService.setRole", () => {
   it("makes an account support, admin and a member again, each with an audit entry", async () => {
     const admin = await createUser("role-admin", "admin");
     const target = await createUser("role-target");
-    const set = (role: string) =>
-      accountAdminService.setRole(admin.ctx, { userId: target.user.id, role, reason: "Joined the team" });
+    // Each call's entry is the one it added. Not sorted by `createdAt`: it
+    // keeps milliseconds, and back-to-back calls can share one (B-778).
+    const seen = new Set<string>();
+    const set = async (role: string) => {
+      const res = ok(
+        await accountAdminService.setRole(admin.ctx, {
+          userId: target.user.id,
+          role,
+          reason: "Joined the team",
+        }),
+      );
+      const added = (await entriesFor(target.user.id)).filter((e) => !seen.has(e.id));
+      for (const e of added) seen.add(e.id);
+      return { res, added: added.map((e) => [e.action, e.actorId, e.changes]) };
+    };
 
-    expect(ok(await set("support"))).toEqual({ role: "support" });
-    expect(ok(await set("admin"))).toEqual({ role: "admin" });
-    expect(ok(await set("member"))).toEqual({ role: "member" });
+    expect(await set("support")).toEqual({
+      res: { role: "support" },
+      added: [["user.setRole", admin.user.id, { role: ["member", "support"] }]],
+    });
+    expect(await set("admin")).toEqual({
+      res: { role: "admin" },
+      added: [["user.setRole", admin.user.id, { role: ["support", "admin"] }]],
+    });
+    expect(await set("member")).toEqual({
+      res: { role: "member" },
+      added: [["user.setRole", admin.user.id, { role: ["admin", "member"] }]],
+    });
     expect((await userRow(target.user.id)).role).toBe("member");
-    const changes = (await entriesFor(target.user.id))
-      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-      .map((e) => [e.action, e.actorId, e.changes]);
-    expect(changes).toEqual([
-      ["user.setRole", admin.user.id, { role: ["member", "support"] }],
-      ["user.setRole", admin.user.id, { role: ["support", "admin"] }],
-      ["user.setRole", admin.user.id, { role: ["admin", "member"] }],
-    ]);
+    expect(await entriesFor(target.user.id)).toHaveLength(3);
   });
 
   it("refuses your own role, an unknown or unchanged role, and the last admin", async () => {

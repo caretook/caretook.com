@@ -2,10 +2,12 @@ import { Link } from "react-router";
 
 import { FullLogo } from "~/components/brand";
 import { MARKETING_LINKS, MARKETING_PAGES } from "../site/pages";
+import { layoutContent } from "./content";
 
 const SITE_PAGES = MARKETING_PAGES.filter((p) => p.area === "site");
 const LEGAL_PAGES = MARKETING_PAGES.filter((p) => p.area === "legal");
 
+const words = layoutContent.footer;
 const linkClass = "link link-hover text-base-content/80";
 
 export function MarketingFooter() {
@@ -14,12 +16,10 @@ export function MarketingFooter() {
       <div className="mx-auto grid w-full max-w-5xl gap-8 px-4 py-10 sm:grid-cols-3 sm:px-6">
         <div>
           <FullLogo />
-          <p className="mt-3 text-base text-base-content/80">
-            A shared place for a family to keep track of someone&apos;s care.
-          </p>
+          <p className="mt-3 text-base text-base-content/80">{words.blurb}</p>
         </div>
-        <nav aria-label="Site">
-          <h2 className="font-semibold">Caretook</h2>
+        <nav aria-label={words.siteNavLabel}>
+          <h2 className="font-semibold">{words.siteHeading}</h2>
           <ul className="mt-2 space-y-1 text-base">
             {SITE_PAGES.map((page) => (
               <li key={page.id}>
@@ -30,13 +30,13 @@ export function MarketingFooter() {
             ))}
             <li>
               <Link to={MARKETING_LINKS.signIn} className={linkClass}>
-                Sign in
+                {words.signIn}
               </Link>
             </li>
           </ul>
         </nav>
-        <nav aria-label="Legal">
-          <h2 className="font-semibold">Legal</h2>
+        <nav aria-label={words.legalNavLabel}>
+          <h2 className="font-semibold">{words.legalHeading}</h2>
           <ul className="mt-2 space-y-1 text-base">
             {LEGAL_PAGES.map((page) => (
               <li key={page.id}>
@@ -53,7 +53,7 @@ export function MarketingFooter() {
         className="mx-auto w-full max-w-5xl px-4 pb-8 text-sm text-base-content/70 sm:px-6"
         suppressHydrationWarning
       >
-        © {new Date().getFullYear()} Caretook
+        © {new Date().getFullYear()} {words.owner}
       </p>
     </footer>
   );

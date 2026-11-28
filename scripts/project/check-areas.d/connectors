@@ -21,3 +21,6 @@ packages/auth/src/connectorAuthorize.ts  sign-in
 packages/api/src/connectors/mintToken.ts roundtrip
 # Directory defaults: a new file here needs no rule.
 apps/web/app/lib/connectors/             -
+# /mcp's handler and the add_note write: roundtrip's connector step (3b).
+packages/api/src/connectors/http.ts      roundtrip
+packages/api/src/connectors/tools/writes.ts roundtrip
