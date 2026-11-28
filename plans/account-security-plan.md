@@ -8,15 +8,15 @@
 
 **Landing mode:** run everything through (started run-through by the dispatcher, 2026-11-28): start every ready slice, land each green wave, ask only real questions via `risa ask`.
 
-**Now (2026-11-28):** wave 1 starting: slices 1, 2, 3, each on opus (real logic). B-1011 (rate-limit audit) arrived with `prd=account-security` but isn't in this plan: a later wave or `account-security-2`, the planner's call.
+**Now (2026-11-28):** wave 1 running: slices 1, 2, 3 started (worktrees `.loops/account-security-{1,2,3}`), each agent on opus (real logic); items claimed; `risa watch` running. B-1011 (rate-limit audit) arrived with `prd=account-security` but isn't in this plan: a later wave or `account-security-2`, the planner's call.
 
 **Items:** slice 1 B-327, B-336 · slice 2 B-328, B-333, B-335 · slice 3 B-331 · slice 4 B-332 · slice 5 B-329, B-330, B-339 · slice 6 B-334 · slice 7 B-337.
 
 | Slice | Wave | State   | Merge into `prd/account-security` (slice commits) |
 | ----- | ---- | ------- | ------------------------------------------------- |
-| 1     | 1    | planned | —                                                 |
-| 2     | 1    | planned | —                                                 |
-| 3     | 1    | planned | —                                                 |
+| 1     | 1    | started | —                                                 |
+| 2     | 1    | started | —                                                 |
+| 3     | 1    | started | —                                                 |
 | 4     | 2    | planned | —                                                 |
 | 5     | 2    | planned | —                                                 |
 | 6     | 2    | planned | —                                                 |
