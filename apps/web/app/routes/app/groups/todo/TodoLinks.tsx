@@ -56,9 +56,11 @@ function ProviderLink({
 }: LinkRowProps & { loaded: ProviderRow[] }) {
   const q = providerQuery(id);
   const rows = useLiveQuery<ProviderRow>(q.sql, q.params, loaded);
+  // Deleted is read off the row, before `toProvider`: a scrubbed row has no name left, which it drops.
+  if (rows[0]?.deleted_at && rows[0].group_id === groupId)
+    return <RemovedLinkRow kind="provider" label="Provider" onRemove={onRemove} />;
   const provider = rows[0] ? toProvider(rows[0]) : null;
   if (!provider || provider.groupId !== groupId) return null;
-  if (provider.deletedAt) return <RemovedLinkRow kind="provider" label="Provider" onRemove={onRemove} />;
   return (
     <ProviderCard
       provider={provider}
@@ -86,10 +88,11 @@ function MedicationLink({
 }: LinkRowProps & { loaded: MedicationRow[] }) {
   const q = medicationQuery(id);
   const rows = useLiveQuery<MedicationRow>(q.sql, q.params, loaded);
+  // As for a provider: deleted before `toMedication`, which drops a scrubbed row.
+  if (rows[0]?.deleted_at && rows[0].group_id === groupId)
+    return <RemovedLinkRow kind="medication" label="Medication" onRemove={onRemove} />;
   const medication = rows[0] ? toMedication(rows[0]) : null;
   if (!medication || medication.groupId !== groupId) return null;
-  if (medication.deletedAt)
-    return <RemovedLinkRow kind="medication" label="Medication" onRemove={onRemove} />;
   const stopped = medication.status !== "current";
   const title = medicationTitle(medication);
   return (
