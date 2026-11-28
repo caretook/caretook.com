@@ -11,12 +11,24 @@ import { createHash } from "node:crypto";
 //   - code sign-in: 10 tries an hour per address. Every try counts before
 //     the code is checked, so guesses sent at once can't race past it (a
 //     right code is one try);
-//   - link sign-up (B-333): per client IP and per link.
+//   - link sign-up (B-333): per client IP and per link;
+//   - connector client registration (`/oauth2/register`, B-337): per client
+//     IP, as /mcp is (`CONNECTOR_IP_LIMIT`).
 // Past a limit the answer is the one an unknown address, a wrong code or a
 // used-up link gets. On only in production (check builds included) unless a
 // test turns them on.
 
-const HOUR = 60 * 60_000;
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+
+/**
+ * Requests one client IP may make a minute to /mcp (before its token is
+ * checked) and to `/oauth2/register` (B-337): a cap on the database work
+ * anyone can cause without a connection of their own. Assistants call from
+ * their vendor's servers, so many members' connections share an address:
+ * it's ten connections' worth of the per-connection limit (MCP_RATE_LIMIT).
+ */
+export const CONNECTOR_IP_LIMIT = { limit: 600, windowMs: MINUTE } as const;
 
 export const AUTH_LIMITS = {
   signInEmail: { limit: 5, windowMs: HOUR },
@@ -25,6 +37,7 @@ export const AUTH_LIMITS = {
   linkSignUpIp: { limit: 10, windowMs: HOUR },
   // A link shared with a family or a care team, at most this many an hour.
   linkSignUpLink: { limit: 30, windowMs: HOUR },
+  connectorRegisterIp: CONNECTOR_IP_LIMIT,
 } as const;
 
 export type AuthLimitName = keyof typeof AUTH_LIMITS;

@@ -18,6 +18,7 @@ import {
 } from "@caretook/data";
 import { getAuth } from "./auth";
 import { sendAccessCodeExistingAccount } from "./emails";
+import { clientIpKey } from "./host";
 import { createAuthLimits } from "./limits";
 
 // Caretook is invitation-only: public sign-up stays off (`disableSignUp`),
@@ -48,15 +49,14 @@ let defaultLimits: AuthLimits | undefined;
 const limitsOf = (opts: SignUpWithTicketOptions) => opts.limits ?? (defaultLimits ??= createAuthLimits());
 
 /**
- * A link's sign-up limits (B-333): per client IP and per link. Past the
- * link's, the answer is a used-up link's (`ticket:invalid`). A request
- * without a client IP skips the IP limit rather than sharing one key with
- * every other such request (slice 7's `clientIpKey` decides that case).
+ * A link's sign-up limits (B-333): per client IP (`clientIpKey`) and per
+ * link. Past either, or in production without a client IP (logged), the
+ * answer is a used-up link's (`ticket:invalid`).
  */
 const linkSignUpRefusal = async (inviteId: string, opts: SignUpWithTicketOptions) => {
   const limits = limitsOf(opts);
-  const ip = opts.clientIp?.trim();
-  if (ip && !(await limits.hit("linkSignUpIp", ip))) return newError({ code: "ticket:invalid" });
+  const ip = clientIpKey(opts.clientIp, "auth.linkSignUp");
+  if (ip === null || !(await limits.hit("linkSignUpIp", ip))) return newError({ code: "ticket:invalid" });
   if (!(await limits.hit("linkSignUpLink", inviteId))) return newError({ code: "ticket:invalid" });
   return null;
 };

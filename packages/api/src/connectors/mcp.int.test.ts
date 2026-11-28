@@ -14,9 +14,9 @@ import {
   timelineEntryService,
   verificationSchema,
 } from "@caretook/data";
-import { getAuth } from "@caretook/auth";
+import { createAuth, createAuthLimits, getAuth, validateConnectorToken } from "@caretook/auth";
 import { randomUUID } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { createGroup, createUser, newYDoc, ok, typeParagraph } from "../../../data/test/fixtures";
 import { createRateLimiter } from "../rateLimit";
@@ -28,6 +28,7 @@ import {
   enablePasswordSignIn,
   mcpHandler,
   mcpPost,
+  registerRequest,
   rpc,
   signInCookies,
   TEST_ORIGIN,
@@ -464,6 +465,56 @@ describe("/mcp", () => {
     const over = await mcpPost(handler, tokens.access_token, rpc("ping"));
     expect(over.status).toBe(429);
     expect(over.headers.get("retry-after")).toBe("60");
+  });
+
+  it("limits each client IP before the token is verified: past it, 429 with Retry-After", async () => {
+    const validate = vi.fn(validateConnectorToken());
+    const handler = mcpHandler({
+      validate,
+      ipLimiter: createRateLimiter({ limit: 1, windowMs: 60_000 }),
+      tools: TOOLS,
+    });
+    const w = await world({ signIn: ["owner"] });
+    const { tokens } = await connectAssistant({ email: w.owner.user.email, groupId: w.group.id });
+    expect((await mcpPost(handler, tokens.access_token, rpc("ping"), "198.51.100.10")).status).toBe(200);
+    expect(validate).toHaveBeenCalledTimes(1);
+    const over = await mcpPost(handler, tokens.access_token, rpc("ping"), "198.51.100.10");
+    expect(over.status).toBe(429);
+    expect(over.headers.get("retry-after")).toBe("60");
+    expect(validate).toHaveBeenCalledTimes(1);
+    // Another address has its own count.
+    expect((await mcpPost(handler, tokens.access_token, rpc("ping"), "198.51.100.11")).status).toBe(200);
+  });
+
+  describe("in production", () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+      vi.restoreAllMocks();
+    });
+
+    it("refuses a request without a client IP (400, logged) before verifying its token", async () => {
+      const validate = vi.fn(validateConnectorToken());
+      const handler = mcpHandler({ validate, tools: TOOLS });
+      vi.stubEnv("NODE_ENV", "production");
+      const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+      expect((await mcpPost(handler, "any-token", rpc("ping"))).status).toBe(400);
+      expect(validate).not.toHaveBeenCalled();
+      expect(String(logged.mock.calls[0]?.[0])).toMatch(/no client IP.*procedure=mcp/);
+    });
+  });
+
+  it("limits client registration (/oauth2/register) per client IP: past it, 429 with Retry-After", async () => {
+    const auth = createAuth({
+      limits: createAuthLimits({ enabled: true, limits: { connectorRegisterIp: 2 } }),
+    });
+    const ip = `198.51.${Math.floor(Math.random() * 250) + 1}.${Math.floor(Math.random() * 250) + 1}`;
+    const register = (from: string) =>
+      auth.handler(registerRequest("Test Claude", undefined, { "x-forwarded-for": from }));
+    for (let i = 0; i < 2; i++) expect([200, 201]).toContain((await register(ip)).status);
+    const over = await register(ip);
+    expect(over.status).toBe(429);
+    expect(over.headers.get("retry-after")).toBe("60");
+    expect([200, 201]).toContain((await register(`${ip.split(".").slice(0, 3).join(".")}.0`)).status);
   });
 
   it("stops working when the owner turns Assistants off", async () => {

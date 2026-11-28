@@ -3,7 +3,7 @@ import type { AuthLimits } from "./limits";
 
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { createAuthMiddleware } from "better-auth/api";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { bearer, emailOTP, jwt, magicLink } from "better-auth/plugins";
 import {
   accountSchema,
@@ -26,8 +26,8 @@ import {
 } from "./connectors";
 import { isDisabledEmail, isDisabledUser, noSession, wrongCode, wrongPassword } from "./disabled";
 import { sendResetPassword, sendSignInEmail, sendVerificationEmail, sendVerificationOTP } from "./emails";
-import { allowedOrigins, clientIpHeader } from "./host";
-import { addressKey, createAuthLimits } from "./limits";
+import { allowedOrigins, clientIpHeader, clientIpKey, clientIpOf } from "./host";
+import { addressKey, CONNECTOR_IP_LIMIT, createAuthLimits } from "./limits";
 import { readsLiveSession } from "./liveSession";
 import { afterHooks, disconnectAssistants } from "./sessionsEnded";
 
@@ -98,6 +98,23 @@ const limitSignIn = async (
 };
 
 /**
+ * A connector client's registration (`/oauth2/register`, open to anyone) is
+ * limited per client IP (`clientIpKey`), as /mcp is: past it a 429 with
+ * Retry-After, and in production a request without a client IP is a 400.
+ */
+const limitRegistration = async (limits: AuthLimits, path: string, headers: Headers | undefined) => {
+  if (path !== "/oauth2/register") return;
+  const ip = clientIpKey(clientIpOf(headers ?? new Headers()), "auth.oauth2Register");
+  if (ip === null) throw APIError.from("BAD_REQUEST", { code: "BAD_REQUEST", message: "Bad Request" });
+  if (await limits.hit("connectorRegisterIp", ip)) return;
+  throw new APIError(
+    "TOO_MANY_REQUESTS",
+    { code: "TOO_MANY_REQUESTS", message: "Too many requests: wait a minute" },
+    { "retry-after": String(CONNECTOR_IP_LIMIT.windowMs / 1000) },
+  );
+};
+
+/**
  * Before every endpoint. PowerSync's token (`/token`, the jwt plugin)
  * always reads the live session, never the cookie cache, whatever the
  * request's query says (B-140): a revoked session can't open a new sync
@@ -107,6 +124,7 @@ const limitSignIn = async (
 const beforeHooks = (limits: AuthLimits) =>
   createAuthMiddleware(async (ctx) => {
     if (readsLiveSession(ctx.path)) return { context: { query: { ...ctx.query, disableCookieCache: true } } };
+    await limitRegistration(limits, ctx.path, ctx.headers);
     const answer = await limitSignIn(limits, ctx.path, ctx.body);
     if (answer) return ctx.json(answer);
     await refuseDisabledSignIn(ctx.path, ctx.body, (password) => ctx.context.password.hash(password));
@@ -118,15 +136,18 @@ const beforeHooks = (limits: AuthLimits) =>
  * `rateLimitEnabled` turns the limits on outside production: Better Auth's
  * and our per-address ones (limits.ts). `originCheck`
  * turns on the Origin check Better Auth skips under `NODE_ENV=test`.
+ * `limits` replaces our limits alone (a test's, on, with lower counts).
  */
 export const createAuth = ({
   rateLimitEnabled,
   originCheck,
-}: { rateLimitEnabled?: boolean; originCheck?: boolean } = {}) => {
+  limits: ourLimits,
+}: { rateLimitEnabled?: boolean; originCheck?: boolean; limits?: AuthLimits } = {}) => {
   const { secret, secrets, baseURL, powersyncURL } = getAuthConfig();
   const ipHeader = clientIpHeader();
   if (!secret && !secrets) throw new Error("BETTER_AUTH_SECRET is not set");
-  const limits = createAuthLimits(rateLimitEnabled === undefined ? {} : { enabled: rateLimitEnabled });
+  const limits =
+    ourLimits ?? createAuthLimits(rateLimitEnabled === undefined ? {} : { enabled: rateLimitEnabled });
 
   // Set once the instance exists: the email's code comes from its own
   // email-OTP plugin (typed here, so the instance's type doesn't loop).
