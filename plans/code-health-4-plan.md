@@ -15,7 +15,7 @@
 | 1     | 1    | merged         | df3ba0af8 (c4c7c0275)                          |
 | 2     | 1    | merged         | 7dadcc354 (0a14230d1)                          |
 | 3     | 2    | working (opus) |                                                |
-| 4     | 2    | working (opus) |                                                |
+| 4     | 2    | handed off 362ee84d8 (opus); adds isOwnerRole to the permissions re-exports |                                                |
 | 5     | 2    | working (opus) |                                                |
 | 6     | 3    | planned        |                                                |
 
