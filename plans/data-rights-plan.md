@@ -16,7 +16,7 @@
 
 | Slice | Wave | State       | Merge into `prd/data-rights` (slice commits) |
 | ----- | ---- | ----------- | -------------------------------------------- |
-| 1     | 1    | respawned   |                                              |
+| 1     | 1    | merged      | `acdee49b7` (4b41a05d2..5ee4f0e4c), mig 0051 |
 | 2     | 1    | merged      | `288ff6273` (2677eadb0, e4cf04280)           |
 | 3     | 1    | merged      | `bfcdf7504` (60e80fbe7..f0745418d)           |
 | 4     | 1    | merged      | `9a7856062` (4b511c986)                      |
