@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayKeyIn, dayStartAt, groupByDay, withMarkers } from "./timelineDays";
+import { dayKeyIn, dayStartAt, groupByDay, shortDayLabel, withMarkers } from "./timelineDays";
 
 const LA = "America/Los_Angeles";
 // Wednesday, Nov 18 2026, 10:00 in Los Angeles.
@@ -83,6 +83,36 @@ describe("groupByDay", () => {
       ["a"],
       ["b"],
       ["c"],
+    ]);
+  });
+});
+
+describe("shortDayLabel", () => {
+  it("gives a past day its short weekday, month and day", () => {
+    expect(shortDayLabel("2026-11-16", LA, NOW, "en-US")).toBe("Mon, Nov 16");
+    expect(shortDayLabel("2026-11-11", LA, NOW, "en-US")).toBe("Wed, Nov 11");
+  });
+
+  it("adds the year for another year", () => {
+    expect(shortDayLabel("2025-12-31", LA, NOW, "en-US")).toBe("Wed, Dec 31, 2025");
+    expect(shortDayLabel("2027-01-04", LA, NOW, "en-US")).toBe("Mon, Jan 4, 2027");
+  });
+
+  it("keeps Today, Yesterday and Tomorrow, as calendar days in the zone", () => {
+    expect(shortDayLabel("2026-11-18", LA, NOW, "en-US")).toBe("Today");
+    expect(shortDayLabel("2026-11-17", LA, NOW, "en-US")).toBe("Yesterday");
+    expect(shortDayLabel("2026-11-19", LA, NOW, "en-US")).toBe("Tomorrow");
+    // 02:00 UTC on the 18th is still the 17th in Los Angeles: its today, not UTC's.
+    const late = new Date("2026-11-18T02:00:00Z");
+    expect(shortDayLabel("2026-11-17", LA, late)).toBe("Today");
+    expect(shortDayLabel("2026-11-17", "UTC", late)).toBe("Yesterday");
+  });
+
+  it("is what groupByDay gives each day beside its full label", () => {
+    const days = groupByDay([at("2026-11-18T17:00:00Z"), at("2026-11-15T20:00:00Z")], LA, NOW, "en-US");
+    expect(days.map((d) => [d.label, d.short])).toEqual([
+      ["Today", "Today"],
+      ["Sunday, Nov 15", "Sun, Nov 15"],
     ]);
   });
 });
