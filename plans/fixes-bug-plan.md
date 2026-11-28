@@ -16,7 +16,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 97    | B-1056 | starting (opus)   | —     |
 | 98    | B-1058 | starting (sonnet) | —     |
 
-**Wave 28** (2026-11-28): dev synced (d48ce5cd0; app-shell doc conflict resolved and trimmed under budget). Slices 96-98 written and starting in parallel. Models: 96, 97 opus; 98 sonnet (a one-line selector change the plan spells out). Wave 27 landed earlier (PR #323); its history is in the history file. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table.
+**Wave 28** (2026-11-28): dev synced (d48ce5cd0; app-shell doc conflict resolved and trimmed under budget). Slices 96-98 written and starting in parallel. Models: all three opus (the plan's Model field). Agents spawned; `risa watch fixes-bug --wait` running. Wave 27 landed earlier (PR #323); its history is in the history file. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table.
 
 ## Wave 1
 
