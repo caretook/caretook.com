@@ -88,7 +88,7 @@ function ToastItem({ toast }: { toast: QueuedToast<ToastContent> }) {
       {...data}
       data-toast=""
       data-exiting={exiting || undefined}
-      className="alert border-base-300 bg-base-100 text-base-content flex items-center gap-2 py-2 pr-2 shadow-lg outline-offset-2"
+      className="alert border-base-300 bg-base-100 text-base-content flex flex-wrap items-center gap-2 py-2 pr-2 shadow-lg outline-offset-2"
     >
       <AriaToastContent className="min-w-0 grow">
         <Text slot="title">{message}</Text>

@@ -7,8 +7,8 @@ import { MEDICATION_LIMITS, scheduleText } from "@caretook/data/schema";
 import { Button, ChoiceGroup, Field, TITLE_SECTION } from "~/components/ui";
 import { useGroup } from "~/lib/app-shell/group";
 import { localTimeZone } from "~/lib/core/format";
-import { FIELD } from "./medicationFormData";
-import { initialSlots } from "./scheduleSlots";
+import { FIELD } from "~/lib/medications/medicationFormData";
+import { initialSlots } from "~/lib/medications/scheduleSlots";
 import { SetTimesFields } from "./SetTimesFields";
 
 type ScheduleType = MedicationSchedule["type"];

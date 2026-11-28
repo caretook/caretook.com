@@ -1,7 +1,7 @@
-import type { PickableProvider } from "../../../../lib/providers/providerPicker";
+import type { PickableProvider } from "../providers/providerPicker";
 
 import { isPharmacyType, isPrescriberType } from "@caretook/data/schema";
-import { canAddPicked, PICKER_LIMIT, pickerOptions } from "../../../../lib/providers/providerPicker";
+import { canAddPicked, PICKER_LIMIT, pickerOptions } from "../providers/providerPicker";
 
 // The medication form's prescriber and pharmacy pickers, their pure parts:
 // which of the group's providers each offers for the typed text, and when to
@@ -10,8 +10,8 @@ import { canAddPicked, PICKER_LIMIT, pickerOptions } from "../../../../lib/provi
 // lib/providers/providerPicker.ts.
 
 export type ProviderRole = "prescriber" | "pharmacy";
-export type { PickableProvider } from "../../../../lib/providers/providerPicker";
-export { chosenLabel, PICKER_LIMIT } from "../../../../lib/providers/providerPicker";
+export type { PickableProvider } from "../providers/providerPicker";
+export { chosenLabel, PICKER_LIMIT } from "../providers/providerPicker";
 
 /** Whether a provider can fill the role: a clinician or practice prescribes, a pharmacy fills. */
 export const fitsRole = (role: ProviderRole, type: string) =>

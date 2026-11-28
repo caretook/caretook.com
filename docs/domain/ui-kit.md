@@ -40,7 +40,7 @@ The `ui/` contracts; rules, tests: [components](components.md).
 - `Message` (`{ tone, children }`): `error` `role="alert"`, others `role="status"`; empty, it stays mounted.
 - `Notice` (`{ tone, icon?, action? }`): a soft alert with the tone's icon (or `icon`), role by tone (`role` overrides; `"none"` inside the caller's live region); `action`: `{ label, to }` link or `{ label, onAction }` button.
 - `EmptyState`: a quiet line, optional action; `icon`, `accent` add a soft circle (main lists only).
-- `toast({ message, action?, undo?, timeout? })` → id, `dismissToast(id)`: one at a time, newest first; an action runs once; 6 s (`null` stays).
+- `toast({ message, action?, secondAction?, undo?, timeout? })` → id, `dismissToast(id)`: one at a time, newest first; an action runs once; 6 s (`null` stays).
 - `Loading` (`{ label, lines? }`): a status named by `label`: spinner and label, or with `lines` a `Skeleton` (`aria-hidden` bars, `data-skeleton`).
 - `PageLoading` (`{ message, back? }`): a full-page wait: `LoadingMark`, optional Go back, a slow prompt at 10 s.
 - `Badge` (`{ tone, icon? }`): one size, soft (`badgeClass`); `neutral`, `primary`, `success`, `warning`, `danger`, `info`. **Status tones** (`STATUS_TONE`): current, now `primary`; past, stopped `neutral`; overdue `danger`; due soon `warning`; done `success`.

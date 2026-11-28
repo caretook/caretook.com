@@ -1,9 +1,9 @@
-import type { ProviderRole } from "./medicationProviders";
+import type { ProviderRole } from "~/lib/medications/medicationProviders";
 import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { ProviderPickerField as Picker } from "~/components/providers";
-import { fitsRole } from "./medicationProviders";
-import { FIELD } from "./medicationFormData";
+import { fitsRole } from "~/lib/medications/medicationProviders";
+import { FIELD } from "~/lib/medications/medicationFormData";
 
 const ROLES = {
   prescriber: {

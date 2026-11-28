@@ -26,7 +26,7 @@ import {
   useConditionNames,
 } from "~/lib/profiles/conditions.sync";
 import { useCloseProfileSheet } from "../../profileSheet";
-import { conditionActionFromForm } from "../conditionActions";
+import { conditionActionFromForm } from "~/lib/profiles/conditionActions";
 import { ConditionForm } from "../ConditionForm";
 import { ConditionGone } from "../ConditionGone";
 

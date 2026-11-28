@@ -2,8 +2,8 @@ import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { useId, useMemo, useState } from "react";
 import { ChipList, ComboBox, Message } from "~/components/ui";
-import { FIELD } from "./periodFormData";
-import { canAddPlace, placeChipLabel, placeOptions } from "./periodPlaces";
+import { FIELD } from "~/lib/care-periods/periodFormData";
+import { canAddPlace, placeChipLabel, placeOptions } from "~/lib/care-periods/periodPlaces";
 
 type Choice = { kind: "none" } | { kind: "existing"; id: string } | { kind: "new"; name: string };
 
