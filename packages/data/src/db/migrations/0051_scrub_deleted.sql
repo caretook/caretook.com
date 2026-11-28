@@ -69,7 +69,6 @@ BEGIN
   NEW.place := NULL;
   NEW.cancel_reason := NULL;
   NEW.details := scrub_entry_details(NEW.kind, NEW.details, scrub_medication_live(NEW.details));
-  NEW.symptom_type_id := NULL;
   PERFORM scrub_document(NEW.id);
   RETURN NEW;
 END
