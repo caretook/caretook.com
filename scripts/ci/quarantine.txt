@@ -4,10 +4,7 @@
 #
 # One test per line, three tab-separated fields:
 # <repo-relative test file><TAB><full test name><TAB><backlog item>
-apps/web/app/routes/app/groups/planner/planner.browser.test.tsx	the header the tabs carry what each reads: Upcoming what it shows and the author, Past the author, Todos its chip	B-776
-packages/api/src/admin/usersAdmin.int.test.ts	admin.users.get shows the account, its sessions, groups and mail, and nothing from the care tables	B-782
 apps/web/app/routes/app/groups/profile/emergency.browser.test.tsx	the owner's sheet builds the list: a member removed and added back, moved up by keyboard, an outside contact refused then added, a new primary; one save	B-791
 apps/web/app/routes/app/groups/timeline/timelineTags.browser.test.tsx	quick tags on rows a writer adds, removes and adds new tags on a note, a symptom and a dose from the row; nothing opens; ⋯ has no Tags	B-921
-apps/web/app/components/ui/sheetExit.browser.test.tsx	closed by navigating with reduced motion Back completes in the next frame	B-949
-apps/web/app/components/todos/linkToBox.browser.test.tsx	the Link to box leaves out what's linked, and a pick says what it is and clears the text	B-1004
-apps/web/app/components/todos/linkToBox.browser.test.tsx	the empty Link to box's suggestions (B-947) what's linked is left out, and a pick closes the list until an arrow key or typing opens it	B-1005
+apps/web/app/routes/app/groups/settings/tagsSettings.browser.test.tsx	the Tags page an owner merges Urgent into Knee: each record carries Knee once, and Urgent is gone	B-1057
+apps/web/app/routes/app/layout/frame.browser.test.tsx	the group menu and the last group names the current group, lists both with it checked, and one tap switches (and is remembered)	B-1059
