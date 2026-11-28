@@ -6,5 +6,4 @@
 # <repo-relative test file><TAB><full test name><TAB><backlog item>
 apps/web/app/routes/app/groups/profile/emergency.browser.test.tsx	the owner's sheet builds the list: a member removed and added back, moved up by keyboard, an outside contact refused then added, a new primary; one save	B-791
 apps/web/app/routes/app/groups/timeline/timelineTags.browser.test.tsx	quick tags on rows a writer adds, removes and adds new tags on a note, a symptom and a dose from the row; nothing opens; ⋯ has no Tags	B-921
-apps/web/app/routes/app/groups/settings/tagsSettings.browser.test.tsx	the Tags page an owner merges Urgent into Knee: each record carries Knee once, and Urgent is gone	B-1057
-apps/web/app/routes/app/layout/frame.browser.test.tsx	the group menu and the last group names the current group, lists both with it checked, and one tap switches (and is remembered)	B-1059
+apps/web/app/routes/app/groups/timeline/todayCard.browser.test.tsx	the Today card's rows every row but vitals ends in See all, alike, to its full view	B-1065
