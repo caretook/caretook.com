@@ -763,10 +763,14 @@ const recipientToday = async (db: SyncDb, recipientId: string) => {
  * itself, is passed over for the rule's following day (B-386), and a
  * soft-deleted one (an Undo took it away) comes back as new. As
  * `todoService`'s `insertNext`, so both write the same row. `now` is the
- * tick's time: the next is made then, so `reopenTodo` finds it.
+ * tick's time: the next is made then (and after `todo`, whose `created_at`
+ * may be the server's, ahead of this clock), so `reopenTodo` finds it.
  */
-const planNext = async (db: SyncDb, todo: LocalTodo, now = nowTimestamp()) => {
+const planNext = async (db: SyncDb, todo: LocalTodo, tickedAt = nowTimestamp()) => {
   if (!todo.repeatRule) return null;
+  const made = todo.createdAt ? new Date(todo.createdAt).getTime() + 1 : 0;
+  const now =
+    new Date(fromLocalTimestamp(tickedAt)).getTime() >= made ? tickedAt : toLocalTimestamp(new Date(made));
   const { nextOccurrence } = await import("@caretook/data/series");
   const today = await recipientToday(db, todo.recipientId);
   const passOver = new Set<string>();
@@ -848,19 +852,21 @@ export const completeTodo = async (db: SyncDb, id: string): Promise<TodoWriteRes
 
 /**
  * What ticking `todo` made (its successor): the live row of its chain, other
- * than it, made at or after its `done_at`, the earliest first (then id),
- * whatever its due day now (B-383), as todoService's `laterInChain`. The
- * tick writes both times from this device's clock (`completeTodo`); synced
- * rows carry the server's, clamped there. `julianday` compares the device's
- * and PowerSync's timestamp texts alike.
+ * than it, made at or after its `done_at` and after `todo` itself, the
+ * earliest first (then id), whatever its due day now (B-383), as
+ * todoService's `laterInChain` (which says why both). The tick writes both
+ * times from this device's clock, the next made after `todo` (`planNext`);
+ * synced rows carry the server's. `julianday` compares the device's and
+ * PowerSync's timestamp texts alike.
  */
 const laterInChain = async (db: SyncDb, todo: LocalTodo) => {
   if (!todo.repeatId || !todo.doneAt) return null;
   const [row] = await readRows<TodoRow>(db, {
     sql: `SELECT * FROM todo WHERE group_id = ? AND repeat_id = ? AND id != ?
-            AND julianday(created_at) >= julianday(?) AND deleted_at IS NULL
+            AND julianday(created_at) >= julianday(?) AND julianday(created_at) > julianday(?)
+            AND deleted_at IS NULL
           ORDER BY julianday(created_at), id LIMIT 1`,
-    params: [todo.groupId, todo.repeatId, todo.id, todo.doneAt],
+    params: [todo.groupId, todo.repeatId, todo.id, todo.doneAt, todo.createdAt],
   });
   return row ? toTodo(row) : null;
 };

@@ -206,11 +206,15 @@ const insertNext = async (tx: Tx, todo: Todo, today: string) => {
 
 /**
  * What ticking `todo` made (its successor): the live row of its chain, other
- * than it, made at or after its `done_at`, the earliest first (then id),
- * whatever its due day now, so one moved to the same day or earlier is still
- * found (B-383). As the device's `laterInChain` in `reopenTodo`. Relies on
- * `complete` clamping `done_at` to at most the transaction's now (`tickTime`),
- * and on a restored next being made again (`todoModel.restore`).
+ * than it, made at or after its `done_at` and after `todo` itself, the
+ * earliest first (then id), whatever its due day now, so one moved to the
+ * same day or earlier is still found (B-383). After `todo`: an offline tick's
+ * `done_at` is the device's, earlier than the rows the upload makes, so it
+ * alone would let an earlier occurrence made at upload pass; `created_at`s
+ * are all this clock's, and a successor is made after its predecessor. As
+ * the device's `laterInChain` in `reopenTodo`. Relies on `complete` clamping
+ * `done_at` to at most the transaction's now (`tickTime`), and on a restored
+ * next being made again (`todoModel.restore`).
  */
 const laterInChain = async (tx: Tx, todo: Todo) => {
   if (!todo.repeatId || !todo.doneAt) return null;
@@ -220,7 +224,13 @@ const laterInChain = async (tx: Tx, todo: Todo) => {
       groupId: { type: "eq", value: todo.groupId },
       repeatId: { type: "eq", value: todo.repeatId },
       id: { type: "ne", value: todo.id },
-      createdAt: { type: "gte", value: todo.doneAt },
+      createdAt: {
+        type: "and",
+        value: [
+          { type: "gte", value: todo.doneAt },
+          { type: "gt", value: todo.createdAt },
+        ],
+      },
     },
     orderBy: [
       { field: "createdAt", direction: "asc" },

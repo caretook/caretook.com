@@ -203,3 +203,28 @@ describe("reopen finds the successor by when it was made (B-383)", () => {
     expect(await openIn(todo.id)).toEqual([todo.id]);
   });
 });
+
+describe("reopen after several offline ticks (B-383)", () => {
+  it("ticks of A, B and C uploaded together: reopening C finds D, not B, and takes the untouched D away", async () => {
+    const { u, addTodo, openIn, row } = await setup();
+    // Ticked offline on the device on these Mondays, uploaded later: the
+    // server makes B, C and D at upload time, after every tick's device time.
+    const a = await addTodo({ dueOn: "2026-10-05" });
+    ok(await todoService.complete(u.caretaker.ctx, a.id, { doneAt: "2026-10-05T19:00:00.000Z" }));
+    const b = nextTodoId(a.id, "2026-10-12");
+    ok(await todoService.complete(u.caretaker.ctx, b, { doneAt: "2026-10-12T19:00:00.000Z" }));
+    const c = nextTodoId(a.id, "2026-10-19");
+    ok(await todoService.complete(u.caretaker.ctx, c, { doneAt: "2026-10-19T19:00:00.000Z" }));
+    const d = nextTodoId(a.id, "2026-10-26");
+    expect(await openIn(a.id)).toEqual([d]);
+
+    expect(ok(await todoService.reopen(u.caretaker.ctx, c))).toMatchObject({
+      doneAt: null,
+      repeatRule: WEEKLY_MO,
+      repeatId: a.id,
+    });
+    expect((await row(d))?.deletedAt).not.toBeNull();
+    expect(await row(b)).toMatchObject({ deletedAt: null, repeatRule: WEEKLY_MO });
+    expect(await openIn(a.id)).toEqual([c]);
+  });
+});
