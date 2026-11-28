@@ -93,15 +93,20 @@ describe("Details", () => {
     await expect.element(NAME()).toHaveValue(TEST_GROUP.name);
     expect(
       [...document.querySelectorAll<HTMLElement>("main [data-section]")].map((s) => s.dataset.section),
-    ).toEqual(["group-details", "care-recipient", "easy-tiles", "details-outside-allowed"]);
+    ).toEqual(["group-details", "care-recipient", "easy-tiles", "details-outside-allowed", "delete-group"]);
     expect(document.querySelector("main [data-profile-note] a")?.getAttribute("href")).toBe(
       `/app/groups/${TEST_GROUP.id}/profile`,
     );
     expect(document.querySelector("[data-needs-connection]")).toBeNull();
     // Every input is labelled: the name is the only one (easy mode's tiles card and the
-    // owners' details switch have their own tests).
+    // owners' details switch and delete card have their own tests).
     const labels = [...document.querySelectorAll<HTMLInputElement>("main input:not([type=hidden])")]
-      .filter((i) => !i.closest("[data-section=easy-tiles], [data-section=details-outside-allowed]"))
+      .filter(
+        (i) =>
+          !i.closest(
+            "[data-section=easy-tiles], [data-section=details-outside-allowed], [data-section=delete-group]",
+          ),
+      )
       .map((i) => document.querySelector(`label[for="${i.id}"]`)?.textContent?.trim());
     expect(labels).toEqual(["Name"]);
   });
@@ -185,6 +190,76 @@ describe("Details", () => {
     expect(section("group-details")?.textContent).toContain(TEST_GROUP.name);
     expect(section("care-recipient")?.textContent).toContain("America/Los Angeles");
     expect(document.querySelectorAll("main input, main select, main button, main form")).toHaveLength(0);
+  });
+});
+
+describe("Delete care group", () => {
+  // The card's button (the dialog's confirm, later in the page, shares its name).
+  const DELETE = () => page.getByRole("button", { name: "Delete care group" }).first();
+  const dialog = () => document.querySelector("dialog[open]");
+  const confirmButton = () => dialog()!.querySelector<HTMLButtonElement>("[data-form-cancel]")!;
+  const typeName = () => page.getByRole("textbox", { name: `Type ${TEST_GROUP.name} to confirm` });
+
+  test("only owners get the card; offline it has no button", async () => {
+    for (const role of ["admin", "caretaker", "viewer"] as const) {
+      const device = await open({ url: DETAILS, role });
+      await expect.poll(() => section("group-details")).not.toBeNull();
+      expect(section("delete-group")).toBeNull();
+      await device.screen.unmount();
+    }
+    await open({ url: DETAILS, online: false });
+    await expect.poll(() => section("delete-group")).not.toBeNull();
+    expect(controls(section("delete-group"))).toBe(0);
+  });
+
+  test("Delete stays disabled until the name matches; a refusal shows the server's reason", async () => {
+    const calls = apiCalls();
+    await open({
+      url: DETAILS,
+      api: calls.record({ "careGroup.delete": () => refusal("careGroupService:wrongName") }),
+    });
+    await userEvent.click(DELETE());
+    await expect.poll(() => dialog()?.querySelector("h2")?.textContent).toBe(`Delete ${TEST_GROUP.name}?`);
+    expect(confirmButton().disabled).toBe(true);
+    await userEvent.type(typeName(), TEST_GROUP.name.slice(0, -1));
+    expect(confirmButton().disabled).toBe(true);
+    await userEvent.click(page.getByRole("button", { name: "Cancel" }));
+    await expect.poll(dialog).toBeNull();
+    expect(calls.of("careGroup.delete")).toEqual([]);
+
+    await userEvent.click(DELETE());
+    await userEvent.type(typeName(), ` ${TEST_GROUP.name.toLowerCase()} `);
+    await expect.poll(() => confirmButton().disabled).toBe(false);
+    await userEvent.click(confirmButton());
+    await expect
+      .poll(() => calls.of("careGroup.delete"))
+      .toEqual([{ groupId: TEST_GROUP.id, confirmName: ` ${TEST_GROUP.name.toLowerCase()} ` }]);
+    await expect
+      .poll(() => section("delete-group")?.querySelector('[role="alert"]')?.textContent)
+      .toBe("Type the care group's name to delete it");
+  });
+
+  test("deleting: the group goes from the device, then /app", async () => {
+    let device: Awaited<ReturnType<typeof open>> | null = null;
+    device = await open({
+      url: DETAILS,
+      api: {
+        "careGroup.delete": async () => {
+          // The server deletes it; the device loses it on its next sync.
+          const [mine] = await device!.query<{ id: string }>(
+            "SELECT id FROM care_group_member WHERE user_id = ?",
+            [TEST_USER.id],
+          );
+          setTimeout(() => void device!.unsync([{ table: "care_group_member", id: mine!.id }]), 100);
+          return { groupId: TEST_GROUP.id };
+        },
+      },
+    });
+    await userEvent.click(DELETE());
+    await userEvent.type(typeName(), TEST_GROUP.name);
+    await userEvent.click(confirmButton());
+    await expect.poll(device.location).toBe("/app");
+    await expect.element(page.getByText(/You're not in a care group yet/)).toBeVisible();
   });
 });
 

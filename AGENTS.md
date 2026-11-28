@@ -45,7 +45,6 @@ Caretook: mobile-first tools for caretakers: a timeline (real-time **and** offli
 
 ## Open questions
 
-- ❓ A group's last owner deleting their account leaves it ownerless: block, delete the group, or auto-promote?
 - ❓ Native token storage. Hosting's: [`ops/`](ops/runbook.md).
 
 ## Commands
