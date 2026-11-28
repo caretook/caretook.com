@@ -4,20 +4,20 @@
 
 ## Status
 
-| Slice | Wave | State         | Merge into `prd/onboarding-2` (slice commits) |
-| ----- | ---- | ------------- | --------------------------------------------- |
-| 1     | 1    | landed (opus) | e6594062c (7844ff2e0)                         |
-| 2     | 2    | planned       |                                               |
-| 3     | 3    | planned       |                                               |
-| 4     | 3    | planned       |                                               |
-| 5     | 4    | planned       |                                               |
-| 6     | 5    | planned       |                                               |
+| Slice | Wave | State          | Merge into `prd/onboarding-2` (slice commits) |
+| ----- | ---- | -------------- | --------------------------------------------- |
+| 1     | 1    | landed (opus)  | e6594062c (7844ff2e0)                         |
+| 2     | 2    | running (opus) |                                               |
+| 3     | 3    | planned        |                                               |
+| 4     | 3    | planned        |                                               |
+| 5     | 4    | planned        |                                               |
+| 6     | 5    | planned        |                                               |
 
 **Landing mode:** run everything through (dispatcher run-through start): start every ready slice, land each green wave, ask only real questions via `risa ask`.
 
 **Wave 1 landed (2026-11-28)** in dev through PR #310 (tier full; Codex clean on 305451e; components recheck green, run 46110996724; landed unsynced over 1 dev commit sharing no file). Slice 1 on opus; merged e6594062c, fix cd75ec69f (test device read a test's api handlers live). Worktree removed. B-670 stays in progress (claimed). CI flake filed as B-1005 (fixes-tooling, linkToBox). Docs: setup record folded into docs/domain/app-shell.md.
 
-**Next: wave 2 = slice 2** (setup pages, providers step, Later), opus. Ready: slice 1 is merged. For slice 2: settings are _known_ only once `me.get` answered on this device (`settingsKnown`/`useSettingsKnown` in `lib/app-shell/me.ts`); `me.update` is the existing `me.updatePreferences`; test device option `noSetupRecord: true`. Sync dev first (`risa sync`).
+**Wave 2 started (2026-11-28, after a takeover):** dev synced (up to date), backlog ingested (nothing new for onboarding-2). Slice 2 worktree onboarding-2-2 made from d4d4aee7b, agent spawned on opus. Hints given: `settingsKnown`/`useSettingsKnown` in `lib/app-shell/me.ts`; `me.update` is `me.updatePreferences`; test device `noSetupRecord: true`.
 
 **Backlog:** `done` B-670 when slice 6 merges (B-670 replaces the setup card, which is slice 6's work).
 
