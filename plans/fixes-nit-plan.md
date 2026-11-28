@@ -10,8 +10,8 @@ Landing mode: **run everything through** (the user, 2026-11-21: "Run everything 
 
 Wave 1 (slices 1–3) landed in dev (72298bc8). Wave 2 (slices 4–7) landed as a1d501f7 (PR #239). Wave 3 (slice 8, B-931) landed 2026-11-26 as 30315b3 through PR #240: CI `components` green on 87f36114 (run 45916082224), browser `--changed` 2/2, Codex out of credits (`--no-review`); report a292 filed; ui-kit _Tokens_ unchanged (the /80 → `text-muted`, /40 → `text-faint` picks live in the code). Slice worktree removed.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+| Slice | Item  | State                       | Merge     |
+| ----- | ----- | --------------------------- | --------- |
 | 10    | B-950 | merged; CI `components` out | 0775cdcca |
 
 Idle hand-over, no slice in flight. Wave 4 (slice 9, B-973) landed 2026-11-27 as 646a4cc through PR #264. **2026-11-27 run (fixes-nit-09):** todo-subtasks-3 is done; B-950 is written as wave 5, slice 10 (opus: a component move with imports to rewire). code-health started wave 1 with `apps/web/app/` hot; its slices (pin deps, unused exports in services and `lib/`, pure logic to `data/domain`) look clear of slice 10's paths. code-health confirmed no overlap and narrowed its hot files; slice 10 started on opus (hot: timeline route, `components/entry/`, provider route, `lib/timeline/`). Its slice 6 later rewrites `/schema` imports across the app from whatever dev holds then: fine. Lesson: a sonnet docs trim drops rules as "wording"; diff it line by line.
