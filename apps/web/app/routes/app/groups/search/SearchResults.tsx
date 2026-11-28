@@ -11,13 +11,11 @@ import { useGroup } from "~/lib/app-shell/group";
 import { resultCountText } from "~/lib/search/searchResults";
 import { useSchedulePasses } from "~/lib/medications/medicationPasses.sync";
 import { EasyResultSheet } from "./EasyResultSheet";
-import {
-  ConditionResultItem,
-  EntryResultItem,
-  MedicationResultItem,
-  ProviderResultItem,
-  TodoResultItem,
-} from "./ResultItems";
+import { ConditionResultItem } from "./ConditionResultItem";
+import { EntryResultItem } from "./EntryResultItem";
+import { MedicationResultItem } from "./MedicationResultItem";
+import { ProviderResultItem } from "./ProviderResultItem";
+import { TodoResultItem } from "./TodoResultItem";
 import { parseSearch } from "@caretook/data/domain";
 
 /**
