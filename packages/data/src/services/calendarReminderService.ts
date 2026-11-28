@@ -19,8 +19,6 @@ import {
 import { isError } from "../errors";
 import { appSettingModel } from "../models";
 
-export const serviceName = "calendarReminder";
-
 // What the reminder sweep reads (appointments-2 slice 6), as the system: for
 // every group where a current member has reminders on, its recipient, those
 // members (address, leads, consent), the appointments and their

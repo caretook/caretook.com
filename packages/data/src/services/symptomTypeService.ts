@@ -32,7 +32,6 @@ import { isSystemUser, rejectError } from "../permissions";
 // logs a name, and `backfill` (the migrate command and the seed's last step)
 // for groups and entries from before the catalog.
 
-export const serviceName = "symptomType";
 export const schemaName = symptomTypeModel.schemaName;
 
 const invalid = (issues: { path: string; message: string }[]) =>

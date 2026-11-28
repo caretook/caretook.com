@@ -42,7 +42,6 @@ import { resolveRecipient } from "./medicationService";
 // change entry, and where deleting a pass turns it into a time of its own in
 // every medication's schedule, each in one transaction.
 
-export const serviceName = "medicationPass";
 export const schemaName = medicationPassModel.schemaName;
 
 const invalid = (error: z.ZodError) =>

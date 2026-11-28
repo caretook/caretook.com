@@ -5,14 +5,6 @@ import type { CalendarSettings } from "~/lib/calendars/calendarSettings";
 // its cards, their wording, and what the details card shows. The server
 // stays the authority.
 
-/**
- * The page's four cards, in order. Each is a region (`data-section`) in its
- * own file beside the route, filled by its own slice: Reminders (6),
- * Calendar feed (5), Google Calendar (7, web only), Details outside
- * Caretook (4).
- */
-export const CALENDAR_CARDS = ["reminders", "calendar-feed", "google-calendar", "details-outside"] as const;
-
 /** What every card gets from the page. */
 export type CalendarCardProps = {
   groupId: string;
@@ -31,8 +23,6 @@ export type CardAction = (args: { groupId: string; form: FormData }) => Promise<
 
 export const OFFLINE_CALENDAR =
   "Needs a connection to load these settings. A change you make here is sent when you're back online.";
-
-export const COMING_SOON = "Coming soon.";
 
 /** The generic default, said before the switch. */
 export const detailsExplained = (recipient: string) =>

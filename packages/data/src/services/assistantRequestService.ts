@@ -19,7 +19,6 @@ import { groupDisplayName } from "./groupNames";
 // checking the actor. The email goes through an injected
 // `AssistantRequestMailer`, in the same transaction.
 
-export const serviceName = "assistantRequest";
 export const schemaName = assistantRequestModel.schemaName;
 
 const system = (tx?: Tx) => ({ authUser: SYSTEM_USER, tx });

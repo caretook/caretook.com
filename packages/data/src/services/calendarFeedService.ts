@@ -30,7 +30,6 @@ import { hashFeedToken } from "../models/memberCalendarSetting/memberCalendarSet
 // request that the member is still in the group and their account is on,
 // and the feed is read as that member (RBAC in SQL) at their share level.
 
-export const serviceName = "calendarFeed";
 export const schemaName = memberCalendarSettingModel.schemaName;
 
 /** A token is 32 bytes in base64url: 43 characters. Anything else can't be one. */

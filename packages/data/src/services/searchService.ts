@@ -38,8 +38,6 @@ import { compactPending } from "./noteDocumentService";
 // - Soft-deleted rows never match. Past providers and stopped medications
 //   do, with their `status`.
 
-export const serviceName = "search";
-
 export const SEARCH_DEFAULT_LIMIT = 20;
 export const SEARCH_MAX_LIMIT = 50;
 

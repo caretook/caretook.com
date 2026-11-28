@@ -47,7 +47,6 @@ import { asCreated, unchanged } from "./upserted";
 // the timeline's `medicationChange` entry is written, in the same transaction
 // as the medication.
 
-export const serviceName = "medication";
 export const schemaName = medicationModel.schemaName;
 
 const issuesOf = (error: z.ZodError) =>

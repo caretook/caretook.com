@@ -58,7 +58,6 @@ import * as timelineEntryService from "./timelineEntryService";
 // own visit uploads follow. One without it (an API caller, a seed) gets its
 // visits from today (or its first day) through today + 90.
 
-export const serviceName = "appointmentSeries";
 export const schemaName = appointmentSeriesModel.schemaName;
 
 const issuesOf = (error: z.ZodError) =>

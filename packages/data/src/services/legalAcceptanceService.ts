@@ -7,7 +7,6 @@ import { LEGAL_VERSIONS } from "../db/schema";
 import { isError, newError } from "../errors";
 import { legalAcceptanceModel } from "../models";
 
-export const serviceName = "legalAcceptance";
 export const schemaName = legalAcceptanceModel.schemaName;
 
 type K = typeof schemaName;
