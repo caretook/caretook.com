@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands:** wave 1 (slices 1, 2, 5) all merged 2026-11-27; B-366, B-365 done (B-361 waits for slice 6). Next: the wave's CI run (`full`: package.json changes), then sync, PR, Codex, land. Slices 3 and 4 dropped: B-367 moved to Risa. Slice 6 (wave 2) also waits for `simple-mode` to land in `dev`.
+**Where it stands:** wave 1 (slices 1, 2, 5) all merged 2026-11-27; B-366, B-365 done (B-361 waits for slice 6). CI `full` green on edc35e614 (run 46094484809); dev sync was a no-op; slice worktrees removed. PR #299 open; Codex review and the lean browser set running. Then land wave 1. Slices 3 and 4 dropped: B-367 moved to Risa. Slice 6 (wave 2) also waits for `simple-mode` to land in `dev`.
 
 **Landing mode:** run everything through (dispatcher start): start every ready slice, land each green wave, ask only real questions through `risa ask`.
 
