@@ -21,9 +21,6 @@ export const ROLES = [
   },
 ] as const satisfies readonly { name: UserRoleName; description: string }[];
 
-export const isUserRoleName = (name: unknown): name is UserRoleName =>
-  USER_ROLE_NAMES.some((role) => role === name);
-
 // Care group roles, stored on care_group_member. They decide access to a
 // group's data (see `group` in permissions). Global roles grant none of it:
 // Caretook staff (`admin`) only see a group's data if they're a member.
@@ -126,19 +123,83 @@ export const groupRoleLabel = (role: string): string =>
   GROUP_ROLES.find((r) => r.name === role)?.label ?? role;
 
 // ---------------------------------------------------------------------------
-// Role sets: the one place that says which roles may do what. Code checks a
-// role against one of these, never against a role's name.
+// What each role may do: the capability table is the one place that says it,
+// and every role set below holds exactly the roles the table marks for its
+// capability (roles.test.ts). Code checks a role against a set or a check,
+// never against a role's name.
 // ---------------------------------------------------------------------------
 
-/** Roles that may manage a group's membership and invitations. */
+type GroupRoleCapabilities = {
+  /** Change the group's setup and anyone's data. */
+  write: boolean;
+  /** Log care (entries, doses, Given all). */
+  log: boolean;
+  /** Only tick (and untick) a todo assigned to them; every other todo change is refused. */
+  completeAssignedOnly: boolean;
+  /** Manage the group's membership and invitations. */
+  manage: boolean;
+  /** Own the group: change owners, assistants and delete the group. */
+  own: boolean;
+  /** Always get the easy view. */
+  easyView: boolean;
+  /** May be offered on an invite link (a leaked link never makes an owner or admin). */
+  linkInvitable: boolean;
+  /** Staff may set it through Change role (making an owner is its own action, Make owner). */
+  staffSettable: boolean;
+};
+
+const none: GroupRoleCapabilities = {
+  write: false,
+  log: false,
+  completeAssignedOnly: false,
+  manage: false,
+  own: false,
+  easyView: false,
+  linkInvitable: false,
+  staffSettable: false,
+};
+
+/** Every group role's capabilities, one row per role. */
+export const GROUP_ROLE_CAPABILITIES = {
+  owner: { ...none, write: true, log: true, manage: true, own: true },
+  admin: { ...none, write: true, log: true, manage: true, staffSettable: true },
+  caretaker: { ...none, write: true, log: true, linkInvitable: true, staffSettable: true },
+  viewer: { ...none, completeAssignedOnly: true, linkInvitable: true, staffSettable: true },
+  easy_helper: {
+    ...none,
+    log: true,
+    completeAssignedOnly: true,
+    easyView: true,
+    linkInvitable: true,
+    staffSettable: true,
+  },
+  easy_viewer: {
+    ...none,
+    completeAssignedOnly: true,
+    easyView: true,
+    linkInvitable: true,
+    staffSettable: true,
+  },
+} as const satisfies Record<GroupRoleName, GroupRoleCapabilities>;
+
+/** Roles that may manage a group's membership and invitations (`manage`). */
 export const GROUP_MANAGER_ROLES = ["owner", "admin"] as const satisfies readonly GroupRoleName[];
+/** Roles that own the group (`own`). */
 export const OWNER_ROLES = ["owner"] as const satisfies readonly GroupRoleName[];
-/** Change the group's setup and anyone's data. */
+/** Change the group's setup and anyone's data (`write`). */
 export const WRITER_ROLES = ["owner", "admin", "caretaker"] as const satisfies readonly GroupRoleName[];
-/** Log care (entries, doses, Given all): the writers and an Easy helper (on their own entries only). */
+/** Log care (`log`): the writers and an Easy helper (on their own entries only). */
 export const LOGGER_ROLES = [...WRITER_ROLES, "easy_helper"] as const satisfies readonly GroupRoleName[];
-/** The roles that always get the easy view. */
+/** The roles that always get the easy view (`easyView`). */
 export const EASY_ROLE_NAMES = ["easy_helper", "easy_viewer"] as const satisfies readonly GroupRoleName[];
+/**
+ * The roles that may only tick (and untick) a todo assigned to them
+ * (`completeAssignedOnly`): a viewer and both easy roles.
+ */
+export const TODO_COMPLETER_ROLES = [
+  "viewer",
+  ...EASY_ROLE_NAMES,
+] as const satisfies readonly GroupRoleName[];
 
 /** Whether `role` is one of `set` (false for null or a role this build doesn't know). */
 export const hasGroupRole = (set: readonly GroupRoleName[], role: string | null | undefined): boolean =>
@@ -148,5 +209,9 @@ export const isWriterRole = (role: string | null | undefined) => hasGroupRole(WR
 export const isLoggerRole = (role: string | null | undefined) => hasGroupRole(LOGGER_ROLES, role);
 export const isEasyRole = (role: string | null | undefined) => hasGroupRole(EASY_ROLE_NAMES, role);
 export const isManagerRole = (role: string | null | undefined) => hasGroupRole(GROUP_MANAGER_ROLES, role);
+export const isOwnerRole = (role: string | null | undefined) => hasGroupRole(OWNER_ROLES, role);
+/** Whether `role` only completes the todos assigned to it (`TODO_COMPLETER_ROLES`). */
+export const completesOnlyAssigned = (role: string | null | undefined) =>
+  hasGroupRole(TODO_COMPLETER_ROLES, role);
 /** A logger who isn't a writer (an Easy helper): they change only the entries they created. */
 export const isOwnRowLogger = (role: string | null | undefined) => isLoggerRole(role) && !isWriterRole(role);

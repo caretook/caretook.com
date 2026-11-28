@@ -4,12 +4,16 @@
 
 ## Status
 
-**Where it stands:** planned; nothing started.
+**From the user:** none yet.
+
+**Landing mode:** run everything through (started run-through by the dispatcher, 2026-11-28).
+
+**Where it stands:** wave 1 merged 2026-11-28 (slices 1, 2; both opus); wave gate green (integration, run 46185645554, e43c7024); dev sync not needed; slice worktrees removed; PR #352 open, Codex clean on e43c702; care-groups.md folded; landing wave 1 next, then rotate for wave 2 (slices 3, 4, 5, all ready once wave 1 lands). Slice worktrees kept until green. Follow-up idea from slice 2: the three email templates still each write out the role labels ("an owner"…).
 
 | Slice | Wave | State   | Merge into `prd/code-health-4` (slice commits) |
 | ----- | ---- | ------- | ---------------------------------------------- |
-| 1     | 1    | planned |                                                |
-| 2     | 1    | planned |                                                |
+| 1     | 1    | merged  | df3ba0af8 (c4c7c0275)                          |
+| 2     | 1    | merged  | 7dadcc354 (0a14230d1)                          |
 | 3     | 2    | planned |                                                |
 | 4     | 2    | planned |                                                |
 | 5     | 2    | planned |                                                |

@@ -1,18 +1,33 @@
 import { describe, expect, it } from "vitest";
+import { LINK_ROLES } from "../db/schema/care-groups/inviteRules";
+import { STAFF_SETTABLE_GROUP_ROLES } from "../domain/admin/groupAdminRules";
+import {
+  TODO_COMPLETER_ROLES as DOMAIN_TODO_COMPLETER_ROLES,
+  isTodoCompleter,
+} from "../domain/todos/todoRules";
 import {
   EASY_ROLE_NAMES,
   GROUP_MANAGER_ROLES,
+  GROUP_ROLE_CAPABILITIES,
   GROUP_ROLE_NAMES,
   GROUP_ROLES,
   LOGGER_ROLES,
+  OWNER_ROLES,
+  TODO_COMPLETER_ROLES,
   WRITER_ROLES,
+  completesOnlyAssigned,
   groupRoleLabel,
   hasGroupRole,
   isEasyRole,
   isLoggerRole,
   isOwnRowLogger,
+  isOwnerRole,
   isWriterRole,
 } from "./roles";
+
+/** The roles the capability table marks for `capability`, in role order. */
+const marked = (capability: keyof (typeof GROUP_ROLE_CAPABILITIES)[keyof typeof GROUP_ROLE_CAPABILITIES]) =>
+  GROUP_ROLE_NAMES.filter((role) => GROUP_ROLE_CAPABILITIES[role][capability]);
 
 describe("the group roles", () => {
   it("are six, each with a label, a picker group, a description and what it sees and changes, in picker order", () => {
@@ -73,4 +88,48 @@ describe("the role sets", () => {
     expect(hasGroupRole(["viewer"], "viewer")).toBe(true);
     expect(hasGroupRole(["viewer"], undefined)).toBe(false);
   });
+});
+
+describe("the capability table", () => {
+  it("has a row for every role, and every row names every capability", () => {
+    expect(Object.keys(GROUP_ROLE_CAPABILITIES)).toEqual([...GROUP_ROLE_NAMES]);
+    const capabilities = Object.keys(GROUP_ROLE_CAPABILITIES.owner).sort();
+    for (const role of GROUP_ROLE_NAMES) {
+      expect(Object.keys(GROUP_ROLE_CAPABILITIES[role]).sort()).toEqual(capabilities);
+      for (const allowed of Object.values(GROUP_ROLE_CAPABILITIES[role]))
+        expect(typeof allowed).toBe("boolean");
+    }
+  });
+
+  it.each([
+    ["write", WRITER_ROLES],
+    ["log", LOGGER_ROLES],
+    ["manage", GROUP_MANAGER_ROLES],
+    ["own", OWNER_ROLES],
+    ["easyView", EASY_ROLE_NAMES],
+    ["completeAssignedOnly", TODO_COMPLETER_ROLES],
+    ["linkInvitable", LINK_ROLES],
+    ["staffSettable", STAFF_SETTABLE_GROUP_ROLES],
+  ] as const)("marks %s for exactly its set's roles", (capability, set) => {
+    expect([...set]).toEqual(marked(capability));
+  });
+
+  it("gives the todo rules the role module's completers", () => {
+    expect(DOMAIN_TODO_COMPLETER_ROLES).toBe(TODO_COMPLETER_ROLES);
+    expect(isTodoCompleter).toBe(completesOnlyAssigned);
+  });
+
+  it("names the owner and the todo completers", () => {
+    expect(GROUP_ROLE_NAMES.filter(isOwnerRole)).toEqual(["owner"]);
+    expect(GROUP_ROLE_NAMES.filter(completesOnlyAssigned)).toEqual(["viewer", "easy_helper", "easy_viewer"]);
+  });
+
+  it.each([...GROUP_ROLE_NAMES, "superuser", null] as const)(
+    "%s is an owner and completes only assigned todos exactly as the table says",
+    (role) => {
+      const row = role && role !== "superuser" ? GROUP_ROLE_CAPABILITIES[role] : undefined;
+      expect(isOwnerRole(role)).toBe(row?.own ?? false);
+      expect(completesOnlyAssigned(role)).toBe(row?.completeAssignedOnly ?? false);
+    },
+  );
 });
