@@ -10,13 +10,15 @@
 
 **Landing mode:** run everything through (started run-through by the dispatcher): start every ready slice, land each green wave, ask only real questions via `risa ask`.
 
+**For wave 1's landing report** (slice 3's ideas, B-829): claim a todo ("I'll take it", a "needs someone" filter); dose reminder emails from Med times; routines as repeating todos with a weekly done count; starter checklists as todo templates; photos on entries; documents beside the profile (insurance cards, POLST, power of attorney); a site line: free for the whole family, plus no tracking; a catch-up digest email. Also B-1070 (meta "care notebook" vs hero "care journal") for the user's wording call.
+
 **Now (2026-11-28):** wave 1 starting (slices 1, 2, 3, 4, 7). Worktrees made; agents on opus (the plan's Model field) for all five. Backlog at wave 1 boundary: nothing new for marketing-3.
 
 | Slice | Wave | State   | Merge into `prd/marketing-3` (slice commits) |
 | ----- | ---- | ------- | -------------------------------------------- |
 | 1     | 1    | merged  | ece376081 (1a8ca0000)                         |
 | 2     | 1    | working |                                              |
-| 3     | 1    | working |                                              |
+| 3     | 1    | handed off (1233d1544) |                                              |
 | 4     | 1    | handed off (b54c99c0e) |                                              |
 | 5     | 2    | planned |                                              |
 | 6     | 2    | planned |                                              |
