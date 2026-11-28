@@ -12,17 +12,17 @@
 
 - **Wave 1 landed** through PR #347 (report a421; to-test `2026-11-28-1441-code-health-2.md`); `data-layer.md` names `softDeleteFunctions` and `createIfAbsent`.
 - **Wave 2 landed** through PR #348 (CI `integration` green, run 46182579030; Codex clean; browser `roundtrip` passed; to-test `2026-11-28-1450-code-health-2.md`). No doc fold needed (wave 1's covers it). Worktrees `-2`, `-5` removed. Slice 2 kept `lockLive`'s drizzle body unscoped (the factory's `live` would add a permission scope).
-- **Wave 3 running** (2026-11-28): worktrees `-3`, `-6` made from prd/code-health-2 at cc43424c4; both agents spawned on opus; watch running. Backlog checked at this boundary: nothing new. At landing, fold the two guards (`modelLayout.test.ts`, `serviceLayout.test.ts` and its two exceptions) into `data-layer.md` (it is at 10.0 KB of 10 KB: trim what you add). Then `risa backlog done B-362`, check B-1055 still names `todoService`'s upsert and the guard's exception, and `risa rm code-health-2` (the last wave).
+- **Wave 3 running** (2026-11-28): worktrees `-3`, `-6` made from prd/code-health-2 at cc43424c4; both agents (opus) handed off; merged in plan order; wave gate CI `integration` requested. Backlog checked at this boundary: nothing new. At landing, fold the two guards (`modelLayout.test.ts`, `serviceLayout.test.ts` and its two exceptions) into `data-layer.md` (it is at 10.0 KB of 10 KB: trim what you add). Then `risa backlog done B-362`, check B-1055 still names `todoService`'s upsert and the guard's exception, and `risa rm code-health-2` (the last wave).
 - B-362 claimed, in progress. Backlog checked at this boundary: nothing new for this topic.
 
-| Slice | Wave | State                                                   | Merge into `prd/code-health-2` (slice commits) |
-| ----- | ---- | ------------------------------------------------------- | ---------------------------------------------- |
-| 1     | 1    | landed                                                  | 1db82d0fd (14daac802, 1b8bc1242)               |
-| 2     | 2    | landed                                                  | 3307a1f1e (0ef2c5132)                          |
-| 3     | 3    | started                                                 |                                                |
-| 4     | 1    | landed                                                  | 854cbfb0a (7bdbfcd3a)                          |
-| 5     | 2    | landed                                                  | ec519f575 (3c1a541c2)                          |
-| 6     | 3    | handed off (f7d754092), waits on 3 for plan-order merge |
+| Slice | Wave | State  | Merge into `prd/code-health-2` (slice commits) |
+| ----- | ---- | ------ | ---------------------------------------------- |
+| 1     | 1    | landed | 1db82d0fd (14daac802, 1b8bc1242)               |
+| 2     | 2    | landed | 3307a1f1e (0ef2c5132)                          |
+| 3     | 3    | merged | 7de9b91af (d0aa0fb64)                          |
+| 4     | 1    | landed | 854cbfb0a (7bdbfcd3a)                          |
+| 5     | 2    | landed | ec519f575 (3c1a541c2)                          |
+| 6     | 3    | merged | 2375ed06b (f7d754092)                          |
 
 **Backlog:** claim B-362 when slice 1 or 4 starts; run `risa backlog done B-362` when slices 3 and 6 have both merged.
 
