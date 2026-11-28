@@ -7,7 +7,6 @@ import { useGroupRecordTags, useGroupTags } from "~/components/tags";
 import { useGroup } from "~/lib/app-shell/group";
 import { useLiveQuery } from "~/lib/sync";
 import {
-  doneCountQuery,
   progressByParent,
   subtaskProgressQuery,
   todosQuery,
@@ -18,10 +17,10 @@ import { membersQuery } from "~/lib/timeline/timeline.sync";
 import { matchesText, textTokens } from "~/lib/core/textFilter";
 import { tagFilterOf } from "~/lib/tags/tagFilter";
 import { showsTodo, todoSections, whoOf } from "~/lib/todos/todoList";
-import { splitTrees, todoTrees } from "~/lib/todos/todoTreeView";
+import { doneTreePage, splitTrees, todoTrees } from "~/lib/todos/todoTreeView";
 import { todoViewOf } from "~/lib/todos/todoView";
 
-/** How many done todos a page of the Done list shows. */
+/** How many done trees a page of the Done list shows. */
 export const DONE_PAGE = 20;
 
 const MINUTE = 60_000;
@@ -42,7 +41,6 @@ export type TodoListRows = {
   memberRows: MemberRow[];
   progressRows: SubtaskProgressRow[];
 };
-const NO_COUNT: { count: number }[] = [];
 
 /**
  * The todo list's data, live: the open trees the filter shows, in sections
@@ -50,17 +48,19 @@ const NO_COUNT: { count: number }[] = [];
  * tags and each todo's. The filter comes from `?who=`; with none it's
  * Everyone. `?tag=` keeps the todos with that tag (one the group has; any
  * other reads as no filter). `text` (the search box) keeps
- * the todos whose title or assignee has every word typed; with text, Done
- * reads every done todo and pages the matches, so older ones are found too.
+ * the todos whose title or assignee has every word typed.
  * The open list is trees (todo-subtasks-3): one query of the group's open
  * todos and the trees' done subtasks (`todoTreesQuery`), built here with the
  * filters (who, tag, text) as the match, so a match keeps its subtree and
- * its ancestors as context rows. Done stays flat (`doneListed`: a done
- * subtask of an open tree is struck in that tree instead). The group's one
- * progress query gives parents' "n of m done". With `?subtasks=own`
- * (todo-links-2) each open matching todo is its own row (`splitTrees`, no
- * context rows), Done lists every done todo (no `doneListed`), and
- * `parentOf` gives a subtask's "Part of" from the open and done rows read.
+ * its ancestors as context rows. Done is trees too (B-1016): one query of the
+ * done todos Done lists (`doneListed`: a done subtask of an open tree is
+ * struck in that tree instead), built with the same match and paged a whole
+ * tree at a time (`doneTreePage`, newest completion first), so older matches
+ * are found too. The group's one progress query gives parents' "n of m
+ * done". With `?subtasks=own` (todo-links-2) each open matching todo is its
+ * own row (`splitTrees`, no context rows), Done lists every done todo (no
+ * `doneListed`) on its own row, and `parentOf` gives a subtask's "Part of"
+ * from the open and done rows read.
  */
 export function useTodoList(groupId: string, initial: TodoListRows, text = "") {
   const group = useGroup();
@@ -106,28 +106,31 @@ export function useTodoList(groupId: string, initial: TodoListRows, text = "") {
       ),
     [tokens, members],
   );
-  const filtering = tokens.length > 0;
 
   const [doneLimit, setDoneLimit] = useState(DONE_PAGE);
-  // With text, every done todo is read and the matches paged here (a page of the table would miss older ones).
-  const doneQuery = todosQuery(groupId, {
-    done: true,
-    doneListed,
-    who,
-    userId: group.userId,
-    tagId: tag?.id,
-    ...(filtering ? {} : { limit: doneLimit }),
-  });
+  // Every done todo Done may list is read, and the trees built and paged here (who, tag and text
+  // are the trees' match, as in the open list, so a page of the table would cut trees and miss matches).
+  const doneQuery = todosQuery(groupId, { done: true, doneListed });
   const doneRows = useLiveQuery<TodoRow>(doneQuery.sql, doneQuery.params, initial.doneRows);
   const doneAll = useMemo(() => toTodos(doneRows), [doneRows]);
-  const doneMatching = useMemo(
-    () => (filtering ? doneAll.filter(matches) : doneAll),
-    [doneAll, filtering, matches],
+  const listMatches = useCallback(
+    (t: LocalTodo) =>
+      showsTodo(who, t, group.userId) &&
+      (!tag || !!tagsOf.get(t.id)?.some((l) => l.id === tag.id)) &&
+      matches(t),
+    [who, group.userId, tag, tagsOf, matches],
   );
-  const done = filtering ? doneMatching.slice(0, doneLimit) : doneMatching;
-  const countQuery = doneCountQuery(groupId, { who, userId: group.userId, tagId: tag?.id, doneListed });
-  const [count] = useLiveQuery<{ count: number }>(countQuery.sql, countQuery.params, NO_COUNT);
-  const moreDone = (filtering ? doneMatching.length : (count?.count ?? 0)) > done.length;
+  const donePage = useMemo(
+    () =>
+      doneTreePage(doneAll, {
+        now,
+        timeZone,
+        matches: listMatches,
+        split: view === "own",
+        limit: doneLimit,
+      }),
+    [doneAll, now, timeZone, listMatches, view, doneLimit],
+  );
   // The React Compiler memoizes it.
   const showMoreDone = () => setDoneLimit((n) => n + DONE_PAGE);
 
@@ -137,15 +140,12 @@ export function useTodoList(groupId: string, initial: TodoListRows, text = "") {
         (view === "own" ? splitTrees : todoTrees)(open, {
           now,
           timeZone,
-          matches: (t) =>
-            showsTodo(who, t, group.userId) &&
-            (!tag || !!tagsOf.get(t.id)?.some((l) => l.id === tag.id)) &&
-            matches(t),
+          matches: listMatches,
         }),
         now,
         timeZone,
       ),
-    [view, open, who, tag, tagsOf, group.userId, now, timeZone, matches],
+    [view, open, listMatches, now, timeZone],
   );
 
   // On their own, a subtask's "Part of": its parent among the rows read (a parent in neither shows no line).
@@ -165,8 +165,8 @@ export function useTodoList(groupId: string, initial: TodoListRows, text = "") {
     tag,
     tagsOf,
     sections,
-    done,
-    moreDone,
+    done: donePage.trees,
+    moreDone: donePage.more,
     showMoreDone,
     nameOf,
     progressOf,
