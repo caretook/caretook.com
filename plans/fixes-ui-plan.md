@@ -26,13 +26,10 @@ Notes for every wave:
 
 **Restarted 2026-11-28, run-through:** landing mode run everything through. Fixed 2 stale anchors (slices 96, 97: forms moved to `components/`). Ingest empty, prd/fixes-ui = dev (04f86cd85). Wave 23: slices 111 (B-1015), 112 (B-1016), 113 (B-1021), all opus, parallel. Hot: `components/entry/`, `routes/app/groups/timeline/`, `routes/app/groups/todos/`, `lib/todos/`, `components/tags/`.
 
-| Slice | Item                                     | State         | Merge     |
-| ----- | ---------------------------------------- | ------------- | --------- |
-| 111   | B-1015 one entry display, Full/Condensed | merged (opus) | 1bca848ec |
-| 112   | B-1016 Done as todo trees                | merged (opus) | e8c1c0298 |
-| 113   | B-1021 add-tag button alignment          | merged (opus) | 299ddb718 |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
-Wave 23 merged; CI components green (run 46156373520, 89bd9f2c); sync skipped (dev shares no file); PR #330, Codex review out; browser `--changed` roundtrip pass (no `--suite`: ask first). Landing doc notes: todos.md (Done is trees, 20 trees a page, reads every done row on the device), components.md shared displays (`look` on `entry/TimelineEntryRow`), layout.md and timeline.md (TimelineEntryCard gone; PassLogItem follows the looks). Follow-up candidate: add-tag wraps 6px in on narrow callers (medication list row, provider header).
+**Wave 23 landed 2026-11-28** as dev cbed7d899 through PR #330 (Codex clean on 2838d42), CI components green (run 46156373520, 89bd9f2c); sync skipped (dev shared no file), landed on an unsynced tip. to-test/2026-11-28-0957-fixes-ui.md. Slices 111 (B-1015 one `TimelineEntryRow` with `look`, `TimelineEntryCard` gone, `PassLogItem` follows; opus, 1bca848ec), 112 (B-1016 Done as trees via `doneTreePage`; opus, e8c1c0298), 113 (B-1021 add-tag button is the chips list's last item; opus, 299ddb718). Browser `--changed`: roundtrip pass (no `--suite`: the user wants it asked first). Docs folded into components, timeline, todos, layout (trimmed to stay at or under dev). Slice worktrees removed. Waiting for the next wave: B-1022 (todo rows get a ⋯ menu), B-1023 (add-tag wraps 6px in on narrow rows).
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
