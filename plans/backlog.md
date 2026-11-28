@@ -240,7 +240,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-938 | feature | triaged | med-intervals |  | Interval schedules for medications and Med times: every N hours, changed often (hospice: PRN, then every 6 h, 4 h, 3 h), each next dose due from the last due time or from when it was given |
 | B-949 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/components/ui/sheetExit.browser.test.tsx: closed by navigating with reduced motion Back complete… |
 | B-954 | bug | triaged | fixes-tooling |  | Browser checks and prd serve run on a stack whose applied migrations are behind the repo's, so a missing column fails a check far from its cause |
-| B-961 | change | in-progress | shared-displays | prd/shared-displays | Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down |
+| B-961 | change | ready | shared-displays | prd/shared-displays | Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down |
 | B-965 | change | triaged | fixes-perf |  | Group the tiny shared app helper chunks on the first /app load |
 | B-967 | bug | triaged | fixes-tooling |  | Browser check layout-offline fails at 'offline: a row's edit link opens its edit sheet': the row's tag chips cover the Edit link's centre |
 | B-972 | feature | triaged | tags-4 |  | Tags tab on the planner: a unified view listing all tags and the items tagged with each |
@@ -1358,10 +1358,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-961 · change · Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down
 
-- status: in-progress
+- status: ready
 - prd: shared-displays
 - owner: prd/shared-displays
-- commit:
+- commit: b4b8fb1c3
 
 - 2026-11-27 (Robert Bo Davis): User's word 2026-11-27: one look and one way per thing everywhere (docs/domain/components.md _Rules_, dev 90b1ecdb). Today timeline rows/cards, Planner rows, Todos rows, provider and medication list items and their pages each render their own way. First step: an inventory of the variants per record kind and the shared parts they could take (B-955 does tags; B-942/B-948 quick add todos). Needs a topic: likely its own PRD (touches most list and page screens), after tags-3 and todo-subtasks-3.
 - 2026-11-27 (plan/shared-displays): Planned 2026-11-27 (plan/shared-displays): 7 slices: search split, search tags+members, MedicationCard, ProviderCard, search entries/todos, a todo's links, the Planner look; exceptions in the PRD inventory.
