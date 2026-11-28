@@ -4,15 +4,24 @@
 
 ## Status
 
-**Where it stands:** planned; nothing started.
+**From the user:** none yet.
+
+**Landing mode:** run everything through (started run-through by the dispatcher): start every ready slice, land each green wave, ask only real questions via `risa ask`.
+
+**Where it stands (2026-11-28), the hand-over:**
+
+- **Wave 1 landed** in dev through PR #347 (CI `integration` green, run 46181668274; Codex clean; browser `roundtrip` passed); report a421; to-test `2026-11-28-1441-code-health-2.md`. Docs folded: `data-layer.md` names `softDeleteFunctions` and `createIfAbsent` (trimmed the `0032_todos` note, which the runbook keeps). Worktrees `-1`, `-4` removed.
+- **Wave 2 merged; its gate runs in this session** (rotate refused: its worktrees stay until green). **Wave 2 merged:** slices 2 (3307a1f1e) and 5 (ec519f575) on opus. Next session: `risa sync` (dev has the wave 1 landing), then `risa ci run integration --wait` (the tier `risa tier` proposes), then the browser checks `risa browser --changed --base dev` names, PR, Codex, land; then `risa rm code-health-2-2` and `-5`. Slice 2's agent ran no integration tests (the gate is their first run); slice 5's ran its six files (86 passed). Slice 2 kept `lockLive`'s drizzle body unscoped (the factory's `live` would add a permission scope): accepted.
+- **Wave 3** (slices 3, 6) is ready once wave 2 lands; opus for both.
+- B-362 claimed; `risa backlog done B-362` when slices 3 and 6 have merged.
 
 | Slice | Wave | State   | Merge into `prd/code-health-2` (slice commits) |
 | ----- | ---- | ------- | ---------------------------------------------- |
-| 1     | 1    | planned |                                                |
-| 2     | 2    | planned |                                                |
+| 1     | 1    | landed  | 1db82d0fd (14daac802, 1b8bc1242)               |
+| 2     | 2    | merged  | 3307a1f1e (0ef2c5132)                          |
 | 3     | 3    | planned |                                                |
-| 4     | 1    | planned |                                                |
-| 5     | 2    | planned |                                                |
+| 4     | 1    | landed  | 854cbfb0a (7bdbfcd3a)                          |
+| 5     | 2    | merged  | ec519f575 (3c1a541c2)                          |
 | 6     | 3    | planned |                                                |
 
 **Backlog:** claim B-362 when slice 1 or 4 starts; run `risa backlog done B-362` when slices 3 and 6 have both merged.
