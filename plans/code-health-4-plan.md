@@ -8,7 +8,7 @@
 
 **Landing mode:** run everything through (started run-through by the dispatcher, 2026-11-28).
 
-**Where it stands:** wave 1 (slices 1, 2) landed in dev 2026-11-28 as 2f2b7361b (PR #352, integration green run 46185645554, Codex clean); report filed; care-groups.md folded. Wave 2 started 2026-11-28: dev needed no sync (`risa sync`: no shared files); worktrees code-health-4-3, -4, -5 made, one opus agent each; all three handed off and merged clean (each added the same `isOwnerRole` re-export to `permissions.ts`; one copy kept). Next: the wave's CI gate. Slice 5 notes `admin/groupDisplay.ts` `ROLE_ORDER` (a sort order of role literals) for slice 6's guard. Slice 2's follow-up (the email templates' hand-written role labels) filed as B-1064 (fixes-nit, triaged).
+**Where it stands:** wave 1 (slices 1, 2) landed in dev 2026-11-28 as 2f2b7361b (PR #352, integration green run 46185645554, Codex clean); report filed; care-groups.md folded. Wave 2 started 2026-11-28: dev needed no sync (`risa sync`: no shared files); worktrees code-health-4-3, -4, -5 made, one opus agent each; all three handed off and merged clean (each added the same `isOwnerRole` re-export to `permissions.ts`; one copy kept). Wave gate: components flake (run 46187226019, timelineTagEdit, a file the branch never touched); `risa sync --force` merged dev (d43091e6); components recheck running; PR #355 open, Codex review waiting. Slice 5 notes `admin/groupDisplay.ts` `ROLE_ORDER` (a sort order of role literals) for slice 6's guard. Slice 2's follow-up (the email templates' hand-written role labels) filed as B-1064 (fixes-nit, triaged).
 
 | Slice | Wave | State   | Merge into `prd/code-health-4` (slice commits) |
 | ----- | ---- | ------- | ---------------------------------------------- |
