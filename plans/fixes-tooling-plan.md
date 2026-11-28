@@ -25,7 +25,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | ----- | ----- | ------------------------------------------------------------------------------------------------- | ----- |
 | 102   | B-778 | agent spawned (opus)                                                                              |       |
 | 103   | B-782 | no change: already fixed by 273ba77a0 (B-332); item done; its quarantine line stays for `risa ci` | —     |
-| 104   | B-802 | agent spawned (opus)                                                                              |       |
+| 104   | B-802 | handed off (50f0d1c17)                                                                            |       |
 | 105   | B-375 | handed off (a7a968442)                                                                            |       |
 | 106   | B-852 | handed off (d9cedc667)                                                                            |       |
 | 107   | B-757 | handed off (08ea23f63)                                                                            |       |
