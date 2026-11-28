@@ -1261,12 +1261,16 @@ describe("read tools", { timeout: 60_000 }, () => {
       new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(
         new Date(Date.now() + offset * 24 * 60 * 60 * 1000),
       );
-    const tag = async (groupId: string, name: string) =>
-      ok(await tagService.create(w.caretaker.ctx, { groupId, name }))!;
+    const tag = async (groupId: string, name: string, by = w.caretaker) =>
+      ok(await tagService.create(by.ctx, { groupId, name }))!;
     const zephyr = await tag(w.group.id, "Zephyr");
     const alpha = await tag(w.group.id, "alpha");
-    const tagOn = async (tagId: string, target: Record<string, string>, groupId = w.group.id) =>
-      ok(await recordTagService.link(w.caretaker.ctx, { groupId, tagId, ...target }));
+    const tagOn = async (
+      tagId: string,
+      target: Record<string, string>,
+      groupId = w.group.id,
+      by = w.caretaker,
+    ) => ok(await recordTagService.link(by.ctx, { groupId, tagId, ...target }));
 
     const note = ok(await addEntry(w.caretaker.ctx, w.group.id, { kind: "note", title: "Zeta note" }))!;
     const plainNote = ok(await addEntry(w.caretaker.ctx, w.group.id, { kind: "note", title: "Zeta plain" }))!;
@@ -1306,9 +1310,9 @@ describe("read tools", { timeout: 60_000 }, () => {
     await tagOn(zephyr.id, { medicationId: med.id });
     await tagOn(alpha.id, { medicationId: med.id });
     // Another group's tag on its own medication: never in this group's answers.
-    const offgroup = await tag(w.second.group.id, "Offgroup");
+    const offgroup = await tag(w.second.group.id, "Offgroup", w.owner);
     const otherMed = await addMedication(w.owner.ctx, w.second.group.id, { name: "Zetaoff" });
-    await tagOn(offgroup.id, { medicationId: otherMed.id }, w.second.group.id);
+    await tagOn(offgroup.id, { medicationId: otherMed.id }, w.second.group.id, w.owner);
 
     const tagged: Record<string, string[]> = {
       [note.id]: ["Zephyr"],
