@@ -2,7 +2,7 @@ import type { TodoTree, TodoTreeNode, TreeTodo } from "./todoTreeView";
 
 import { describe, expect, it } from "vitest";
 import { todoSections } from "./todoList";
-import { splitTrees, todoDayOf, todoDayTrees, todoTrees } from "./todoTreeView";
+import { ancestorChain, splitTrees, todoDayOf, todoDayTrees, todoTrees } from "./todoTreeView";
 
 // Fictional todos; "now" is Monday 2026-11-23 at noon in Los Angeles.
 const ZONE = "America/Los_Angeles";
@@ -170,6 +170,28 @@ describe("splitTrees", () => {
       todo("late", { parentId: "soon", dueOn: SUNDAY }),
     ]);
     expect(order(trees)).toEqual(["late", "sooner", "soon", "later", "undated"]);
+  });
+});
+
+describe("ancestorChain", () => {
+  const rows = [todo("trip"), todo("packing", { parentId: "trip" }), todo("socks", { parentId: "packing" })];
+  const byId = new Map(rows.map((t) => [t.id, t]));
+  const parentOf = (id: string) => byId.get(id);
+  const chain = (t: TreeTodo) => ancestorChain(t, parentOf).map((p) => p.id);
+
+  it("walks a split row's parents up the rows read: nothing for a top-level todo", () => {
+    expect(chain(rows[0]!)).toEqual([]);
+    expect(chain(rows[1]!)).toEqual(["trip"]);
+    expect(chain(rows[2]!)).toEqual(["packing", "trip"]);
+  });
+
+  it("stops at a parent the rows don't have, and at MAX_TODO_DEPTH on a loop", () => {
+    expect(chain(todo("lost", { parentId: "gone" }))).toEqual([]);
+    const loop = new Map([
+      ["a", todo("a", { parentId: "b" })],
+      ["b", todo("b", { parentId: "a" })],
+    ]);
+    expect(ancestorChain(todo("x", { parentId: "a" }), (id) => loop.get(id))).toHaveLength(3);
   });
 });
 

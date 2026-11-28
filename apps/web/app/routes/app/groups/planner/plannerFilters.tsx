@@ -1,15 +1,17 @@
 import type { FilterMenuProps, SearchFilterBarProps } from "~/components/ui";
 import type { UpcomingShow } from "./upcomingFilters";
+import type { TodoView } from "~/lib/todos/todoView";
 
 import { MemberAvatar } from "~/components/members";
 import { clearAuthor, setAuthor, setQuery } from "~/lib/timeline/timelineFilters";
 import { setTagFilter } from "~/lib/tags/tagFilter";
+import { setTodoView } from "~/lib/todos/todoView";
 import { pastTagChip, setShow, upcomingFilterSections } from "./upcomingFilters";
 
 // The Planner tabs' search and filter bars (the header puts each under the
 // tabs; it acts on the open tab only): the search box (`?q=`, which the tab
-// links never carry), and each tab's own Filter menu. Upcoming: Show and
-// Tag (when the group has tags), and the author as an extra chip (set from
+// links never carry), and each tab's own Filter menu. Upcoming: Show, Tag
+// (when the group has tags) and Subtasks (`?subtasks=own`; todo-links-2), and the author as an extra chip (set from
 // a card's initials). Past: By (the author), and the tag carried from
 // Upcoming as a chip. Todos: its own (`todos/TodoFilters`).
 
@@ -27,17 +29,18 @@ const barOf = (text: BarText, filters: (search: string) => FilterMenuProps): Sea
   filters,
 });
 
-/** Upcoming's bar: the Show section, and the author's chip ("By <name>", not counted). */
+/** Upcoming's bar: its sections, and the author's chip ("By <name>", not counted). Clear filters drops the view too. */
 export const upcomingFilterBar = (
   text: BarText,
   show: UpcomingShow,
   author: PlannerAuthor | null,
   tags: readonly Named[] = [],
+  view: TodoView = "tree",
 ): SearchFilterBarProps =>
   barOf(text, (search) => ({
     label: "Filter the Planner",
-    clear: setTagFilter(setShow(search, "all"), null),
-    sections: upcomingFilterSections(search, show, tags),
+    clear: setTodoView(setTagFilter(setShow(search, "all"), null), "tree"),
+    sections: upcomingFilterSections(search, show, tags, view),
     chips: author
       ? [
           {
