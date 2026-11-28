@@ -131,7 +131,10 @@ export const SCRUB_SPECS = {
   todo: {
     columns: {
       title: "empty",
-      assignee_id: "null",
+      // A member's id, a pointer like the group's: the people who may complete
+      // the row stay the same once it's deleted (a completer's Undo of a
+      // repeating todo removes its scrubbed next, `removeUndoneNext`).
+      assignee_id: "keep",
       assignee_name: "null",
       provider_id: "null",
       medication_id: "null",

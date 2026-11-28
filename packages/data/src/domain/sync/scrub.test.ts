@@ -61,8 +61,9 @@ describe("SCRUB_SPECS", () => {
     const todo = SCRUB_SPECS.todo.columns;
     // todo_repeat_check, todo_repeat_due_check, todo_due_time_check.
     expect([todo.repeat_rule, todo.due_on, todo.due_time]).toEqual(["keep", "keep", "keep"]);
-    // todo_assignee_check: never both.
-    expect(scrubbedColumns("todo")).toMatchObject({ assignee_id: null, assignee_name: null });
+    // todo_assignee_check: never both. The member's id stays (who may complete it), the free-text name goes.
+    expect(todo.assignee_id).toBe("keep");
+    expect(scrubbedColumns("todo")).toMatchObject({ assignee_name: null });
     // appointment_series_time_check.
     const series = SCRUB_SPECS.appointment_series.columns;
     expect([series.all_day, series.start_time]).toEqual(["keep", "keep"]);

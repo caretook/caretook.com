@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../data/test/fixtures";
 import { clientFor, outcomes, upload } from "./testing";
-import { ROLLUP_METADATA, UNDO_NEXT_METADATA } from "@caretook/data/domain";
+import { ROLLUP_METADATA, UNDO_NEXT_METADATA, scrubbedColumns } from "@caretook/data/domain";
 
 // sync.upload for todos: rows as a device's SQLite holds them (snake_case,
 // PowerSync's timestamps). Each test makes its own users and group.
@@ -489,6 +489,43 @@ describe("sync.upload: repeating todos", () => {
       expect(await upload(owner.api, [flagged(plain)])).toEqual([{ id: plain, status: "applied" }]);
       expect(ok(await todoService.getById(owner.ctx, own))).toMatchObject({ deletedAt: null });
       expect(ok(await todoService.getById(owner.ctx, plain))).toMatchObject({ deletedAt: null });
+    });
+
+    it("their Undo of their own repeating todo applies after the reopen scrubs the next (data-rights)", async () => {
+      const { group, recipient, owner, viewer } = await setup();
+      const id = randomUUID();
+      const mine = { assignee_id: viewer.user.id };
+      const put = {
+        op: "PUT" as const,
+        table: "todo",
+        id,
+        data: repeating(id, group.id, recipient.id, mine),
+      };
+      ok(await owner.api.sync.upload({ ops: [put] }));
+      const twinOp = twin(id, group.id, recipient.id, "2026-11-23");
+      const next = { ...twinOp, data: { ...twinOp.data, ...mine } };
+      expect(await outcomes(viewer.api, [tick(id, MONDAY, viewer.user.id), next])).toEqual([
+        "applied",
+        "applied",
+      ]);
+
+      // The device's Undo: the reopen (whose server side already takes the
+      // untouched next away, scrubbing it), then the next's flagged delete,
+      // with the device's scrubbed copy. The next keeps its assignee, so the
+      // viewer may still complete it, and neither write is refused.
+      const undo = [
+        { op: "PATCH" as const, table: "todo", id, data: { done_at: null, done_by: null } },
+        {
+          ...flagged(next.id),
+          data: { ...scrubbedColumns("todo"), deleted_at: TUESDAY },
+        },
+      ];
+      expect(await outcomes(viewer.api, undo)).toEqual(["applied", "applied"]);
+      expect(ok(await todoService.getById(owner.ctx, id))).toMatchObject({ doneAt: null, doneBy: null });
+      expect(await openIn(owner.ctx, group.id, id)).toEqual([[id, "2026-11-16"]]);
+      const gone = ok(await todoService.getById(owner.ctx, next.id, { includeDeleted: true }));
+      expect(gone).toMatchObject({ title: "", assigneeId: viewer.user.id });
+      expect(gone?.deletedAt).toBeTruthy();
     });
   });
 
