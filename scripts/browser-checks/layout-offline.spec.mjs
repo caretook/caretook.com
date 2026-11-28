@@ -161,9 +161,14 @@ test("a layout change made offline reaches the server; units too", { tag: "@smok
     await page.evaluate(() => history.go(-2));
     await rowsShown(page, timeline);
 
-    // Still offline: a row's edit link opens its edit sheet.
+    // Still offline: a row's edit link opens its edit sheet. The tap is a
+    // person's on the card's top padding, which only the stretched link covers:
+    // the row's middle can fall on its tag chips (their own controls, above the
+    // link; B-967), depending on how long the first row's tags are.
     await test.step("offline: a row's edit link opens its edit sheet", async () => {
-      await page.locator('main ol a[aria-label^="Edit "]').first().click({ timeout: 10_000 });
+      const edit = page.locator('main ol a[aria-label^="Edit "]').first();
+      const box = await edit.boundingBox({ timeout: 10_000 });
+      await edit.click({ position: { x: box.width / 2, y: 4 }, timeout: 10_000 });
       await expect(dialog.locator("form")).toBeVisible({ timeout: 10_000 });
       await expect(dialog).toHaveText(/Edit (symptom|vital|dose)/i);
     });
