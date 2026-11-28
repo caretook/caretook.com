@@ -42,8 +42,15 @@ const prefetchSqlite = () => {
 
 /** Open (or reuse) the local database for this user. */
 export const openSync = async (userId: string): Promise<SyncDb> => {
-  // Someone else signed in on this tab: their predecessor's data goes first.
-  if (ready && ready.userId !== userId) await closeSync();
+  // The session is now someone else's (a sign-in on this tab, or in another
+  // tab that left this one stale, B-296): hand over. This tab lets go of its
+  // handle without clearing, and `open`'s owner rule decides whether the file
+  // is wiped: a tab that already switched made the new user its owner, and
+  // their copy, unsent changes included, stays.
+  if (ready && ready.userId !== userId) {
+    const db = await forgetOpen();
+    await (await import("./client")).closeHandle(db);
+  }
   if (!current) prefetchSqlite();
   // The loading screen's "Getting your notes ready…" (B-957).
   if (!ready) advanceStartup("device");
@@ -150,6 +157,18 @@ export const syncUserId = (): string | null => ready?.userId ?? null;
  * database is closed but not cleared, kept for its owner's next sign-in.
  */
 export const closeSync = async ({ keep = false }: { keep?: boolean } = {}) => {
+  const db = await forgetOpen();
+  const m = await import("./client");
+  if (keep) await m.closeKept(db);
+  else await m.clear(db);
+};
+
+/**
+ * Let go of the open database (resolved to it, or null) and forget what this
+ * tab keeps in memory for it: watches, the startup screen, the tiles'
+ * remembered answers and the search index. Leaves the file alone.
+ */
+const forgetOpen = async (): Promise<SyncDb | null> => {
   const db = ready ?? (current ? await current.catch(() => null) : null);
   current = null;
   ready = null;
@@ -162,9 +181,7 @@ export const closeSync = async ({ keep = false }: { keep?: boolean } = {}) => {
   const search = searchIndex;
   searchIndex = null;
   await search?.then((m) => m.stopSearchIndex()).catch(() => undefined);
-  const m = await import("./client");
-  if (keep) await m.closeKept(db);
-  else await m.clear(db);
+  return db;
 };
 
 /** How many changes wait to upload: on the open database, else on the device's file (opened to count). */
