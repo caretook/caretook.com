@@ -10,11 +10,11 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item   | State                                       | Merge |
-| ----- | ------ | ------------------------------------------- | ----- |
-| 99    | B-1046 | agent spawned (opus), worktree fixes-bug-99 |       |
+| Slice | Item   | State           | Merge     |
+| ----- | ------ | --------------- | --------- |
+| 99    | B-1046 | merged; CI next | e51817358 |
 
-Wave 29 started 2026-11-28: `risa sync` needed no merge; slice 99 written; its agent spawned on opus (worktree `fixes-bug-99`, no stack).
+Wave 29 started 2026-11-28: `risa sync` needed no merge; slice 99 written; its agent (opus) handed off bd147b50e (slice check green; WebKit covered by unit tests only, hand-test iOS Safari and the PWA); merged as e51817358. B-1046 stays open for report 2.
 
 **Wave 28 landed** (2026-11-28): PR #354 (dev 1c2b872), Codex clean, CI components flake (run 46186862084; todayCard, filed B-1065); to-test `2026-11-28-1540-fixes-bug.md`; landing report filed. B-1056, B-1058 done; worktrees removed; docs folded into assistant.
 
