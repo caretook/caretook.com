@@ -6,6 +6,9 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 
 ## Bugs/Nits
 
+- Inbox handoff (risa rotate --self) didn't work
+  risa rotate --self reported 'Opened inbox in a new background iTerm2 tab' but the handoff did not take effect, per the user.
+
 ## Change requests
 
 - Time limit gate for component tests to keep them from growing too long (B-837)
