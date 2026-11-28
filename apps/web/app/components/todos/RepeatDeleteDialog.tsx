@@ -13,7 +13,7 @@ const CHOICES: DialogChoice<Choice>[] = [
  * Delete on a repeating todo (planner-2): a `ChoiceDialog` with "Skip this
  * one" (this one goes, the next one comes), "Delete and stop repeating" (it
  * goes with no next), and Cancel (as Escape). It opens once the ⋯ menu that
- * asked has closed.
+ * asked has closed (`TodoMenu`'s Delete, on a row or the todo page).
  */
 export function RepeatDeleteDialog({
   open,

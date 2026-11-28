@@ -9,6 +9,7 @@ export { LinkedTodos } from "./LinkedTodos";
 export { TodoRepeatMark } from "./TodoRepeatMark";
 export { TodoPartOf, TodoProgressMark } from "./TodoTreeMarks";
 export { TodoRow } from "./TodoRow";
+export { TodoMenu } from "./TodoMenu";
 export type { TodoRowLook } from "./TodoRow";
 export { TodoTree } from "./TodoTree";
 export { mayAddSubtask, mayAddTodo, TodoQuickAdd } from "./TodoQuickAdd";
