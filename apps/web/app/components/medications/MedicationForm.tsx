@@ -14,7 +14,7 @@ import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { CONDITION_IDS_PATH } from "~/lib/profiles/medicationConditions.sync";
 import { ConditionsField } from "./ConditionsField";
-import { FIELD, isFieldIssue } from "./medicationFormData";
+import { FIELD, isFieldIssue } from "~/lib/medications/medicationFormData";
 import { ProviderPickerField } from "./ProviderPickerField";
 import { revealInSchedule, ScheduleFields } from "./ScheduleFields";
 import { MEDICATION_TYPES, MEDICATION_TYPE_LABELS } from "@caretook/data/domain";
@@ -94,7 +94,7 @@ function DayField({
 }
 
 /**
- * Add or edit a medication. Posts to its sheet route's clientAction, which
+ * Add or edit a medication. Posts to its route's clientAction, which
  * writes on the device (with its change entry, and any prescriber or
  * pharmacy added here); the shared Zod schema's messages show on the fields.
  * The status (completed, discontinued) isn't edited here: the status actions
@@ -127,7 +127,8 @@ export function MedicationForm({
   zoneNote: string | null;
   /** After a save; adding one passes the new medication's id. The form itself never navigates. */
   onDone: (id?: string) => void;
-  onCancel: () => void;
+  /** Without it there's no Cancel (the setup pages' form stays on its page). */
+  onCancel?: () => void;
 }) {
   const fetcher = useFetcher<ActionResult | CreateResult>();
   const formRef = useRef<HTMLFormElement>(null);
@@ -384,7 +385,7 @@ export function MedicationForm({
       <FormFooter
         submitLabel={medication ? "Save" : "Add medication"}
         busy={busy}
-        cancel={{ label: "Cancel", onCancel }}
+        cancel={onCancel ? { label: "Cancel", onCancel } : undefined}
       />
     </fetcher.Form>
   );

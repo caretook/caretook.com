@@ -15,9 +15,10 @@ import { sessionContext } from "~/lib/auth/session";
 import { createMedication, recipientQuery } from "~/lib/medications/medications.sync";
 import { checkMedicationConditions, setMedicationConditions } from "~/lib/profiles/medicationConditions.sync";
 import { readRows } from "~/lib/timeline/timeline.sync";
-import { MedicationForm } from "../MedicationForm";
-import { issuesForSlotRows, medicationFromForm } from "../medicationFormData";
-import { loadFormSources, useCloseMedicationSheet, useMedicationFormSources } from "../medicationSheet";
+import { MedicationForm } from "~/components/medications";
+import { issuesForSlotRows, medicationFromForm } from "~/lib/medications/medicationFormData";
+import { loadFormSources, useMedicationFormSources } from "~/lib/medications/medicationFormSources";
+import { useCloseMedicationSheet } from "../medicationSheet";
 import { scheduleZoneNote } from "@caretook/data/schema";
 
 // Shared by web + native. `medications/<tab>/new`: the add sheet, over

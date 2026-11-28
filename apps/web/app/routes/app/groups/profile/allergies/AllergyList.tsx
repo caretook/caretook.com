@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useFetcher } from "react-router";
 import { Button, ConfirmDialog, IconButton, List, ListRow, Message } from "~/components/ui";
 import { allergyText, NO_KNOWN_ALLERGIES } from "~/lib/medications/allergies";
-import { ALLERGY_FIELD } from "./allergyActions";
+import { ALLERGY_FIELD } from "~/lib/medications/allergyActions";
 
 /**
  * What's on file: each allergy with Edit and Remove (after a confirm), or,

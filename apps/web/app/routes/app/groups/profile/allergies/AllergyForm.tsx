@@ -7,7 +7,7 @@ import { useFetcher } from "react-router";
 import { ChoiceGroup, ComboBox, Field, FormFooter, Message } from "~/components/ui";
 import { SEVERITY_LABELS } from "~/lib/medications/allergies";
 import { reactionSuggestions, substanceSuggestions } from "~/lib/medications/allergySuggestions";
-import { ALLERGY_FIELD } from "./allergyActions";
+import { ALLERGY_FIELD } from "~/lib/medications/allergyActions";
 
 const issueFor = (issues: FieldIssue[], path: string) => issues.find((i) => i.path === path)?.message;
 

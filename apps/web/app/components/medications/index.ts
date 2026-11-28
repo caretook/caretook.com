@@ -1,5 +1,5 @@
 // Medication pieces shared by routes (the medication page, the list and its sheets, the printed sheets,
-// the Dose sheet).
+// the Dose sheet, the setup pages' medications step).
 export { MedicationStatusActions } from "./MedicationStatusActions";
 export { AllergiesRegion } from "./AllergiesRegion";
 export { PrintAllergies } from "./PrintAllergies";
@@ -14,3 +14,5 @@ export { PassUndoStatus } from "./PassUndoStatus";
 export { usePassLog, undoPassLog, offerUndoToast, UndoToastProvider, useUndoToast } from "./usePassLog";
 export { NameField } from "./NameField";
 export { MedicationCard } from "./MedicationCard";
+// The add and edit form (the list's sheets, the setup pages).
+export { MedicationForm } from "./MedicationForm";
