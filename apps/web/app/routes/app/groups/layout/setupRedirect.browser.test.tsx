@@ -38,6 +38,7 @@ const ROUTES: DeviceRoute[] = [
 ];
 const TIMELINE = appUrls.timeline(TEST_GROUP.id);
 const OTHER_ID = "5d3e2f1a-7b6c-4d8e-9f0a-000000000051";
+type GetAll = (sql: string, params?: unknown[]) => Promise<unknown[]>;
 const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
 
 /** This device knows the account's settings (the server answered before), as given. */
@@ -149,17 +150,14 @@ describe("opens on the Timeline", () => {
     // The /app middleware's early settings fetch (`startSettings`) landing
     // while the redirect reads the group's facts: the decision is made from
     // what arrived, not the defaults read before.
-    const getAll = PowerSyncDatabase.prototype.getAll;
-    vi.spyOn(PowerSyncDatabase.prototype, "getAll").mockImplementation(async function (
-      this: PowerSyncDatabase,
-      sql: string,
-      params?: unknown[],
-    ) {
-      const rows: unknown[] = await getAll.call(this, sql, params);
+    const proto = PowerSyncDatabase.prototype as unknown as { getAll: GetAll };
+    const realGetAll = proto.getAll;
+    vi.spyOn(proto, "getAll").mockImplementation(async function (this: unknown, sql, params) {
+      const rows = await realGetAll.call(this, sql, params);
       if (sql.includes("AS joined_at") && localStorage.getItem(`caretook:settings:${TEST_USER.id}`) === null)
         knownSettings({ setupDismissed: [TEST_GROUP.id] });
       return rows;
-    } as typeof getAll);
+    });
     const device = await open(TIMELINE);
     await expect.element(page.getByText("Timeline page")).toBeVisible();
     await device.settle();
