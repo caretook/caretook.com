@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { readGoTo } from "./quickEntryGoTo";
+import { NEW_TAB_PHRASES, QUICK_ENTRY_PAGES, readCommand, readGoTo } from "./quickEntryGoTo";
 
 /** Thursday, Nov 19, 2026, 8:00 in Los Angeles (16:00 UTC). */
 const NOW = new Date("2026-11-19T16:00:00Z");
@@ -70,5 +70,116 @@ describe("the day's direction and zone", () => {
     const now = new Date("2026-11-19T02:00:00Z"); // Nov 18 in Los Angeles, Nov 19 in Tokyo.
     expect(readGoTo("show yesterday", { now, timeZone: "America/Los_Angeles" })?.day).toBe("2026-11-17");
     expect(readGoTo("show yesterday", { now, timeZone: "Asia/Tokyo" })?.day).toBe("2026-11-18");
+  });
+});
+
+describe("readCommand: a whole line that opens a page", () => {
+  test.each([
+    ["timeline", "timeline"],
+    ["todos", "todos"],
+    ["to-dos", "todos"],
+    ["to dos", "todos"],
+    ["todo list", "todos"],
+    ["planner", "planner"],
+    ["upcoming", "planner"],
+    ["calendar", "planner"],
+    ["medications", "medications"],
+    ["meds", "medications"],
+    ["schedule", "medicationSchedule"],
+    ["med schedule", "medicationSchedule"],
+    ["medication schedule", "medicationSchedule"],
+    ["providers", "providers"],
+    ["doctors", "providers"],
+    ["care periods", "carePeriods"],
+    ["profile", "profile"],
+    ["allergies", "allergies"],
+    ["settings", "settings"],
+    ["members", "members"],
+    ["tags", "tags"],
+    ["search", "search"],
+  ] as const)("go to %s", (name, page) => {
+    expect(readCommand(`go to ${name}`, LA)).toEqual({ kind: "page", page, newTab: false });
+  });
+
+  test("every page row is read", () => {
+    expect(QUICK_ENTRY_PAGES.map((row) => readCommand(`go to ${row.phrase}`, LA)?.kind)).toEqual(
+      QUICK_ENTRY_PAGES.map(() => "page"),
+    );
+  });
+
+  test.each([
+    ["open meds", "medications"],
+    ["Show the planner.", "planner"],
+    ["jump to my profile", "profile"],
+    ["go to our members", "members"],
+    ["open the settings page", "settings"],
+    ["  OPEN   care   periods  ", "carePeriods"],
+  ] as const)("%s", (line, page) => {
+    expect(readCommand(line, LA)).toEqual({ kind: "page", page, newTab: false });
+  });
+});
+
+describe("readCommand: in a new tab", () => {
+  test.each([
+    ["open meds in a new tab", "medications"],
+    ["go to the planner in new tab", "planner"],
+    ["show doctors in a new window", "providers"],
+    ["new tab timeline", "timeline"],
+    ["new tab go to todos", "todos"],
+    ["pop out the planner", "planner"],
+    ["pop out open settings", "settings"],
+  ] as const)("%s", (line, page) => {
+    expect(readCommand(line, LA)).toEqual({ kind: "page", page, newTab: true });
+  });
+
+  test("every new-tab wording has a row", () => {
+    const lines = NEW_TAB_PHRASES.map(({ phrase, at }) =>
+      at === "end" ? `go to meds ${phrase}` : `${phrase} meds`,
+    );
+    expect(lines.map((line) => readCommand(line, LA))).toEqual(
+      lines.map(() => ({ kind: "page", page: "medications", newTab: true })),
+    );
+  });
+
+  test.each([
+    ["go to tuesday in a new tab", "2026-11-17"],
+    ["pop out yesterday", "2026-11-18"],
+    ["new tab show Nov 3, 2025", "2025-11-03"],
+  ])("a day: %s", (line, day) => {
+    expect(readCommand(line, LA)).toEqual({ kind: "day", day, ahead: false, newTab: true });
+  });
+});
+
+describe("readCommand: the day rule is readGoTo's", () => {
+  test.each([
+    ["go to tuesday", "2026-11-17", false],
+    ["go to Nov 3, 2025", "2025-11-03", false],
+    ["show yesterday", "2026-11-18", false],
+    ["go to tomorrow", "2026-11-20", true],
+  ] as const)("%s", (line, day, ahead) => {
+    expect(readCommand(line, LA)).toEqual({ kind: "day", day, ahead, newTab: false });
+  });
+});
+
+describe("readCommand: lines that keep their ordinary reading", () => {
+  test.each([
+    "go to dr lee at 3",
+    "show of hands at church",
+    "open wound looks better",
+    "went to the pharmacy",
+    "open tuesday",
+    "go to meds and pharmacy",
+    "meds",
+    "in a new tab",
+    "new tab",
+    "pop out",
+    "pop out of bed",
+    "go to PT tomorrow",
+    "go to yesterday 9pm",
+    "go to meds\ntags",
+    "n: go to meds",
+    "go to",
+  ])("%s", (line) => {
+    expect(readCommand(line, LA)).toBeNull();
   });
 });
