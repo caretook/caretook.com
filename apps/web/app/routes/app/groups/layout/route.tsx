@@ -6,6 +6,7 @@ import { getGroup, GroupProvider, setGroup, useGroup } from "~/lib/app-shell/gro
 import { sessionContext } from "~/lib/auth/session";
 import { MemberLooksProvider } from "~/lib/care-groups/useMemberLooks";
 import { easyRoleRedirect } from "~/lib/assistant/easyModeLock";
+import { useSetupNudges } from "./useSetupNudges";
 
 // Shared by web + native. `/app/groups/:groupId`: every screen about one
 // care group (the timeline, an entry, group settings, later sections) is a
@@ -22,6 +23,9 @@ import { easyRoleRedirect } from "~/lib/assistant/easyModeLock";
 // timeline from every other group route but their notes' and events' pages
 // (`lib/assistant/easyModeLock.ts`): by the middleware on each navigation, and
 // by `EasyRoleRedirect` when the role arrives by sync while they're on one.
+//
+// The person who sets the group up gets its setup nudges here, over every
+// group page but the setup pages (`useSetupNudges`).
 
 export const clientMiddleware: Route.ClientMiddlewareFunction[] = [
   async ({ request, params, context }) => {
@@ -52,6 +56,7 @@ export default function GroupLayout({ loaderData }: Route.ComponentProps) {
     <GroupProvider key={loaderData.id} group={loaderData}>
       <MemberLooksProvider>
         <EasyRoleRedirect />
+        <SetupNudges />
         <Outlet />
       </MemberLooksProvider>
     </GroupProvider>
@@ -67,5 +72,11 @@ function EasyRoleRedirect() {
   useEffect(() => {
     if (to) void navigate(to, { replace: true });
   }, [to, navigate]);
+  return null;
+}
+
+/** The group's setup nudges, as toasts (`useSetupNudges`). */
+function SetupNudges() {
+  useSetupNudges();
   return null;
 }
