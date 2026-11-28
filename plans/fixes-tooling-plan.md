@@ -18,14 +18,14 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 | Slice | Item                        | State           | Merge |
 | ----- | --------------------------- | --------------- | ----- |
-| 94    | B-619, B-839, B-998, B-1000 | starting (opus) |       |
-| 95    | B-808, B-922, B-983         | starting (opus) |       |
-| 96    | B-1004, B-1005              | starting (opus) |       |
-| 97    | B-785, B-790                | starting (opus) |       |
-| 98    | B-949                       | starting (opus) |       |
-| 99    | B-967                       | starting (opus) |       |
-| 100   | B-776                       | starting (opus) |       |
-| 101   | B-749, B-851                | starting (opus) |       |
+| 94    | B-619, B-839, B-998, B-1000 | working (opus, spawned 2026-11-28) |       |
+| 95    | B-808, B-922, B-983         | working (opus, spawned 2026-11-28) |       |
+| 96    | B-1004, B-1005              | working (opus, spawned 2026-11-28) |       |
+| 97    | B-785, B-790                | working (opus, spawned 2026-11-28) |       |
+| 98    | B-949                       | working (opus, spawned 2026-11-28) |       |
+| 99    | B-967                       | working (opus, spawned 2026-11-28) |       |
+| 100   | B-776                       | working (opus, spawned 2026-11-28) |       |
+| 101   | B-749, B-851                | working (opus, spawned 2026-11-28) |       |
 
 ## Wave 1
 
