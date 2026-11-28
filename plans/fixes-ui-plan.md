@@ -36,10 +36,10 @@ Notes for every wave:
 
 **Restarted 2026-11-27 (this session), run-through:** landing mode run everything through. Anchors ok, ingest empty, prd/fixes-ui = dev (1e628db49). Wave 21: B-975 (marketing AI 'will not') slice 108 on sonnet; B-980 (subtask add button on the title line) slice 109 on opus; parallel.
 
-| Slice | Item  | State            | Merge |
-| ----- | ----- | ---------------- | ----- |
-| 108   | B-975 | started (sonnet) |       |
-| 109   | B-980 | started (opus)   |       |
+| Slice | Item  | State           | Merge     |
+| ----- | ----- | --------------- | --------- |
+| 108   | B-975 | merged (sonnet) | 1689bd40d |
+| 109   | B-980 | started (opus)  |           |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
