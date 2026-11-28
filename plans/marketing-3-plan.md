@@ -12,6 +12,7 @@
 | 4     | 1    | planned |                                              |
 | 5     | 2    | planned |                                              |
 | 6     | 2    | planned |                                              |
+| 7     | 1    | planned |                                              |
 
 ## Architectural decisions
 
@@ -23,7 +24,7 @@
 
 ## How to run this plan
 
-- **Wave 1** (slices 1 to 4, all at once): features copy, the accessibility page, the research note, the look module with the home page. They share no file and no check file.
+- **Wave 1** (slices 1 to 4 and 7, all at once): features copy, the accessibility page, the research note, the look module with the home page, and the user's hero text with the share image. They share no file and no check file.
 - **Wave 2** (slices 5 and 6, at once): the inner pages and the layout, on slice 4's look module. Slice 5 also needs slice 1's features order (the jump links follow the blocks).
 - The `marketing` browser check runs once, by the orchestrator at wave 2's landing (after slices 5 and 6 merge), with `RISA_BROWSER_SLOTS=4`; no slice runs it.
 - Slice 3 is docs only: no stack, no tests, prettier only.
@@ -86,23 +87,21 @@ US 8 (B-829).
 
 **Blocks:** none.
 
-## Slice 4: The look module and the home page (with a plainer hero)
+## Slice 4: The look module and the home page
 
-Stack: no · Reads: docs/domain/marketing.md, docs/domain/components.md · Tests: unit · Blocked by: none · Check: apps/web/app/routes/marketing/home/content.test.ts
+Stack: no · Reads: docs/domain/marketing.md, docs/domain/components.md · Tests: component · Blocked by: none · Check: apps/web/app/routes/marketing/home/waitlist.browser.test.tsx
 
-US 1, 2, 3 (B-836, B-855).
+US 1, 2 (B-836).
 
 **Build**
 
 - `sections/look.ts` (new): the PRD's _Implementation decisions_ look module: container, section rhythm, the two band tones, the card, the opening gradient, h1/h2/h3 sizes.
 - `sections/Sections.tsx`: `Hero`, `SectionHeading`, `FeatureGrid`, `Steps`, `PromiseSection`, `CtaBand` read from it; drop the local `CONTAINER`. Keep the hero's one `h1`, the lockup and both buttons on one row from 360 px; the hero gets the opening gradient.
 - `home/WaitlistBand.tsx`: the band and form surface from the look module.
-- `home/content.ts` `hero.lead`: one plain sentence, at most 25 words, concrete things only (the PRD's hero row). Nothing else on home changes.
 
 **Acceptance**
 
-- [ ] `home/content.test.ts`: `hero.lead` is one sentence of at most 25 words; the existing checks pass.
-- [ ] The waitlist and pages component tests pass untouched (behaviour unchanged).
+- [ ] `home/waitlist.browser.test.tsx` and the pages component test pass untouched (behaviour unchanged); no copy changes here (slice 7 owns the hero text).
 - [ ] Light and dark both checked by eye on a 360 px and a 1280 px viewport in the hand-off.
 
 **Blocks:** 5, 6.
@@ -142,5 +141,24 @@ US 1, 2 (B-836).
 **Acceptance**
 
 - [ ] `layout.browser.test.tsx`: (new assertions on what exists) the current page's header link has `aria-current="page"`; the footer has a site group (Accessibility among it) and a legal group, each a labelled list; the skip link and menu tests pass.
+
+**Blocks:** none.
+
+## Slice 7: The user's hero text and the share image
+
+Stack: no · Reads: docs/domain/marketing.md · Tests: unit · Blocked by: none · Check: apps/web/app/routes/marketing/home/content.test.ts
+
+US 3 (B-855). **The text is the user's, exact, word for word (2026-11-28: "Yes. Exact text. Go"); never reword it.**
+
+**Build**
+
+- `home/content.ts` `homeContent.hero`: `lockup.descriptor` becomes "A shared care journal, made by caregivers who've been there."; `lead` becomes "Signal or not, caretakers can add today's notes, medications, visits and doctors' numbers, and it reaches everyone in the care group." The badge (`eyebrow`), the lockup and both buttons stay as they are.
+- `apps/web/public/og-default.svg`: the descriptor's two `<text>` lines carry the new descriptor, rewrapped to fit the same box; then re-render `apps/web/public/og-default.png` with `node scripts/build/share-image.mjs`.
+- `site/meta.ts` `DEFAULT_OG_IMAGE`: its alt becomes "Caretook. Care, taken. A shared care journal, made by caregivers who've been there."
+
+**Acceptance**
+
+- [ ] `home/content.test.ts`: `hero.lead` is one sentence of at most 25 words (structure, not wording); the existing checks pass.
+- [ ] `site/meta.test.ts` passes untouched (it holds the descriptor, the SVG and the alt together); the PNG is re-rendered and checked by eye in the hand-off.
 
 **Blocks:** none.
