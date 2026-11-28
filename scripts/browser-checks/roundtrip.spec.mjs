@@ -30,6 +30,7 @@ import {
   addToTimeline,
   expect,
   psql,
+  randomIp,
   signIn as fixtureSignIn,
   signOut,
   test,
@@ -421,6 +422,8 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
         "content-type": "application/json",
         accept: "application/json, text/event-stream",
         authorization: `Bearer ${token}`,
+        // The check build runs as production, where /mcp refuses a request without a client IP.
+        "x-forwarded-for": randomIp(),
       },
       body: JSON.stringify({
         jsonrpc: "2.0",

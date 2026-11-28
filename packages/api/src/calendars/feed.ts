@@ -1,5 +1,6 @@
 import type { RateLimiter } from "../rateLimit";
 
+import { clientIpKey } from "@caretook/auth";
 import { calendarFeedService, isError, logError } from "@caretook/data";
 import { createRateLimiter, defaultStore } from "../rateLimit";
 import { renderIcs } from "./renderIcs";
@@ -9,7 +10,8 @@ import { renderIcs } from "./renderIcs";
 // token in the path is the only credential, so:
 //   - an unknown or revoked token, a former member's, or a path that isn't
 //     `<token>.ics` is a bodyless 404 (nothing says which);
-//   - hits are limited per client IP and per token, then 429 with Retry-After;
+//   - hits are limited per client IP (`clientIpKey`) and per token, then 429
+//     with Retry-After; in production no client IP is a 400 (logged);
 //   - the token is never logged (logs carry the procedure and the code only)
 //     and the responses are `private`: a shared cache must not hold them.
 
@@ -58,7 +60,9 @@ export const createFeedHandler = ({
     if (!file.endsWith(EXTENSION)) return notFound();
     const token = file.slice(0, -EXTENSION.length);
 
-    if (!(await ipLimiter.hit(clientIp?.trim() || "unknown"))) return tooMany();
+    const ipKey = clientIpKey(clientIp, "calendar.feed");
+    if (ipKey === null) return new Response(null, { status: 400 });
+    if (!(await ipLimiter.hit(ipKey))) return tooMany();
     // The hash, not the token, names the key (the postgres store keeps keys).
     if (!(await tokenLimiter.hit(calendarFeedService.fingerprint(token)))) return tooMany();
 
