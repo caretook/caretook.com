@@ -4,18 +4,16 @@
 
 ## Status
 
-| Slice | Wave | State   | Merge into `prd/sync-safety-2` (slice commits) |
-| ----- | ---- | ------- | ---------------------------------------------- |
-| 1     | 1    | merged  | 4d070348b (9f4435a03)                          |
-| 2     | 1    | merged  | 24b9272c5 (f8581109c..938e9e941)               |
-| 3     | 2    | planned |                                                |
-| 4     | 1    | merged  | 786118c26 (db392b14f, 64e2ce076)               |
+| Slice | Wave | State  | Merge into `prd/sync-safety-2` (slice commits) |
+| ----- | ---- | ------ | ---------------------------------------------- |
+| 1     | 1    | merged | 4d070348b (9f4435a03)                          |
+| 2     | 1    | merged | 24b9272c5 (f8581109c..938e9e941)               |
+| 3     | 2    | merged | 8cb04b6f4 (b830e7afd)                          |
+| 4     | 1    | merged | 786118c26 (db392b14f, 64e2ce076)               |
 
-- **Landing mode: run everything through** (dispatcher start, 2026-11-27). Wave 1: slices 1, 2, 4 started 2026-11-27 (worktrees `.loops/sync-safety-2-<n>`, agents on opus; items claimed).
-- Slice 1 hand-off: device writes source row first, change entry last; a member's entry PUT arriving before its save is still refused (`systemWrittenKind`), the clamp in `upsert` covers system-actor creates. Docs at landing: `occurred_at` is min(`changedAt`, now), id still keyed by `changedAt`.
-- Slice 4 hand-off: pending marker is JSON `{at, session}`; `finishPendingSignOut` returns none/pending/signedOut/kept; new `caretook:session-id` key; `openSync` hands over via `forgetOpen` + `closeHandle`; handover test in `client.test.ts` (index.test.ts mocks client). Docs at landing: auth.md line 18's B-730 ⚠ is stale.
-- Slice 2 hand-off: `lockById` (FOR UPDATE) + `lockVisible`; `complete` clamps `done_at` to the tx `now()`; `restore` resets `created_at`; device next shares the tick's `now`; AC 2 partly as worded (a rescheduled successor is always touched; tests cover the real cases). Docs at landing: the successor rule's three dependencies (todos.md).
-- Wave 1 merged. CI run 46103831857 (components, 96e5297e): brake. Static = this plan's format (fixed). Integration `readTools.int.test.ts` todays_doses "leaves out the past slot of a medication added today" blamed on the branch: a test whose fake 2030 clock relied on a future-dated entry; test-only fix d92912cfd merged as 8eda7b20c. Rerun green (46105021500 on d212451ff). Slice worktrees removed. `risa sync` merged dev (af79706f: timeline UI, risa repin); components green on it (46105548252); browser checks 6/6 (roundtrip, live-notes, sign-in, first-sync, session-end, invites). Docs folded (medications, profiles, sync incl. B-805's answer, todos, auth). Re-synced dev (connectors-5 tag tools); components recheck running. PR #308 open. Codex P2 (thread PRRT_kwDOVx-WLM68__z3): successor by created_at >= done_at picks a done predecessor after several offline ticks upload together; a regression of slice 2, fixed in 959b11b28 (successor also made after the reopened row; device next stamped after the ticked row), replied and resolved. Codex round 2 (thread PRRT_kwDOVx-WLM69AKXR): a PUT creating and ticking a repeating todo in one transaction gives the next the same created_at, so the strict > misses it; fixed in df938bf03 (`todoModel.stampMadeAfter`: a next is at least 1 ms after its predecessor), replied and resolved; Codex round 3 (legacy rows: successor made just before done_at) filed as B-1002 (fixes-bug), replied, resolved; Codex clean on f41fabf26. CI components on it (46107935934): file; blame puts `linkToBox.browser.test.tsx` on the branch (search speed test was dev's flake); sent to the fix agent (flake check 3x, else fix). Then land; B-805 done at landing. Start conditions met: `tags`, `todo-subtasks` landed (staging).
+- **Landing mode: run everything through** (dispatcher start, 2026-11-27).
+- **Wave 1 landed** in dev 2026-11-27 through PR #308 (merge on GitHub, dev at d532090), tier components (CI run 46109445348 green on afc67f18c), Codex clean after three rounds: 959b11b28 (successor also made after the reopened row), df938bf03 (`todoModel.stampMadeAfter`: a next at least 1 ms after its predecessor), round 3 filed as B-1002 (fixes-bug, legacy rows). Items done: B-295, B-383, B-384, B-730, B-296; B-805 archived (answered in sync.md). Docs folded (medications, profiles, sync, todos, auth). Report filed. Slice models: all opus; docs fold sonnet.
+- **Wave 2 under way:** dev synced (up to date) at 87c1eef24; B-387 claimed; slice 3 worktree made and one opus agent spawned (2026-11-28) with the wave-1 notes (successor rule `created_at >= done_at`, `stampMadeAfter`, `lockVisible`). Slice 3 merged as 8cb04b6f4 (B-387 done); its gap (the PATCH restore path) filed as B-1003 (fixes-bug). CI components run 46110688455 on c4fa8698f: flake only (linkToBox, todo-links' test, passed on retry). PR #311; Codex clean on c4fa869. Docs folded (todos, sync). Landing next. Next: CI gate (`risa tier`), PR, Codex, land, docs fold (todos, sync), then `risa rm sync-safety-2` (last wave). Nothing new to propose from the backlog.
 
 ## Durable decisions
 
