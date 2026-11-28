@@ -4,9 +4,19 @@
 
 ## Status
 
+### From the user
+
+- (none yet)
+
+**Landing mode: run everything through** (started run-through, 2026-11-28): start every ready slice, land each green wave, ask only real questions.
+
+**Models:** slices 1 to 4 on opus (real logic: locking, a migration, RBAC, a form).
+
+**Now (2026-11-28):** wave 1 started: slice 1 (worktree made, agent on opus). Backlog: only B-1012 for this topic.
+
 | Slice | Wave | State   | Merge into `prd/free-limits` (slice commits) |
 | ----- | ---- | ------- | -------------------------------------------- |
-| 1     | 1    | planned | —                                            |
+| 1     | 1    | started | —                                            |
 | 2     | 2    | planned | —                                            |
 | 3     | 3    | planned | —                                            |
 | 4     | 4    | planned | —                                            |
