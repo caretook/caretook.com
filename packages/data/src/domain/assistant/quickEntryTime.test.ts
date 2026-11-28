@@ -1,7 +1,7 @@
-import type { QuickEntryContext } from "./quickEntry";
+import type { QuickEntryContext } from "../../db/schema/assistant/quickEntry";
 
 import { describe, expect, test } from "vitest";
-import { parseQuickEntry } from "./quickEntry";
+import { parseQuickEntry } from "../../db/schema/assistant/quickEntry";
 import { findTime, resolveTime } from "./quickEntryTime";
 
 // Words that aren't times leave the time alone. The clock is fixed in the

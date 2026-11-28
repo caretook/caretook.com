@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { canHaveSubtask, rollupOf, todoContentZSchema, todoState } from "../schema";
-import { nextOccurrence } from "../schema/appointments/todoRepeat";
+import { nextOccurrence } from "../../domain/appointments/todoRepeat";
 import { seedRows } from "./todos";
 
 // Seeds write straight to the table, skipping the service's validation, so

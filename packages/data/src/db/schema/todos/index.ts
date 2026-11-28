@@ -1,5 +1,3 @@
 export * from "./todo";
-export * from "./todoRules";
-export * from "./todoDisplay";
+export * from "../../../domain/todos";
 export * from "./entryTodo";
-export * from "./todoTree";

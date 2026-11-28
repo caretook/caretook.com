@@ -1,11 +1,15 @@
-import type { MedicationType } from "./medication";
-
-import { MEDICATION_TYPES } from "./medication";
+import type { MedicationType } from "../../db/schema/medications/medication";
 
 // How a medication's type reads: the form's choice, the list's badge, the
 // medication page, the printed list's groups, search and the connector all
 // take their words from here. A type that isn't set (medications added
 // before types existed) reads "Type not set" and has no badge. Pure.
+
+/**
+ * What kind of thing a medication is. Null on medications added before types
+ * existed ("Type not set"); the forms that ask require one.
+ */
+export const MEDICATION_TYPES = ["prescription", "otc", "supplement", "other"] as const;
 
 /** The type's name: the form's choice, the medication page, search and the connector. */
 export const MEDICATION_TYPE_LABELS: Record<MedicationType, string> = {

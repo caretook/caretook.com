@@ -6,7 +6,7 @@ import { z } from "zod";
 import { audits, timestamps } from "../core/columns";
 import { timelineEntrySchema } from "../timeline/timelineEntry";
 import { todoSchema } from "./todo";
-import { uuidV5 } from "../core/uuidV5";
+import { uuidV5 } from "../../../domain/core/uuidV5";
 
 // Which todos a timeline entry links (planner-3): one row per (entry, todo),
 // many to many. A todo discussed at two visits shows on both; a note links

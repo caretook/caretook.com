@@ -2,9 +2,9 @@ import type { DoseSlot, DueDoses } from "./dueDoses";
 import type { DoseDetails } from "./medication";
 import type { PassLike } from "./medicationPass";
 
-import { addDays } from "../core/entryTiming";
-import { uuidV5 } from "../core/uuidV5";
-import { dayInZone, zonedInstant } from "../core/zonedDay";
+import { addDays } from "../../../domain/core/entryTiming";
+import { uuidV5 } from "../../../domain/core/uuidV5";
+import { dayInZone, zonedInstant } from "../../../domain/core/zonedDay";
 import { isOpen } from "./dueDoses";
 
 // Today's slots rolled up into passes (medication rounds): what Today, the

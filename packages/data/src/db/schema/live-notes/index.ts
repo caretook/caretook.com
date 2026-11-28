@@ -1,3 +1,2 @@
 export * from "./noteDocument";
-export * from "./noteEditors";
-export * from "./noteYjs";
+export * from "../../../domain/live-notes";

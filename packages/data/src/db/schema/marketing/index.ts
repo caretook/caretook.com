@@ -1,4 +1,4 @@
 export * from "./contactMessage";
-export * from "./publicFormRules";
+export * from "../../../domain/marketing";
 export * from "./publicForms";
 export * from "./waitlistEntry";

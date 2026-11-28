@@ -1,7 +1,7 @@
 import { inArray } from "drizzle-orm";
 import { getDb } from "../client";
 import { addDays, entryTodoId, localDate, timelineEntryTodoSchema, todoSchema, userSchema } from "../schema";
-import { nextTodoId } from "../schema/appointments/todoRepeat";
+import { nextTodoId } from "../../domain/appointments/todoRepeat";
 import { appointmentIdIn } from "./appointments";
 import { DEV_GROUP_ID, DEV_RECIPIENT_ID } from "./careGroups";
 import { SEED_GROUPS as MEDICATION_GROUPS } from "./medications";

@@ -13,3 +13,4 @@ packages/data/src/db/seeds/carePeriods.ts -
 # Directory defaults: a new file here needs no rule.
 apps/web/app/lib/care-periods/           -
 packages/data/src/db/schema/care-periods/ roundtrip
+packages/data/src/domain/care-periods/ roundtrip

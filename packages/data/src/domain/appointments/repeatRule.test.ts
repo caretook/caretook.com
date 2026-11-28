@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { timelineEntryContentZSchema } from "../timeline/timelineEntry";
-import { appointmentSeriesCreateZSchema } from "./appointmentSeries";
+import { timelineEntryContentZSchema } from "../../db/schema/timeline/timelineEntry";
+import { appointmentSeriesCreateZSchema } from "../../db/schema/appointments/appointmentSeries";
 import { parseRule, repeatText, ruleText, seriesVisitId } from "./repeatRule";
 
 const GROUP = "00000000-0000-4000-8000-000000000001";

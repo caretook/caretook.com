@@ -4,7 +4,7 @@ import {
   recipientConditionUpdateZSchema,
 } from "../profiles/recipientCondition";
 import { doseDetailsZSchema, scheduleTimeZSchema } from "../medications/medication";
-import { parseRule } from "../appointments/repeatRule";
+import { parseRule } from "../../../domain/appointments/repeatRule";
 import { REPEAT_NEEDS_DAY_ISSUE, TODO_LIMITS, TIME_NEEDS_DAY_ISSUE } from "../todos/todo";
 import { symptomDetailsZSchema, TIMELINE_LIMITS } from "../timeline/timelineEntry";
 import { timeZoneZSchema } from "../core/timeZone";
