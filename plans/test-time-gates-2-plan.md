@@ -8,7 +8,7 @@ PRD: [test-time-gates-2-prd.md](test-time-gates-2-prd.md). Items B-859, B-837, B
 
 **Landing mode:** run everything through (started run-through by the dispatcher, 2026-11-28).
 
-**Plan fix (2026-11-28):** the plan predates the Risa move; `ci`, `recover`, `rotate`, `dispatch`, `time-gate` and `tier-data` tests now live in ~/git/risa. Slice 1 drops `ci.test.mjs`. Slice 2 narrowed and slice 3's criterion moved to `pnpm test:tooling`, the backlog session agreeing (2026-11-28). The quiet rule (loops/time-gate.mjs:77 needs a quiet start and end) was sent to Risa's backlog (Admiral Marcus) to file; RISA id: pending.
+**Plan fix (2026-11-28):** the plan predates the Risa move; `ci`, `recover`, `rotate`, `dispatch`, `time-gate` and `tier-data` tests now live in ~/git/risa. Slice 1 drops `ci.test.mjs`. Slice 2 narrowed and slice 3's criterion moved to `pnpm test:tooling`, the backlog session agreeing (2026-11-28). The quiet rule (loops/time-gate.mjs:77 needs a quiet start and end) was sent to Risa's backlog (Admiral Marcus) : filed as RISA-1065 (time gate judges the local measure on its start load only, fixes-bug); the test split is RISA-1066 (fixes-tooling). Risa's backlog notifies backlog (caretook) when RISA-1065 ships in a tag.
 
 **Models:** slice 1 opus.
 
