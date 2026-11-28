@@ -228,3 +228,72 @@ describe("reopen after several offline ticks (B-383)", () => {
     expect(await openIn(a.id)).toEqual([c]);
   });
 });
+
+describe("reopen of a tick made before B-383 (B-1002)", () => {
+  /**
+   * A tick as the server wrote it before B-383: `done_at` from the app's
+   * clock, taken after the transaction's `now()` that the successor's
+   * `created_at` is, so the successor looks made a few ms before the tick.
+   */
+  const tickedBeforeB383 = async (todoId: string, nextId: string) => {
+    await getDb().execute(
+      sql`UPDATE todo SET done_at = (SELECT created_at FROM todo WHERE id = ${nextId}) + interval '4 milliseconds'
+          WHERE id = ${todoId}`,
+    );
+  };
+
+  it("an untouched successor made a few ms before the tick is still found and taken away", async () => {
+    const { u, addTodo, openIn, row } = await setup();
+    const todo = await addTodo();
+    ok(await todoService.complete(u.caretaker.ctx, todo.id));
+    const [next] = (await openIn(todo.id)) as [string];
+    await tickedBeforeB383(todo.id, next);
+
+    expect(ok(await todoService.reopen(u.caretaker.ctx, todo.id))).toMatchObject({
+      doneAt: null,
+      repeatRule: WEEKLY_MO,
+      repeatId: todo.id,
+    });
+    expect((await row(next))?.deletedAt).not.toBeNull();
+    // One open row, still repeating (not two).
+    expect(await openIn(todo.id)).toEqual([todo.id]);
+  });
+
+  it("an edited successor made a few ms before the tick stays, and the reopened one stops repeating", async () => {
+    const { u, addTodo, openIn } = await setup();
+    const todo = await addTodo();
+    ok(await todoService.complete(u.caretaker.ctx, todo.id));
+    const [next] = (await openIn(todo.id)) as [string];
+    ok(await todoService.update(u.caretaker.ctx, next, { title: "Water and mist the ferns" }));
+    await tickedBeforeB383(todo.id, next);
+
+    expect(ok(await todoService.reopen(u.caretaker.ctx, todo.id))).toMatchObject({
+      doneAt: null,
+      repeatRule: null,
+      repeatId: null,
+    });
+    expect(await openIn(todo.id)).toEqual([next]);
+  });
+
+  it("the fallback never takes a row made before the reopened one (its predecessor) for its successor", async () => {
+    const { u, addTodo, openIn, row } = await setup();
+    // A (Mon 16th) ticked makes B (Mon 23rd); B moved back before A's day and
+    // ticked makes C; C is deleted. Reopening B finds no successor: A, due
+    // after B now but made before it, isn't one.
+    const a = await addTodo();
+    ok(await todoService.complete(u.caretaker.ctx, a.id, { doneAt: MONDAY_NOON }));
+    const b = nextTodoId(a.id, "2026-11-23");
+    ok(await todoService.update(u.caretaker.ctx, b, { dueOn: "2026-11-09" }));
+    ok(await todoService.complete(u.caretaker.ctx, b, { doneAt: TUESDAY_NOON }));
+    const [c] = (await openIn(a.id)) as [string];
+    ok(await todoService.remove(u.caretaker.ctx, c));
+
+    expect(ok(await todoService.reopen(u.caretaker.ctx, b))).toMatchObject({
+      doneAt: null,
+      repeatRule: WEEKLY_MO,
+      repeatId: a.id,
+    });
+    expect(await row(a.id)).toMatchObject({ deletedAt: null, doneAt: expect.anything() as unknown });
+    expect(await openIn(a.id)).toEqual([b]);
+  });
+});
