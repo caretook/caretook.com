@@ -3,7 +3,7 @@
 // throwaway tree with no .loops/ (as CI runs it): the lines a check prints, smoke
 // mode, the results file, its timeout and a proof run's forced failure. Then the
 // real check map (check-areas.d/) through the check-areas resolver, as
-// `pnpm prd browser --changed` asks it. The gate around the runner (lease, caps,
+// `risa browser --changed` asks it. The gate around the runner (lease, caps,
 // retry, watchdog) has its tests in the core's browser.test.mjs.
 import { execFileSync, spawnSync } from "node:child_process";
 import {

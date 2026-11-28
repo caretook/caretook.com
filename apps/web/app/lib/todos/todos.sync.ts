@@ -1,7 +1,7 @@
 import type { TodoContent, TodoUpdateInput } from "@caretook/data/schema";
 import type { ActionResult } from "../core/api";
 import type { SyncDb } from "../sync/index";
-import type { LocalQuery } from "../timeline/timeline.sync";
+import type { EntryRow, LocalQuery } from "../timeline/timeline.sync";
 
 import {
   ASSIGNEE_NOT_MEMBER_ISSUE,
@@ -9,6 +9,11 @@ import {
   BAD_TODO_LINK_ISSUES,
   canCompleteTodo,
   canHaveSubtask,
+  clampDue,
+  DUE_AFTER_PARENT_ISSUE,
+  entryTodoId,
+  inheritedDue,
+  isDueAfterParent,
   isTodoCompleter,
   isTodoWriter,
   MAX_TODO_DEPTH,
@@ -17,6 +22,7 @@ import {
   repeatColumnsFor,
   ROLLUP_METADATA,
   rollupOf,
+  SIBLING_ORDER_SQL,
   todoContentOf,
   todoContentZSchema,
   todoCreateZSchema,
@@ -149,13 +155,24 @@ export type TodosFilter = {
   limit?: number;
   /** Only the todos carrying this tag (`?tag=`; tags PRD). */
   tagId?: string | null;
-  /** Only the todos that list on their own (`listsOnItsOwn`: top-level, or a dated or assigned subtask). */
-  listed?: boolean;
+  /**
+   * The Done list's rule (todo-subtasks-3): top-level todos, and subtasks whose
+   * top-level todo is done too. One whose top-level todo is open shows struck in
+   * that tree (`todoTreesQuery`) instead.
+   */
+  doneListed?: boolean;
 };
 
-/** `listsOnItsOwn` in SQL, for the queries that page or count (the Done list). */
-const LISTED_SQL = ` AND (parent_id IS NULL OR due_on IS NOT NULL OR assignee_id IS NOT NULL
-  OR (assignee_name IS NOT NULL AND TRIM(assignee_name) <> ''))`;
+/**
+ * A todo's top-level todo's `done_at`, as a correlated subquery on the outer
+ * `todo` (never a join: the other conditions' columns are unqualified). With
+ * `MAX_TODO_DEPTH` 3 the top is the parent or the parent's parent.
+ */
+const TOP_DONE_AT_SQL = `(SELECT top_todo.done_at FROM todo top_todo WHERE top_todo.id = COALESCE(
+  (SELECT up_todo.parent_id FROM todo up_todo WHERE up_todo.id = todo.parent_id), todo.parent_id))`;
+
+/** `doneListed` in SQL: top-level, or under a done top-level todo. */
+const DONE_LISTED_SQL = ` AND (parent_id IS NULL OR ${TOP_DONE_AT_SQL} IS NOT NULL)`;
 
 const whoCondition = ({ who, userId }: TodosFilter): { sql: string; params: unknown[] } => {
   if (who === "mine") return { sql: " AND assignee_id = ?", params: [userId ?? ""] };
@@ -170,7 +187,8 @@ const whoCondition = ({ who, userId }: TodosFilter): { sql: string; params: unkn
 /** The chip's condition, the tag's and the listing rule's, ANDed. */
 const filterCondition = (filter: TodosFilter): { sql: string; params: unknown[] } => {
   const chip = whoCondition(filter);
-  const who = filter.listed ? { sql: chip.sql + LISTED_SQL, params: chip.params } : chip;
+  const listing = filter.doneListed ? DONE_LISTED_SQL : "";
+  const who = listing ? { sql: chip.sql + listing, params: chip.params } : chip;
   if (!filter.tagId) return who;
   return {
     sql: `${who.sql} AND id IN (SELECT todo_id FROM record_tag WHERE tag_id = ? AND todo_id IS NOT NULL)`,
@@ -196,7 +214,7 @@ export const todosQuery = (groupId: string, filter: TodosFilter = {}): LocalQuer
 /** How many done todos the chip shows (the Done list's "Show more"). */
 export const doneCountQuery = (
   groupId: string,
-  filter: Pick<TodosFilter, "who" | "userId" | "tagId" | "listed"> = {},
+  filter: Pick<TodosFilter, "who" | "userId" | "tagId" | "doneListed"> = {},
 ): LocalQuery => {
   const who = filterCondition(filter);
   return {
@@ -209,6 +227,19 @@ export const doneCountQuery = (
 export const todoQuery = (id: string): LocalQuery => ({
   sql: "SELECT * FROM todo WHERE id = ?",
   params: [id],
+});
+
+/**
+ * The trees' rows (todo-subtasks-3): the group's open live todos and its live
+ * done subtasks whose top-level todo is open (they show struck in their tree),
+ * in `siblingOrder`. One live query for a whole list of trees (`todoTrees`
+ * builds them on the device), never one per row.
+ */
+export const todoTreesQuery = (groupId: string): LocalQuery => ({
+  sql: `SELECT * FROM todo WHERE group_id = ? AND deleted_at IS NULL
+        AND (done_at IS NULL OR (parent_id IS NOT NULL AND ${TOP_DONE_AT_SQL} IS NULL))
+        ORDER BY ${SIBLING_ORDER_SQL}`,
+  params: [groupId],
 });
 
 // ---------------------------------------------------------------------------
@@ -311,6 +342,8 @@ const badParent = refuse("Choose a todo in this care group that can have subtask
 const repeatWithSubtasks = refuse("A subtask, or a todo with subtasks, can't repeat", [
   { ...REPEAT_WITH_SUBTASKS_ISSUE },
 ]);
+/** `todos:dueAfterParent`: an edit moving a subtask's due day past its parent's (`isDueAfterParent`). */
+const dueAfterParent = refuse(DUE_AFTER_PARENT_ISSUE.message, [{ ...DUE_AFTER_PARENT_ISSUE }]);
 
 /**
  * A todo's ancestors, its parent first, deleted ones included (they still
@@ -354,13 +387,25 @@ export type TodoInput = {
   dueTime?: string | null;
   providerId?: string | null;
   medicationId?: string | null;
-  /** An event to link (the form's picker): `createTodo` writes it as a link row. */
+  /** `createTodo` only (old callers, quick entry): an event to link, written as a link row. */
   eventId?: string | null;
   /**
-   * `createTodo` only: a live note or event to link (`todos/new?entryId=`).
-   * One that isn't live in the group is ignored.
+   * `createTodo` only (old callers): a live note or event to link. One that
+   * isn't live in the group is ignored.
    */
   entryId?: string | null;
+  /**
+   * `createTodo` only: the notes and events the todo links (the add sheet,
+   * todo-links); each live one in the group is linked (others are ignored).
+   */
+  entryIds?: readonly string[];
+  /**
+   * `updateTodo` only (the edit sheet's own changes, B-990): notes and
+   * events to link (each live one in the group) and to unlink. Other link
+   * rows are left as they are, whoever made them.
+   */
+  addEntryIds?: readonly string[];
+  removeEntryIds?: readonly string[];
   /** RRULE text (`ruleText`) to repeat; it needs a due day. */
   repeatRule?: string | null;
   /** `createTodo` only: the todo this is a subtask of (`canHaveSubtask`; it never repeats). */
@@ -382,7 +427,13 @@ export const plannedTodo = async (
   const recipientId = await recipientOf(db, groupId);
   if (!recipientId) return refuse("This care group has no care recipient yet");
 
-  const { entryId: _entryId, ...fields } = input;
+  const {
+    entryId: _entryId,
+    entryIds: _entryIds,
+    addEntryIds: _addEntryIds,
+    removeEntryIds: _removeEntryIds,
+    ...fields
+  } = input;
   const parsed = todoCreateZSchema.safeParse({ groupId, ...fields });
   if (!parsed.success) return invalid(parsed.error);
   const { groupId: _g, recipientId: _r, id: _id, ...content } = parsed.data;
@@ -393,6 +444,9 @@ export const plannedTodo = async (
   const parent = await parentRefusal(db, groupId, content.parentId);
   if (parent) return parent;
   if (content.parentId && content.repeatRule) return repeatWithSubtasks;
+  // A subtask with no due takes its parent's; one past the parent's day is clamped (as todoService).
+  const parentTodo = content.parentId ? await liveTodo(db, content.parentId) : null;
+  const due = parentTodo ? clampDue(content.dueOn ? content : inheritedDue(parentTodo), parentTodo) : content;
 
   const now = nowTimestamp();
   const id = crypto.randomUUID();
@@ -403,6 +457,8 @@ export const plannedTodo = async (
       groupId,
       recipientId,
       ...contentColumns(content),
+      dueOn: due.dueOn,
+      dueTime: due.dueTime,
       parentId: content.parentId,
       // The quick-entry runner's until it writes a link row; `createTodo` takes it off.
       eventId: content.eventId,
@@ -474,29 +530,44 @@ const planRollup = async (db: SyncDb, change: TreeChange, at: string) => {
   };
 };
 
-/** A live note or event in the group (what `entryId` may link), else null. */
-const linkableEntry = async (db: SyncDb, groupId: string, entryId: string | null | undefined) => {
-  if (!entryId) return null;
-  const [row] = await readRows<{ id: string }>(db, {
-    sql: `SELECT id FROM timeline_entry WHERE id = ? AND group_id = ? AND deleted_at IS NULL
-            AND kind IN (${NOTE_DOCUMENT_KINDS.map(() => "?").join(", ")})`,
-    params: [entryId, groupId, ...NOTE_DOCUMENT_KINDS],
+const KIND_LIST = NOTE_DOCUMENT_KINDS.map(() => "?").join(", ");
+
+/** Which of `ids` are live notes or events in the group (what a todo may link), in their order. */
+const linkableEntries = async (db: SyncDb, groupId: string, ids: readonly (string | null | undefined)[]) => {
+  const wanted = [...new Set(ids.filter((id): id is string => !!id))];
+  if (wanted.length === 0) return [];
+  const rows = await readRows<{ id: string }>(db, {
+    sql: `SELECT id FROM timeline_entry WHERE id IN (SELECT value FROM json_each(?)) AND group_id = ?
+            AND deleted_at IS NULL AND kind IN (${KIND_LIST})`,
+    params: [JSON.stringify(wanted), groupId, ...NOTE_DOCUMENT_KINDS],
   });
-  return row?.id ?? null;
+  const live = new Set(rows.map((r) => r.id));
+  return wanted.filter((id) => live.has(id));
 };
+
+/** The notes and events a todo links that are live (what the sheet shows and may unlink). */
+const linkedLiveEntries = async (db: SyncDb, todoId: string) =>
+  (
+    await readRows<{ entry_id: string }>(db, {
+      sql: `SELECT l.entry_id FROM timeline_entry_todo l
+            JOIN timeline_entry e ON e.id = l.entry_id AND e.group_id = l.group_id
+            WHERE l.todo_id = ? AND e.deleted_at IS NULL AND e.kind IN (${KIND_LIST})`,
+      params: [todoId, ...NOTE_DOCUMENT_KINDS],
+    })
+  ).map((r) => r.entry_id);
 
 /**
  * Add a todo on this device (writers). It syncs when the device is online.
- * Its event (the picker's, checked live) and `entryId` (a live note or
- * event, else ignored) become link rows in the same local transaction; the
- * todo's `event_id` stays empty.
+ * Its `entryIds` and an old caller's `entryId` (each a live note or event in
+ * the group, else ignored) and `eventId` (checked live) become link rows in
+ * the same local transaction; the todo's `event_id` stays empty.
  */
 export const createTodo = async (db: SyncDb, groupId: string, input: TodoInput): Promise<TodoWriteResult> => {
   const planned = await plannedTodo(db, groupId, input);
   if (!planned.ok) return planned;
   const { eventId, ...row } = planned.row;
-  const entry = await linkableEntry(db, groupId, input.entryId);
-  const linked = [...new Set([eventId, entry].filter((id): id is string => !!id))];
+  const entries = await linkableEntries(db, groupId, [input.entryId, ...(input.entryIds ?? [])]);
+  const linked = [...new Set([eventId, ...entries].filter((id): id is string => !!id))];
   // A new open subtask reopens a done parent (and those above it).
   const rollup = row.parentId
     ? await planRollup(
@@ -519,14 +590,25 @@ export const createTodo = async (db: SyncDb, groupId: string, input: TodoInput):
 /**
  * Edit a todo's title, assignee, due, repeat or provider and medication
  * links (writers). The merged todo must be valid; a changed assignee must be
- * a member and a changed link live. Its events are link rows, which an edit
- * leaves alone: a patch's `eventId` (and a form's `entryId`) is ignored, and
+ * a member and a changed link live. Its notes and events are link rows,
+ * changed only as the edit sheet changed them (B-990), in the same
+ * transaction: each live note or event in `addEntryIds` it doesn't link yet
+ * is linked, each it links in `removeEntryIds` unlinked; the rest stay, so
+ * a link another member made or removed meanwhile is kept as they made it.
+ * A patch's `eventId`, `entryId` and `entryIds` are ignored, and
  * `event_id` isn't written.
  */
 export const updateTodo = async (
   db: SyncDb,
   id: string,
-  { eventId: _eventId, entryId: _entryId, ...patch }: TodoUpdateInput & { entryId?: string | null },
+  {
+    eventId: _eventId,
+    entryId: _entryId,
+    entryIds: _entryIds,
+    addEntryIds = [],
+    removeEntryIds = [],
+    ...patch
+  }: TodoUpdateInput & Pick<TodoInput, "entryId" | "entryIds" | "addEntryIds" | "removeEntryIds">,
 ): Promise<TodoWriteResult> => {
   const existing = await liveTodo(db, id);
   if (!existing) return todoMissing;
@@ -539,7 +621,12 @@ export const updateTodo = async (
   const defined = Object.fromEntries(Object.entries(shape.data).filter(([, v]) => v !== undefined));
   const merged = todoContentZSchema.safeParse({ ...todoContentOf(existing), ...defined });
   if (!merged.success) return invalid(merged.error);
-  const { doneAt: _doneAt, doneBy: _doneBy, ...content } = merged.data;
+  const { doneAt: _doneAt, doneBy: _doneBy, ...edited } = merged.data;
+  // A subtask's due never passes its parent's day: moving it there is refused; any
+  // other edit of one that's already late is clamped, as todoService clamps it.
+  const parent = existing.parentId ? await liveTodo(db, existing.parentId) : null;
+  if (parent && edited.dueOn !== existing.dueOn && isDueAfterParent(edited, parent)) return dueAfterParent;
+  const content = parent ? { ...edited, ...clampDue(edited, parent) } : edited;
 
   if (content.assigneeId !== existing.assigneeId) {
     const assignee = await assigneeRefusal(db, existing.groupId, content.assigneeId);
@@ -557,17 +644,101 @@ export const updateTodo = async (
   )
     return repeatWithSubtasks;
 
+  // A new day (moved, or a first one) clamps the open subtasks below; clearing it changes none.
+  const clamps =
+    content.dueOn && content.dueOn !== existing.dueOn ? await descendantClamps(db, id, content) : [];
+  const entryLinks =
+    addEntryIds.length || removeEntryIds.length
+      ? await linkChanges(db, existing.groupId, id, addEntryIds, removeEntryIds)
+      : null;
+  const now = nowTimestamp();
   // A new rule or due day moves the anchor; no rule clears all three (as todoService).
-  await db.drizzle
-    .update(todos)
-    .set({
-      ...contentColumns(content),
-      ...repeatColumnsFor(id, existing, content),
-      updatedAt: nowTimestamp(),
-      updatedBy: db.userId,
-    })
-    .where(eq(todos.id, id));
+  await db.drizzle.transaction(async (tx) => {
+    await tx
+      .update(todos)
+      .set({
+        ...contentColumns(content),
+        ...repeatColumnsFor(id, existing, content),
+        updatedAt: now,
+        updatedBy: db.userId,
+      })
+      .where(eq(todos.id, id));
+    for (const clamp of clamps) {
+      await tx
+        .update(todos)
+        .set({ dueOn: clamp.dueOn, dueTime: clamp.dueTime, updatedAt: now, updatedBy: db.userId })
+        .where(eq(todos.id, clamp.id));
+    }
+    for (const entryId of entryLinks?.link ?? []) {
+      await tx.insert(timelineEntryTodos).values(entryTodoRow(db, existing.groupId, entryId, id));
+    }
+    for (const entryId of entryLinks?.unlink ?? []) {
+      await tx.delete(timelineEntryTodos).where(eq(timelineEntryTodos.id, entryTodoId(entryId, id)));
+    }
+  });
   return { ok: true, id };
+};
+
+/**
+ * What adding `add` and removing `remove` takes: the live notes and events
+ * in `add` (in the group) the todo doesn't link yet, and the live ones it
+ * links that are in `remove` (one in both is removed).
+ */
+const linkChanges = async (
+  db: SyncDb,
+  groupId: string,
+  todoId: string,
+  add: readonly string[],
+  remove: readonly string[],
+) => {
+  const [wanted, linked] = await Promise.all([
+    linkableEntries(db, groupId, add),
+    linkedLiveEntries(db, todoId),
+  ]);
+  const drop = new Set(remove);
+  const has = new Set(linked);
+  return {
+    link: wanted.filter((e) => !has.has(e) && !drop.has(e)),
+    unlink: linked.filter((e) => drop.has(e)),
+  };
+};
+
+/**
+ * The clamps a todo's new due (`due`) makes below it (todo-subtasks-3, as
+ * `todoService`'s): its open live descendants, all levels, each under its
+ * own parent's due as clamped here (`clampDue`). Done ones stay as they are.
+ */
+const descendantClamps = async (
+  db: SyncDb,
+  id: string,
+  due: { dueOn: string | null; dueTime: string | null },
+) => {
+  const rows = await readRows<{
+    id: string;
+    parent_id: string;
+    due_on: string | null;
+    due_time: string | null;
+    done_at: string | null;
+  }>(db, {
+    sql: `WITH RECURSIVE below(id, depth) AS (
+            SELECT id, 1 FROM todo WHERE parent_id = ? AND deleted_at IS NULL
+            UNION ALL
+            SELECT t.id, below.depth + 1 FROM todo t JOIN below ON t.parent_id = below.id
+              WHERE t.deleted_at IS NULL AND below.depth < ?
+          )
+          SELECT todo.id, todo.parent_id, todo.due_on, todo.due_time, todo.done_at
+          FROM todo JOIN below ON below.id = todo.id ORDER BY below.depth`,
+    params: [id, MAX_TODO_DEPTH],
+  });
+  const dueOf = new Map([[id, due]]);
+  const clamps: { id: string; dueOn: string | null; dueTime: string | null }[] = [];
+  for (const row of rows) {
+    const own = { dueOn: row.due_on, dueTime: row.due_time };
+    const next = row.done_at ? own : clampDue(own, dueOf.get(row.parent_id));
+    dueOf.set(row.id, next);
+    if (next.dueOn !== own.dueOn || next.dueTime !== own.dueTime) clamps.push({ id: row.id, ...next });
+  }
+  return clamps;
 };
 
 // Repeats (planner-2): ticking a repeating todo makes the next occurrence on
@@ -950,16 +1121,52 @@ export const todoEventChoicesQuery = (
   params: [groupId, toLocalTimestamp(from), chosenId ?? ""],
 });
 
+/**
+ * A chosen entry's row with its document (an untitled note's first line
+ * names it): the server's text and snapshot, and this device's pending
+ * updates as a JSON array of base64 (`previewText` reads all three, B-991).
+ */
+export type ChosenEntryRow = EntryRow & {
+  document_text: string | null;
+  document_snapshot: string | null;
+  document_updates: string;
+};
+
+/**
+ * The todo sheet's chosen notes and events (todo-links), for their chips:
+ * those of `ids` that are live notes or events in the group, with their
+ * documents and pending updates.
+ */
+export const chosenEntriesQuery = (groupId: string, ids: readonly string[]): LocalQuery => ({
+  sql: `SELECT e.*, d.text AS document_text, d.snapshot AS document_snapshot,
+               (SELECT json_group_array(u.data) FROM note_update u WHERE u.document_id = e.id) AS document_updates
+        FROM timeline_entry e
+        LEFT JOIN note_document d ON d.id = e.id
+        WHERE e.id IN (SELECT value FROM json_each(?)) AND e.group_id = ? AND e.deleted_at IS NULL
+          AND e.kind IN (${KIND_LIST})`,
+  params: [JSON.stringify(ids), groupId, ...NOTE_DOCUMENT_KINDS],
+});
+
 import { toLocalTimestamp } from "../timeline/timeline.sync";
 
 // ---------------------------------------------------------------------------
 // Subtasks (todo-subtasks)
 // ---------------------------------------------------------------------------
 
-/** A todo's live subtasks, done ones too, oldest first. */
+/** A todo's live subtasks, done ones too, in `siblingOrder` (`SIBLING_ORDER_SQL`). */
 export const subtasksQuery = (todoId: string): LocalQuery => ({
-  sql: "SELECT * FROM todo WHERE parent_id = ? AND deleted_at IS NULL ORDER BY created_at, id",
+  sql: `SELECT * FROM todo WHERE parent_id = ? AND deleted_at IS NULL ORDER BY ${SIBLING_ORDER_SQL}`,
   params: [todoId],
+});
+
+/**
+ * The parents of `parentIds`' todos, deleted ones too (they count for
+ * depth): each one's own parent, for a flat list's quick adds
+ * (`useQuickAddChains`).
+ */
+export const todoParentLinksQuery = (parentIds: readonly string[]): LocalQuery => ({
+  sql: `SELECT id, parent_id FROM todo WHERE id IN (${parentIds.map(() => "?").join(", ") || "NULL"})`,
+  params: [...parentIds],
 });
 
 /** One row per parent with live subtasks: how many, how many are done (`subtaskProgress`), and its title. */
@@ -978,12 +1185,27 @@ export const subtaskProgressQuery = (groupId: string): LocalQuery => ({
   params: [groupId],
 });
 
-/** The query's parents by id, with their titles (a listed subtask's "Part of"). */
-export const parentsById = (rows: readonly SubtaskProgressRow[]) =>
-  new Map(
-    rows.flatMap((r) => (r.title ? [[r.parent_id, { id: r.parent_id, title: r.title }] as const] : [])),
-  );
-
 /** The query's rows by parent id; a todo with no live subtask isn't there. */
 export const progressByParent = (rows: readonly SubtaskProgressRow[]) =>
   new Map(rows.map((r) => [r.parent_id, { done: Number(r.done), total: Number(r.total) }]));
+
+// ---------------------------------------------------------------------------
+// One todo's tree (todo-subtasks-3 slice 6)
+// ---------------------------------------------------------------------------
+
+/**
+ * The group's live todos under `todoId` (its subtasks, theirs, …), done ones
+ * too, not `todoId` itself: the todo page's tree (`todoTrees` with
+ * `rootId`), in one live query. Deleted ones and what's under them are left
+ * out, as the delete takes them.
+ */
+export const todoDescendantsQuery = (groupId: string, todoId: string): LocalQuery => ({
+  sql: `WITH RECURSIVE below(id, depth) AS (
+          SELECT id, 1 FROM todo WHERE parent_id = ? AND group_id = ? AND deleted_at IS NULL
+          UNION ALL
+          SELECT t.id, below.depth + 1 FROM todo t JOIN below ON t.parent_id = below.id
+            WHERE t.group_id = ? AND t.deleted_at IS NULL AND below.depth < ?
+        )
+        SELECT todo.* FROM todo JOIN below ON below.id = todo.id ORDER BY todo.created_at, todo.id`,
+  params: [todoId, groupId, groupId, MAX_TODO_DEPTH],
+});

@@ -53,7 +53,7 @@ describe("the quick check's guards", () => {
       ["scripts/project/sync-matrix.test.mjs", ["project:unit"]],
       ["packages/data/src/db/roles/rolesSql.test.ts", ["data:unit"]],
     ]);
-    expect(guardsOutside(QUICK_GUARDS, byFile, ["data:unit", "web:unit", "core:unit"])).toEqual([
+    expect(guardsOutside(QUICK_GUARDS, byFile, ["data:unit", "web:unit", "server:unit"])).toEqual([
       "scripts/project/sync-matrix.test.mjs: in project:unit, none of which a quick check runs",
     ]);
     expect(guardsOutside(QUICK_GUARDS, new Map(), ["project:unit", "data:unit"])).toHaveLength(2);

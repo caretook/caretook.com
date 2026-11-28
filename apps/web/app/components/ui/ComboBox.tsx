@@ -1,8 +1,12 @@
+import type { LucideIcon } from "lucide-react";
 import type { FieldControl } from "./fieldIds";
 
-import { useEffect, useRef, useState } from "react";
+import type { RefObject } from "react";
+
+import { useContext, useEffect, useRef, useState } from "react";
 import {
   ComboBox as AriaComboBox,
+  ComboBoxStateContext,
   Header,
   Input,
   ListBox,
@@ -12,8 +16,8 @@ import {
 } from "react-aria-components";
 import { SURFACE } from "./styles";
 
-/** One choice in a combo box: `description` is a second, dimmer line. */
-export type ComboBoxOption = { id: string; label: string; description?: string };
+/** One choice in a combo box: `description` is a second, dimmer line; `icon` says what it is (decorative). */
+export type ComboBoxOption = { id: string; label: string; description?: string; icon?: LucideIcon };
 
 /** A titled run of choices after the plain ones (ids unique across the whole list). */
 export type ComboBoxSection = { id: string; heading: string; options: readonly ComboBoxOption[] };
@@ -23,7 +27,9 @@ const SHOW_ALL = () => true;
 
 const CREATE = "\u0000create";
 const ITEM =
-  "rounded-field flex cursor-pointer flex-col px-3 py-2 outline-none data-[focused]:bg-base-200 data-[disabled]:opacity-50";
+  "rounded-field cursor-pointer px-3 py-2 outline-none data-[focused]:bg-base-200 data-[disabled]:opacity-50";
+/** With an icon: the icon in a first column, beside the label and description. */
+const ICON_ITEM = "grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3";
 
 /**
  * A text field with a list of choices under it (React Aria: the list opens
@@ -41,7 +47,13 @@ const ITEM =
  * later an allergy or a medication): focus opens nothing, the first typed
  * character opens the list, and an empty field shows none (clearing it
  * closes the list); a pick closes it until the text changes again. The
- * default, `"focus"`, opens it on focus to browse.
+ * default, `"focus"`, opens it on focus to browse; a pick closes it, and
+ * it stays closed (even when the caller clears the text) until the field is
+ * typed in, tapped, arrowed into or left.
+ *
+ * `reopenOn` is for a filter beside the field (the Link to box's type
+ * chips): when it changes, the cursor goes back in the field and its list
+ * opens again (when there's text to list for), showing what the filter left.
  *
  * `control` puts it inside a `Field`: the field's control props (its id,
  * `aria-invalid`, `aria-describedby` and classes) go on the text input, with
@@ -61,6 +73,7 @@ export function ComboBox({
   onClose,
   focusOnMount,
   opensOn = "focus",
+  reopenOn,
   control,
 }: {
   /** The field's accessible name. */
@@ -82,6 +95,8 @@ export function ComboBox({
   focusOnMount?: boolean;
   /** When the list opens: on `focus` (browse every choice), or on `typing` (nothing for an empty field). */
   opensOn?: "focus" | "typing";
+  /** A value that, when it changes, puts the cursor back in the field and opens its list (a filter beside it). */
+  reopenOn?: unknown;
   /** From a `Field`'s render prop, plus the input's `name` and `maxLength`. */
   control?: FieldControl & { name?: string; maxLength?: number };
 }) {
@@ -96,7 +111,17 @@ export function ComboBox({
   // won't open it) once the collection is empty and empty ones aren't allowed.
   // Nor does the text a pick just put in (React Aria would reopen on it).
   const [picked, setPicked] = useState<string | null>(null);
-  const listed = opensOn === "focus" || (typed !== "" && inputValue !== picked);
+  // Focus mode: closed after a pick (React Aria would reopen it on the text
+  // the caller then puts in) until the field is typed in, tapped, arrowed into or left.
+  const [quiet, setQuiet] = useState(false);
+  const pickedLabel = useRef<string | null>(null);
+  const [woken, setWoken] = useState(0);
+  const listed = opensOn === "focus" ? !quiet : typed !== "" && inputValue !== picked;
+  const wake = () => {
+    if (!quiet) return;
+    setQuiet(false);
+    setWoken((n) => n + 1);
+  };
 
   return (
     <AriaComboBox
@@ -105,6 +130,11 @@ export function ComboBox({
       inputValue={inputValue}
       onInputChange={(text) => {
         if (text !== picked) setPicked(null);
+        // Read from a ref: React Aria may put the picked label in before this render has it.
+        if (text !== pickedLabel.current && text !== "") {
+          pickedLabel.current = null;
+          setQuiet(false);
+        }
         onInputChange(text);
       }}
       selectedKey={null}
@@ -112,10 +142,13 @@ export function ComboBox({
         if (key === null) return;
         if (key === CREATE) onCreate?.(typed);
         else {
-          if (opensOn === "typing")
-            setPicked(
-              [...options, ...sections.flatMap((s) => s.options)].find((o) => o.id === key)?.label ?? null,
-            );
+          const label =
+            [...options, ...sections.flatMap((s) => s.options)].find((o) => o.id === key)?.label ?? null;
+          if (opensOn === "typing") setPicked(label);
+          else {
+            pickedLabel.current = label;
+            setQuiet(true);
+          }
           onSelect(String(key));
         }
       }}
@@ -131,13 +164,21 @@ export function ComboBox({
         placeholder={placeholder}
         ref={input}
         autoComplete="off"
-        onBlur={() => onClose?.("blur")}
+        onBlur={() => {
+          setQuiet(false);
+          onClose?.("blur");
+        }}
+        onPointerDown={wake}
         onKeyDown={(e) => {
           if (e.key === "Escape" && !open.current) onClose?.("escape");
+          if (e.key === "ArrowDown" || e.key === "ArrowUp") wake();
         }}
         className="input input-sm w-full"
         {...control}
       />
+      <Reopen on={reopenOn} input={input} listed={listed} />
+      <Reopen on={woken} input={input} listed={listed} />
+      <CloseWhen quiet={quiet} />
       <AriaPopover
         placement="bottom start"
         className={`${SURFACE} max-h-72 w-[var(--trigger-width)] min-w-56 overflow-y-auto p-1`}
@@ -165,15 +206,56 @@ export function ComboBox({
   );
 }
 
+/** Inside the combo box, so it can reach its state: focus the field and open the list when `on` changes. */
+function Reopen({
+  on,
+  input,
+  listed,
+}: {
+  on: unknown;
+  input: RefObject<HTMLInputElement | null>;
+  listed: boolean;
+}) {
+  const state = useContext(ComboBoxStateContext);
+  const last = useRef(on);
+  useEffect(() => {
+    if (Object.is(last.current, on)) return;
+    last.current = on;
+    input.current?.focus();
+    if (listed) state?.open(null, "manual");
+  }, [on, input, listed, state]);
+  return null;
+}
+
+/** Inside the combo box: close the list once `quiet` (after a focus-mode pick React Aria leaves it open). */
+function CloseWhen({ quiet }: { quiet: boolean }) {
+  const state = useContext(ComboBoxStateContext);
+  useEffect(() => {
+    if (quiet) state?.close();
+  }, [quiet, state]);
+  return null;
+}
+
 function Option({ item }: { item: ComboBoxOption }) {
+  // The label stays the item's first child and the description its second,
+  // with or without an icon (tests and helpers read the first child as the
+  // label): the icon comes last in the markup and the grid puts it first.
+  const Icon = item.icon;
+  const text = Icon ? " col-start-2" : "";
   return (
     <ListBoxItem
       id={item.id}
       textValue={item.label}
-      className={`${ITEM} ${item.id === CREATE ? "text-primary font-medium" : ""}`}
+      className={`${ITEM} ${Icon ? ICON_ITEM : "flex flex-col"} ${item.id === CREATE ? "text-primary font-medium" : ""}`}
     >
-      <span className="truncate">{item.label}</span>
-      {item.description && <span className="text-muted truncate text-sm">{item.description}</span>}
+      <span className={`truncate${text}`}>{item.label}</span>
+      {item.description && <span className={`text-muted truncate text-sm${text}`}>{item.description}</span>}
+      {Icon && (
+        <Icon
+          aria-hidden="true"
+          className={`text-muted col-start-1 row-start-1 size-4 shrink-0 ${item.description ? "row-span-2" : ""}`}
+        />
+      )}
     </ListBoxItem>
   );
 }

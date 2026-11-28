@@ -16,8 +16,10 @@ import { useLocation, useNavigate } from "react-router";
 import {
   CancelEventDialog,
   OlderEntries,
+  TimelineEntryRow,
   useEventCancel,
   useEventReschedule,
+  useOpenTodoCounts,
   useRemindMe,
   useSeriesScope,
 } from "~/components/entry";
@@ -31,7 +33,7 @@ import { useGroup } from "~/lib/app-shell/group";
 import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { useSymptomFilterTypes } from "~/lib/timeline/symptomFilter.sync";
 import { clearSymptoms } from "~/lib/timeline/timelineFilters";
-import { emptyTimelineText } from "./entryLabels";
+import { emptyTimelineText } from "~/lib/timeline/entryLabels";
 import { SEARCH_END_TEXT, searchAnnouncement, searchStateText } from "./timelineSearch";
 import { entryOpen } from "~/lib/timeline/entryOpen";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -47,12 +49,10 @@ import { summariesByDay } from "./daySummary";
 import { DaySummaryLine } from "./DaySummaryLine";
 import { SHEET_LINK_STATE } from "./sheet";
 import { TimelineEntryCard } from "./TimelineEntryCard";
-import { TimelineEntryRow } from "./TimelineEntryRow";
-import { dayKeyIn, withMarkers } from "./timelineDays";
+import { dayKeyIn, withMarkers } from "~/lib/timeline/timelineDays";
 import { QuickAddPrefetch } from "./QuickAddMenu";
 import { useEntryRemoval } from "./useEntryRemoval";
 import { useJumpLanding } from "./useJumpLanding";
-import { useOpenTodoCounts } from "./useOpenTodoCounts";
 import { useGroupRecordTags } from "~/components/tags";
 
 // The entries' column (1024 px from `lg`), shared with the quick-add bar and the filter chips.

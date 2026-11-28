@@ -5,6 +5,7 @@ import { forgetCalendarSettings } from "../calendars/calendarSettings";
 import { forgetRecentLines } from "../assistant/recentLines";
 import { forgetQuickEntryTips } from "../assistant/quickEntryTips";
 import { forgetRecentSearches } from "../search/recentSearches";
+import { forgetRecentlyViewed } from "../core/recentlyViewed";
 import { forgetToggles } from "../assistant/easyModeToggle";
 
 /**
@@ -31,7 +32,7 @@ const pendingEntries = (): [string, string][] => {
 /**
  * The forget list: everything a user leaves in this device's localStorage
  * besides the session itself: settings and calendar settings (pending changes
- * too), last group, recent searches, quick entry's recent lines and
+ * too), last group, recent searches, recently viewed records, quick entry's recent lines and
  * tips panel, and easy-mode toggles. Sign-out runs it (`wipeDevice`), and so does opening
  * the local database for a different user (`open` in lib/sync/client.ts), so
  * the next person on a shared device sees none of it (B-317).
@@ -47,6 +48,7 @@ export const forgetUserData = ({ keepPending = false }: { keepPending?: boolean 
   forgetCalendarSettings();
   forgetGroups();
   forgetRecentSearches();
+  forgetRecentlyViewed();
   forgetRecentLines();
   forgetQuickEntryTips();
   forgetToggles();

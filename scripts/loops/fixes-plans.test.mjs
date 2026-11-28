@@ -1,5 +1,5 @@
 // The five fix-topic plans and their shared rules exist, and each plan's Status table parses
-// (all rows, or what `pnpm prd status-trim` left; the moved rows' tables in its history parse too).
+// (all rows, or what `risa status-trim` left; the moved rows' tables in its history parse too).
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { nextSlice } from "../project/status-trim.mjs";

@@ -1,6 +1,7 @@
 import { nextOccurrence } from "@caretook/data/series";
 import { describe, expect, it } from "vitest";
 import { todoSections } from "./todoList";
+import { todoTrees } from "./todoTreeView";
 
 const LA = "America/Los_Angeles";
 // Friday 2026-11-20, 12:00 in Los Angeles.
@@ -31,8 +32,9 @@ describe("where the next occurrence sorts", () => {
     const next = nextOccurrence(weekly, "2026-11-20");
     expect(next?.dueOn).toBe("2026-11-23");
     const done = { ...weekly, doneAt: "2026-11-20T20:00:00Z" };
-    const sections = todoSections([done, other, { ...next!, createdAt: "2026-11-20T20:00:00Z" }], NOW, LA);
-    expect(sections.map((s) => [s.label, s.todos.map((t) => t.title)])).toEqual([
+    const todos = [done, other, { ...next!, createdAt: "2026-11-20T20:00:00Z" }];
+    const sections = todoSections(todoTrees(todos, { now: NOW, timeZone: LA }), NOW, LA);
+    expect(sections.map((s) => [s.label, s.trees.map((t) => t.todo.title)])).toEqual([
       ["Monday, Nov 23", ["Put the bins out"]],
       ["Tuesday, Nov 24", ["Fax the form"]],
     ]);

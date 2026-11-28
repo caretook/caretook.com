@@ -43,6 +43,7 @@ import { IconChipSection } from "./sections/IconChipSection";
 import { TimeSelectSection } from "./sections/TimeSelectSection";
 import { PageLoadingSection } from "./sections/PageLoadingSection";
 import { FormTabsSection } from "./sections/FormTabsSection";
+import { SwatchSection } from "./sections/SwatchSection";
 
 /** One gallery section: a primitive's variants, with fictional data. */
 export type GallerySection = { id: string; title: string; Section: ComponentType };
@@ -100,4 +101,6 @@ export const GALLERY: readonly GallerySection[] = [
   { id: "page-loading", title: "PageLoading", Section: PageLoadingSection },
   // fixes-ui (slice 95): form tabs, in the page tabs' look (B-694).
   { id: "form-tabs", title: "FormTabs", Section: FormTabsSection },
+  // tags-3 (slice 2): the round swatch choice, moved out of the avatar card.
+  { id: "swatch", title: "Swatch and SwatchGroup", Section: SwatchSection },
 ];

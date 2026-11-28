@@ -208,6 +208,9 @@ importers:
       prettier:
         specifier: ^3.10.1
         version: 3.10.1
+      risa:
+        specifier: github:interrobangc/risa#a00a84664ce0d933388dfd534c4418530882c367
+        version: https://codeload.github.com/interrobangc/risa/tar.gz/a00a84664ce0d933388dfd534c4418530882c367
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -4039,6 +4042,12 @@ packages:
   reusify@1.1.0:
     resolution: {integrity: sha512-g6QUff04oZpHs0eG5p83rFLhHeV00ug/Yf9nZM6fLeUrPguBTkTQOdpAWWspMh55TZfVQDPaN3NQJfbVRAxdIw==}
     engines: {iojs: '>=1.0.0', node: '>=0.10.0'}
+
+  risa@https://codeload.github.com/interrobangc/risa/tar.gz/a00a84664ce0d933388dfd534c4418530882c367:
+    resolution: {gitHosted: true, integrity: sha512-maK/tgiUN28gpyAxNpElY8aQPQ066ZWXsj7AeVFwL1lLVX3CZ6CkbJSU0IodEE1tgTIJNShuPFmyGpkN3BLYgA==, tarball: https://codeload.github.com/interrobangc/risa/tar.gz/a00a84664ce0d933388dfd534c4418530882c367}
+    version: 0.1.2
+    engines: {node: '>=24'}
+    hasBin: true
 
   rolldown@1.2.19:
     resolution: {integrity: sha512-QIiV1J9d0pzN4jeeTH4sjPy0AZ6cAy2cG0ExeoE1+U8Rvj+hR3gYkokx0YbeUNGlZqiQJJ2utcETe0oKXwzsuA==}
@@ -8027,6 +8036,8 @@ snapshots:
   resolve-pkg-maps@1.0.0: {}
 
   reusify@1.1.0: {}
+
+  risa@https://codeload.github.com/interrobangc/risa/tar.gz/a00a84664ce0d933388dfd534c4418530882c367: {}
 
   rolldown@1.2.19:
     dependencies:

@@ -125,8 +125,10 @@ describe("symptoms and the group's catalog (symptom-catalog)", () => {
   const typeId = (name: string) => symptomTypeId(TEST_GROUP.id, name);
   const openWithCatalog = () => open({ fixtures: [METFORMIN, ...CATALOG] });
   const gate = () => document.querySelector<HTMLElement>("[data-quick-card] [data-symptom-gate]");
-  const gateChoices = () =>
-    [...(gate()?.querySelectorAll("button") ?? [])].map((b) => b.textContent?.trim() ?? "");
+  const symptomDefault = () =>
+    document.querySelector<HTMLElement>("[data-quick-card] [data-symptom-default]");
+  const defaultChoices = () =>
+    [...(symptomDefault()?.querySelectorAll("button") ?? [])].map((b) => b.textContent?.trim() ?? "");
   const saved = (device: Awaited<ReturnType<typeof open>>) =>
     device.query<{ name: string; symptom_type_id: string | null }>(
       `SELECT json_extract(details, '$.name') AS name, symptom_type_id FROM timeline_entry
@@ -151,36 +153,52 @@ describe("symptoms and the group's catalog (symptom-catalog)", () => {
     expect(await queuedTypes(device)).toEqual([]);
   });
 
-  test('a similar name asks on its card; Save waits, and "Use <name>" saves that type', async () => {
+  test("a similar name saves as the closest one on Enter, unasked (symptom-catalog-2)", async () => {
     const device = await openWithCatalog();
     await type("knee pian 4", ["symptom"]);
-    await expect.poll(gateChoices).toEqual(["Use Knee pain", "Add new"]);
-    expect(gate()?.textContent).toContain("“Knee pian”");
-    // The box keeps focus while typing: the question doesn't take it.
-    await expect.element(box()).toHaveFocus();
-    expect(saveButton()?.disabled).toBe(true);
-
-    await userEvent.click(page.getByRole("button", { name: "Use Knee pain" }));
-    await expect.poll(gate).toBeNull();
+    await expect.poll(() => symptomDefault()?.textContent).toContain("Saves as Knee pain");
+    expect(defaultChoices()).toEqual(["Add “Knee pian” as new"]);
     expect(cardWith("Knee pain 4")).toBeTruthy();
-    await userEvent.click(await found(saveButton));
+    // No question: the box keeps focus and Save is open.
+    expect(gate()).toBeNull();
+    await expect.element(box()).toHaveFocus();
+    expect(saveButton()?.disabled).toBe(false);
+
+    await userEvent.keyboard("{Enter}");
     await expect.poll(status).toBe("Saved 1 entry");
     expect(await saved(device)).toEqual([{ name: "Knee pain", symptom_type_id: typeId("Knee pain") }]);
     expect(await catalogNames(device)).toEqual(["Knee pain", "Nausea"]);
     expect(await queuedTypes(device)).toEqual([]);
   });
 
-  test('"Add new" saves the name as typed, its catalog row in the same write', async () => {
+  test('"Add … as new" then Enter saves the name as typed, its catalog row in the same write', async () => {
     const device = await openWithCatalog();
     await type("knee pian 4", ["symptom"]);
-    await expect.poll(gateChoices).toEqual(["Use Knee pain", "Add new"]);
-    await userEvent.click(page.getByRole("button", { name: "Add new" }));
-    await expect.poll(gate).toBeNull();
-    await userEvent.click(await found(saveButton));
+    await userEvent.click(page.getByRole("button", { name: "Add “Knee pian” as new" }));
+    await expect.poll(symptomDefault).toBeNull();
+    expect(cardWith("Knee pian 4")).toBeTruthy();
+    await userEvent.click(box());
+    await userEvent.keyboard("{Enter}");
     await expect.poll(status).toBe("Saved 1 entry");
     expect(await saved(device)).toEqual([{ name: "Knee pian", symptom_type_id: typeId("Knee pian") }]);
     expect(await catalogNames(device)).toEqual(["Knee pain", "Knee pian", "Nausea"]);
     expect(await queuedTypes(device)).toEqual([["PUT", "Knee pian"]]);
+  });
+
+  test("tapping another similar name uses it", async () => {
+    const device = await open({
+      fixtures: [METFORMIN, symptomType("Lower back pain"), symptomType("Back pain")],
+    });
+    await type("back pain lower 3", ["symptom"]);
+    await expect.poll(() => symptomDefault()?.textContent).toContain("Saves as Lower back pain");
+    expect(defaultChoices()).toEqual(["Use Back pain", "Add “Back pain lower” as new"]);
+    await userEvent.click(page.getByRole("button", { name: "Use Back pain" }));
+    await expect.poll(symptomDefault).toBeNull();
+    expect(cardWith("Back pain 3")).toBeTruthy();
+    await userEvent.click(await found(saveButton));
+    await expect.poll(status).toBe("Saved 1 entry");
+    expect(await saved(device)).toEqual([{ name: "Back pain", symptom_type_id: typeId("Back pain") }]);
+    expect(await queuedTypes(device)).toEqual([]);
   });
 
   test("a name like nothing in the catalog saves at once, adding its row", async () => {

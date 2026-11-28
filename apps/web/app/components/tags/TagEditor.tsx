@@ -2,14 +2,12 @@ import type { TagRow } from "~/lib/tags/tags.sync";
 
 import { canDeleteTag } from "@caretook/data/schema";
 import { useEffect, useRef, useState } from "react";
-import { Button, ConfirmDialog, Field } from "~/components/ui";
+import { Button, Field } from "~/components/ui";
 import { getSync, useLiveQuery } from "~/lib/sync";
-import { deleteTag, renameTag, tagUsesQuery } from "~/lib/tags/tags.sync";
+import { renameTag, tagUsesQuery } from "~/lib/tags/tags.sync";
+import { DeleteTagDialog } from "./DeleteTagDialog";
 
 const NO_USES: { uses: number }[] = [];
-
-/** "3 records", "1 record", "no records". */
-const records = (n: number) => (n === 0 ? "no records" : n === 1 ? "1 record" : `${n} records`);
 
 /**
  * One tag's rename in the picker (tags PRD): the name in a box, saved as a
@@ -41,12 +39,6 @@ export function TagEditor({
     const res = await renameTag(getSync(), tag.id, name);
     if (res.ok) onDone();
     else setError(res.issues[0]?.message ?? res.error);
-  };
-  const remove = async () => {
-    const res = await deleteTag(getSync(), tag.id);
-    setConfirming(false);
-    if (res.ok) onDone();
-    else setError(res.error);
   };
 
   return (
@@ -89,13 +81,13 @@ export function TagEditor({
         )}
       </div>
       {canDelete && (
-        <ConfirmDialog
+        <DeleteTagDialog
+          tag={tag}
+          uses={uses}
           open={confirming}
-          title={`Delete the tag “${tag.name}”?`}
-          message={`It comes off ${records(uses)}, for everyone in the group. The records stay.`}
-          confirmLabel="Delete tag"
-          onConfirm={() => void remove()}
           onClose={() => setConfirming(false)}
+          onDeleted={onDone}
+          onError={setError}
         />
       )}
     </div>

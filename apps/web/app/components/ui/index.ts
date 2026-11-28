@@ -101,3 +101,5 @@ export { FormTabs, revealField } from "./FormTabs";
 export type { FormTab } from "./FormTabs";
 // tags-2 (slice 3): the tag colors' chip classes.
 export { tagColorClass } from "./tagLook";
+// tags-3 (slice 2): the round swatch choice (the avatar card's colors and icons, the Tags page's colors).
+export { Swatch, SwatchGroup } from "./Swatch";

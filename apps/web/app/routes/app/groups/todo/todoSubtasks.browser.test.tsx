@@ -4,20 +4,23 @@ import type { GroupRole } from "../../../../../test/fixtures";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
-import { at, fx, hoursAgo, todo, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
+import { at, fx, hoursAgo, recordTag, tag, todo, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 import { getByCss } from "../../../../../test/locators";
 import { completeTodo, removeTodo } from "~/lib/todos/todos.sync";
 import * as todoRoute from "./route";
 import * as editSheet from "../todos/edit/route";
 import * as todosRoute from "../todos/route";
 
-// The todo page's Subtasks band (todo-subtasks slice 5): the live subtasks
-// with their ticks and progress, writers' inline add (gone at the depth
+// The todo page's Subtasks band (todo-subtasks slice 5; the tree,
+// todo-subtasks-3 slice 6): the live subtasks as the shared tree, children
+// and grandchildren nested, with their ticks and progress, writers' adds (a
+// child from the field, a grandchild from a child's row; gone at the depth
 // limit and on a repeating todo), the rollup showing on the parent's page,
 // and a subtask's "Part of" link up; a parent's tick and Mark done waiting
 // on its subtasks, the delete confirm's count and the edit form's Repeat
 // (slice 6). The tree rules themselves are
-// todoSubtasks.sync's and todoTree's tests.
+// todoSubtasks.sync's and todoTree's tests. Each row shows its tags from
+// the tree's one tags query and tags from the row (tags-3).
 
 const BASE = "/app/groups/:groupId/todos";
 const ROUTES: DeviceRoute[] = [
@@ -64,22 +67,65 @@ const open = (todoId: string, role: GroupRole = "caretaker", fixtures = world())
 
 const heading = (name: string) => page.getByRole("heading", { name, level: 1 });
 const band = () => page.getByRole("region", { name: "Subtasks" });
-const subtasks = (title: string) => page.getByRole("list", { name: `Subtasks of ${title}` });
-const ADD = () => page.getByRole("button", { name: "Add subtask" });
+const tree = () => band().getByCss("[data-todo-tree]");
+const rowOf = (todoId: string) => getByCss(`[data-todo="${todoId}"]`);
+const ADD = () => page.getByRole("button", { name: "Add subtask", exact: true });
 const PROGRESS = () => getByCss("[data-subtask-progress]");
 const badge = () => document.querySelector("main header [data-todo-badge]")?.textContent?.trim() ?? null;
 
 describe("the Subtasks band", () => {
+  test("shows the tree: children and grandchildren nested, each level indented", async () => {
+    await open(TOP_FIELDS.id);
+    await expect.element(rowOf(TAPE.id)).toBeInTheDocument();
+    const levelOf = (todoId: string) =>
+      rowOf(todoId).element().closest("[data-todo-level]")?.getAttribute("data-todo-level");
+    // The page's todo is level 1, so its children are level 2 and theirs level 3.
+    expect(levelOf(PACK.id)).toBe("2");
+    expect(levelOf(LABEL.id)).toBe("2");
+    expect(levelOf(TAPE.id)).toBe("3");
+    // The grandchild sits in its parent's item, below its row.
+    expect(rowOf(PACK.id).element().parentElement?.contains(rowOf(TAPE.id).element())).toBe(true);
+    const left = (todoId: string) =>
+      rowOf(todoId).element().querySelector("[data-todo-title]")!.getBoundingClientRect().left;
+    expect(left(PACK.id)).toBe(left(LABEL.id));
+    expect(left(PACK.id)).toBeLessThan(left(TAPE.id));
+    // The band's own tree, not a list of its own.
+    expect(document.querySelectorAll("[data-subtask]")).toHaveLength(0);
+  });
+
+  test("a writer adds a grandchild from a child's row", async () => {
+    const device = await open(TOP_FIELDS.id);
+    await expect.element(rowOf(PACK.id)).toBeInTheDocument();
+    // A grandchild may take none: the deepest level.
+    expect(rowOf(TAPE.id).element().querySelector("[data-todo-quick-add]")).toBeNull();
+
+    await userEvent.click(rowOf(PACK.id).getByRole("button", { name: "Add subtask to Pack the kitchen" }));
+    const field = rowOf(PACK.id).getByRole("textbox", { name: "New subtask" });
+    await userEvent.fill(field, "Wrap the plates");
+    await userEvent.keyboard("{Enter}");
+    await expect.element(field).toHaveValue("");
+    const [row] = await device.query<{ id: string; parent_id: string }>(
+      "SELECT id, parent_id FROM todo WHERE title = ?",
+      ["Wrap the plates"],
+    );
+    expect(row?.parent_id).toBe(PACK.id);
+    const added = row?.id ?? "";
+    await expect.element(rowOf(added)).toBeInTheDocument();
+    expect(rowOf(PACK.id).element().parentElement?.contains(rowOf(added).element())).toBe(true);
+    // Its own children: the band's count is still the todo's own.
+    await expect.element(PROGRESS()).toHaveTextContent("0 of 2 done");
+  });
+
   test("a writer adds a subtask inline and it shows in the band", async () => {
     const device = await open(TOP_FIELDS.id);
     await expect.element(heading("Get ready for the move")).toBeInTheDocument();
     await expect.element(PROGRESS()).toHaveTextContent("0 of 2 done");
+    // The shared quick add, in its full form.
+    await expect.element(band().getByCss('[data-todo-quick-add="full"]')).toBeInTheDocument();
 
     await userEvent.fill(page.getByRole("textbox", { name: "New subtask" }), "Book the van");
     await userEvent.click(ADD());
-    await expect
-      .element(subtasks("Get ready for the move").getByRole("link", { name: "Book the van" }))
-      .toBeInTheDocument();
+    await expect.element(tree().getByRole("link", { name: "Book the van" })).toBeInTheDocument();
     await expect.element(PROGRESS()).toHaveTextContent("0 of 3 done");
     await expect.element(page.getByRole("textbox", { name: "New subtask" })).toHaveValue("");
     const [row] = await device.query<{ parent_id: string }>("SELECT parent_id FROM todo WHERE title = ?", [
@@ -93,7 +139,7 @@ describe("the Subtasks band", () => {
     await expect.element(heading("Pack the kitchen")).toBeInTheDocument();
     await expect.element(ADD()).toBeInTheDocument();
 
-    await userEvent.click(subtasks("Pack the kitchen").getByRole("link", { name: "Buy tape" }));
+    await userEvent.click(tree().getByRole("link", { name: "Buy tape" }));
     await expect.element(heading("Buy tape")).toBeInTheDocument();
     await expect.element(ADD()).not.toBeInTheDocument();
     // No subtasks and no add: no band.
@@ -109,11 +155,14 @@ describe("the Subtasks band", () => {
   test("a viewer sees the band and ticks only their own subtask", async () => {
     await open(TOP_FIELDS.id, "viewer");
     await expect.element(heading("Get ready for the move")).toBeInTheDocument();
-    const list = subtasks("Get ready for the move");
+    const list = tree();
     await expect.element(list.getByRole("link", { name: "Pack the kitchen" })).toBeInTheDocument();
     await expect.element(list.getByRole("link", { name: "Label the boxes" })).toBeInTheDocument();
     expect(list.getByRole("checkbox").all()).toHaveLength(1);
+    await expect.element(list.getByRole("link", { name: "Buy tape" })).toBeInTheDocument();
+    // Neither add: no field, and no row's quick add.
     await expect.element(ADD()).not.toBeInTheDocument();
+    expect(document.querySelectorAll("[data-todo-quick-add]")).toHaveLength(0);
 
     await userEvent.click(list.getByRole("checkbox", { name: "Mark “Label the boxes” done" }));
     await expect.element(PROGRESS()).toHaveTextContent("1 of 2 done");
@@ -194,23 +243,21 @@ describe("a parent's tick", () => {
   test("waits on an open subtask with its n of m, and turns once all are done; a plain tick is as before", async () => {
     const device = await openParty(PARTY.id);
     await expect.element(heading("Plan the party")).toBeInTheDocument();
-    const list = subtasks("Plan the party");
+    const list = tree();
     const invites = list.getByRole("checkbox", { name: "“Send the invites”: 2 of 3 subtasks done" });
     await expect.element(invites).toBeDisabled();
-    await expect
-      .element(getByCss(`[data-subtask="${INVITES.id}"] [data-tick-progress]`))
-      .toHaveTextContent("2 of 3");
+    await expect.element(rowOf(INVITES.id).getByCss("[data-todo-progress]")).toHaveTextContent("2 of 3 done");
 
     const hall = list.getByRole("checkbox", { name: "Mark “Book the hall” done" });
     await expect.element(hall).toBeEnabled();
-    expect(document.querySelector(`[data-subtask="${HALL.id}"] [data-tick-progress]`)).toBeNull();
+    expect(rowOf(HALL.id).element().querySelector("[data-todo-progress]")).toBeNull();
 
     expect((await completeTodo(device.db, LAST_CARD.id)).ok).toBe(true);
     await device.settle();
     const done = list.getByRole("checkbox", { name: "Reopen “Send the invites”" });
     await expect.element(done).toBeEnabled();
     await expect.element(done).toBeChecked();
-    expect(document.querySelector(`[data-subtask="${INVITES.id}"] [data-tick-progress]`)).toBeNull();
+    await expect.element(rowOf(INVITES.id).getByCss("[data-todo-progress]")).toHaveTextContent("3 of 3 done");
   });
 
   test("the page's Mark done waits too, and its last subtask's tick completes it", async () => {
@@ -279,5 +326,30 @@ describe("the edit form's Repeat", () => {
 
   test("shows on a plain todo", async () => {
     expect(await repeatOf(CAKE.id)).not.toBeNull();
+  });
+});
+
+describe("the Subtasks band's tags", () => {
+  test("rows show their tags, and a writer tags a subtask from its row and sees the chip", async () => {
+    const URGENT = tag("Urgent");
+    const device = await open(TOP_FIELDS.id, "caretaker", [
+      ...world(),
+      URGENT,
+      recordTag(URGENT.id, PACK.id, "todoId"),
+    ]);
+    const chipsOf = (todoId: string) =>
+      [...document.querySelectorAll(`[data-todo="${todoId}"] [data-tag-chip]`)]
+        .map((c) => c.textContent?.trim())
+        .join(",");
+    await expect.poll(() => chipsOf(PACK.id)).toBe("Urgent");
+    expect(chipsOf(LABEL.id)).toBe("");
+
+    await userEvent.click(rowOf(LABEL.id).getByRole("button", { name: "Add tag" }));
+    await expect.element(page.getByCss("[data-tag-picker]")).toBeInTheDocument();
+    await userEvent.click(page.getByRole("checkbox", { name: "Urgent" }));
+    await device.settle();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => chipsOf(LABEL.id)).toBe("Urgent");
+    expect(device.location()).toBe(pageOf(TOP_FIELDS.id));
   });
 });

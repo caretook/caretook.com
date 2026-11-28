@@ -70,6 +70,13 @@ const badPharmacy = () =>
  */
 export type MedicationWriteOptions = { changedAt?: string | null };
 
+/**
+ * A create's options: `via` (server only, never from a device) is the
+ * assistant a member added it through ("Claude"; connectors-3), put on the
+ * "started" entry as `timelineEntryService.create` puts it on an entry.
+ */
+export type MedicationCreateOptions = MedicationWriteOptions & { via?: string | null };
+
 const changeTimeOf = (opts: MedicationWriteOptions) =>
   (opts.changedAt ? toChangeTime(opts.changedAt) : null) ?? new Date().toISOString();
 
@@ -171,7 +178,14 @@ const writeChange = async (
     after,
     changedAt,
     timeZone,
-  }: { before: MedicationContent | null; after: Medication; changedAt: string; timeZone: string },
+    via,
+  }: {
+    before: MedicationContent | null;
+    after: Medication;
+    changedAt: string;
+    timeZone: string;
+    via?: string | null;
+  },
 ) => {
   const change = medicationChange(before, after);
   if (!change) return null;
@@ -202,6 +216,7 @@ const writeChange = async (
       title: null,
       body: null,
       details: content.data.details ?? null,
+      ...(via ? { via } : {}),
     },
   });
 };
@@ -234,13 +249,14 @@ export const list = async (
 // ---------------------------------------------------------------------------
 
 /**
- * Add a medication, and its "started" entry on the timeline. `id` may come
- * from an offline device. Writers only.
+ * Add a medication, and its "started" entry on the timeline (with `via`
+ * when an assistant added it). `id` may come from an offline device.
+ * Writers only.
  */
 export const create = (
   ctx: ServiceContext,
   input: MedicationCreateInput,
-  opts: MedicationWriteOptions = {},
+  opts: MedicationCreateOptions = {},
 ) =>
   withTransaction(async (tx) => {
     const parsed = medicationCreateZSchema.safeParse(input);
@@ -267,6 +283,7 @@ export const create = (
       after: created,
       changedAt: changeTimeOf(opts),
       timeZone: recipient.timeZone,
+      via: opts.via,
     });
     if (isError(change)) return change;
     return created;
@@ -356,7 +373,8 @@ export const upsert = (
     const existing = await medicationModel.getById(id, { authUser: SYSTEM_USER, tx, includeDeleted: true });
     if (isError(existing)) return existing;
     // The device's own input, not the parsed one: `create` parses it again.
-    if (!existing) return asCreated(await create({ ...ctx, tx }, input, opts));
+    // A device's create: never a `via`.
+    if (!existing) return asCreated(await create({ ...ctx, tx }, input, { changedAt: opts.changedAt }));
 
     const visible = await medicationModel.getById(id, { ...ctx, tx, includeDeleted: true });
     if (isError(visible)) return visible;

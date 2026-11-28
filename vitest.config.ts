@@ -16,25 +16,19 @@ import { PRIMARY_ZONE, SECOND_ZONE, testZone } from "./scripts/ci/zones.mjs";
 //   notifications:unit  templates, links and the allowlist (packages/notifications *.test.ts)
 //   server:unit  packages/auth and packages/api's pure parts (*.test.ts): origins,
 //                the client IP, /rpc's CORS answer; no database
-//   The tooling tests, split by owner (scripts/loops/boundary.manifest says
-//   whose each file is; scripts/project/test-projects.test.mjs keeps every one
-//   in exactly one owner's project). Caretook's, `pnpm test:project`:
+//   Caretook's tooling tests (the tool's own, Risa's, run in its repo;
+//   scripts/project/test-projects.test.mjs keeps every one in exactly one
+//   project). `pnpm test:project`:
 //   project:unit    the ones `pnpm test` keeps: the check manifest's and areas'
 //                   guards, the sync matrix (quick-guards keeps it and rolesSql
 //                   in projects every quick check runs), Caretook's CI jobs, the
 //                   deploy, the build and the local lint rules
 //   project:tooling the rest (the hooks, the check's body, the doc budget, …),
 //                   run by `pnpm test:tooling`, not `pnpm test`
-//   The core's (the tool that moves out):
-//   core:unit    the ones `pnpm test` keeps: the check plan, the check times
-//                and the core's scripts/ci tests
-//   tooling:unit the other tooling tests (scripts/loops, backlog), against
-//                throwaway git repos in the OS temp dir; `pnpm test:tooling`
-//   tooling:browser  loops/browser.test.mjs (the gate) and project/browser-run.test.mjs
-//                (Caretook's runner) alone: they launch Playwright and wait on
-//                checks that hang on purpose. `pnpm test:browser-harness`;
-//                `pnpm test:tooling` adds it when the change touches what it tests
-//                (check-plan.mjs); CI runs it in the integration job
+//   tooling:browser  project/browser-run.test.mjs (Caretook's browser check runner)
+//                alone: it launches Playwright and waits on checks that hang on
+//                purpose. `pnpm test:browser-harness`; `pnpm test:tooling` adds it
+//                when the change touches what it tests; CI runs it in the integration job
 //   integration  real Postgres, every package (*.int.test.ts): the test
 //                database on port 5435. Start it with `pnpm datastore:up:test`;
 //                each run clears and migrates it first, then copies it for
@@ -48,9 +42,9 @@ import { PRIMARY_ZONE, SECOND_ZONE, testZone } from "./scripts/ci/zones.mjs";
 //                React dedupes), and the test device (apps/web/test/device.tsx),
 //                a local-only PowerSync database with fixtures. Chromium comes
 //                from `pnpm test:components:install` (once per machine).
-// Caretook's tooling tests that sit among the core's files, by name. PROJECT_UNIT: the
-// ones `pnpm test` runs, matched in scripts/loops, scripts/ci or scripts/project, so a
-// slice moving one into scripts/project/ changes nothing here. PROJECT_TOOLING: the ones
+// Caretook's tooling tests outside scripts/project/, by name. PROJECT_UNIT: the
+// ones `pnpm test` runs, matched in scripts/loops, scripts/ci or scripts/project, so
+// moving one into scripts/project/ changes nothing here. PROJECT_TOOLING: the ones
 // it doesn't, still in scripts/loops (the rest of scripts/project/ joins project:tooling
 // by its folder).
 const PROJECT_UNIT = [
@@ -111,9 +105,6 @@ const unit = { maxWorkers: unitWorkerCount };
 // integration) so a run with every project doesn't put two caps in one group.
 // `pnpm test:tooling` and the check's tooling step run them alone.
 const tooling = { sequence: { groupOrder: 3 } };
-// The core's test setup, in each core project: RISA_CONFIG defaults to the fixture
-// project's config, never this checkout's risa.json.
-const coreSetup = fileURLToPath(new URL("./scripts/loops/test-setup.mjs", import.meta.url));
 
 // Quarantined tests are skipped in every project (scripts/ci/quarantine.txt), or
 // alone are run under CARETOOK_QUARANTINE=run. Handed over by `provide` so the
@@ -269,8 +260,9 @@ export default defineConfig({
         },
       },
       {
-        // Caretook's other tooling tests: `pnpm test` leaves them out, as the core's
-        // tooling:unit below (the same timeout and load gate, for the same reasons).
+        // Caretook's other tooling tests: `pnpm test` leaves them out. Many run
+        // git commands, so the 5 s default fails them beside the rest of `pnpm
+        // check`; the load gate is off for every script they spawn.
         test: {
           name: "project:tooling",
           ...tooling,
@@ -283,50 +275,12 @@ export default defineConfig({
         },
       },
       {
-        // The core's tooling tests the default run keeps.
-        test: {
-          name: "core:unit",
-          ...unit,
-          root: "./scripts",
-          include: ["loops/check-times.test.mjs", "loops/check-plan.test.mjs", "ci/**/*.test.mjs"],
-          exclude: PROJECT_UNIT,
-          testTimeout: 20_000,
-          setupFiles: [coreSetup],
-        },
-      },
-      {
-        // The rest of the core's tooling tests (loops, backlog). Each runs dozens
-        // of git commands (3–3.5 s alone), so the 5 s default fails them whenever
-        // the rest of `pnpm check` runs beside them. `pnpm test` leaves this
-        // project out; `pnpm test:tooling` runs it.
-        test: {
-          name: "tooling:unit",
-          ...tooling,
-          root: "./scripts",
-          include: ["loops/**/*.test.mjs", "backlog/**/*.test.mjs"],
-          exclude: [
-            ...PROJECT_UNIT,
-            ...PROJECT_TOOLING,
-            "loops/check-times.test.mjs",
-            "loops/check-plan.test.mjs",
-            "loops/browser.test.mjs",
-          ],
-          testTimeout: 20_000,
-          setupFiles: [coreSetup],
-          // Off for every spawned script (they pass process.env on): new.sh and
-          // check-run.sh would otherwise poll the real machine's load, 15 s at a
-          // time for up to 600 s. The gate's own tests set it back to "".
-          env: { RISA_LOAD_GATE: "off" },
-        },
-      },
-      {
         test: {
           name: "tooling:browser",
           ...tooling,
           root: "./scripts",
-          include: ["loops/browser.test.mjs", "project/browser-run.test.mjs"],
+          include: ["project/browser-run.test.mjs"],
           testTimeout: 20_000,
-          setupFiles: [coreSetup],
           env: { RISA_LOAD_GATE: "off" },
         },
       },

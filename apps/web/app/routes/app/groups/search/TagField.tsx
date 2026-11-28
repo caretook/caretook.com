@@ -1,16 +1,24 @@
 import type { SearchItemType } from "@caretook/data/schema";
 
-import { useNavigate } from "react-router";
-import { Field } from "~/components/ui";
+import { useState } from "react";
+import { TagSwatch } from "~/components/tags";
+import { ChipGroup, Field } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
+import { matchingTags } from "~/lib/tags/tagPicker";
 
-const ANY_TAG = "";
+/** Past this many tags, a filter box narrows the chips. */
+export const TAG_FILTER_FROM = 12;
+
+type FieldTag = { id: string; name: string; name_key: string; color: string | null };
 
 /**
- * "Tag": any, or one of the group's tags (A to Z). A tag narrows every
- * section to the items carrying it, and with no text lists them all
- * (conditions can't carry one). It's kept in the URL (`?tag=`), replacing
- * the history entry as the text does, so Back and a reload keep it.
+ * "Tag": the group's tags (A to Z) as filter chips, each with its color
+ * (`TagSwatch`). One is on at a time: a tap turns it on (any other off), a
+ * second tap turns it off. A tag narrows every section to the items
+ * carrying it, and with no text lists them all (conditions can't carry
+ * one). It's kept in the URL (`?tag=`), replacing the history entry as the
+ * text does, so Back and a reload keep it. Past `TAG_FILTER_FROM` tags a
+ * filter box narrows the chips (the one that's on always shows).
  */
 export function TagField({
   groupId,
@@ -24,35 +32,52 @@ export function TagField({
   q: string;
   all: SearchItemType | null;
   period: string | null;
-  tags: readonly { id: string; name: string }[];
+  tags: readonly FieldTag[];
   /** The tag filter's id, while it's one of the group's. */
   current: string | null;
 }) {
-  const navigate = useNavigate();
+  const [typed, setTyped] = useState("");
+  const filtering = tags.length > TAG_FILTER_FROM;
+  const matched = new Set(matchingTags(tags, filtering ? typed : "").map((t) => t.id));
+  const shown = tags.filter((t) => matched.has(t.id) || t.id === current);
   return (
-    <Field label="Tag">
-      {(control) => (
-        <select
-          {...control}
-          className="select select-sm w-full sm:w-auto"
-          value={current ?? ANY_TAG}
-          data-search-tag
-          onChange={(e) => {
-            const tag = e.currentTarget.value || null;
-            void navigate(appUrls.search(groupId, q, { all, period, tag }), {
-              replace: true,
-              preventScrollReset: true,
-            });
-          }}
-        >
-          <option value={ANY_TAG}>Any tag</option>
-          {tags.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
+    <fieldset className="fieldset" data-search-tags="">
+      <legend className="fieldset-legend">Tag</legend>
+      {filtering && (
+        <Field label="Find a tag" labelHidden kind="input">
+          {(control) => (
+            <input
+              {...control}
+              type="search"
+              autoComplete="off"
+              placeholder="Find a tag"
+              className={`${control.className ?? ""} input-sm w-full sm:w-64`}
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              data-search-tag-filter=""
+            />
+          )}
+        </Field>
       )}
-    </Field>
+      {shown.length > 0 ? (
+        <ChipGroup
+          label="Tags"
+          replace
+          preventScrollReset
+          links={shown.map((t) => {
+            const on = t.id === current;
+            return {
+              id: t.id,
+              label: t.name,
+              current: on,
+              leading: <TagSwatch color={t.color} />,
+              to: appUrls.search(groupId, q, { all, period, tag: on ? null : t.id }),
+            };
+          })}
+        />
+      ) : (
+        <p className="text-muted text-sm">No tags match.</p>
+      )}
+    </fieldset>
   );
 }

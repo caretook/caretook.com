@@ -4,16 +4,38 @@ import { addDays, localDate, UNDO_NEXT_METADATA } from "@caretook/data/schema";
 import { nextTodoId } from "@caretook/data/series";
 import { describe, expect, test } from "vitest";
 import { renderWithDevice } from "../../../test/device";
-import { entryTodo, fx, hoursAgo, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../test/fixtures";
+import {
+  at,
+  entryTodo,
+  fx,
+  hoursAgo,
+  todo,
+  TEST_GROUP,
+  TEST_TIME_ZONE,
+  TEST_USER,
+} from "../../../test/fixtures";
 import { readRows } from "../timeline/timeline.sync";
-import { completeTodo, createTodo, reopenTodo, skipTodo, todoQuery, toTodo, updateTodo } from "./todos.sync";
+import {
+  completeTodo,
+  createTodo,
+  doneCountQuery,
+  reopenTodo,
+  skipTodo,
+  todoQuery,
+  todosQuery,
+  todoTreesQuery,
+  toTodo,
+  updateTodo,
+} from "./todos.sync";
 
 // Repeating todos on the device (planner-2): a tick writes the todo done and
 // its next occurrence (the server's twin: the same id, `nextTodoId`) in one
 // local transaction; Undo takes an untouched next away again, or keeps an
 // edited one and stops the reopened todo repeating; skip deletes this one
 // and writes the next; edits move the anchor as todoService does. What the
-// server makes of these uploads is syncTodos.int.test.ts's.
+// server makes of these uploads is syncTodos.int.test.ts's. The sheets'
+// note and event links (todo-links): `entryIds` on create; on update only
+// the edit sheet's own `addEntryIds` and `removeEntryIds` (B-990).
 
 const DAILY = "FREQ=DAILY;INTERVAL=1";
 const today = localDate(new Date(), TEST_TIME_ZONE);
@@ -263,6 +285,139 @@ describe("edit", () => {
     expect(await read(db, BINS_ID)).toMatchObject({ repeatStartsOn: tomorrow, repeatId: BINS_ID });
     ok(await updateTodo(db, BINS_ID, { repeatRule: null }));
     expect(await read(db, BINS_ID)).toMatchObject({ repeatRule: null, repeatStartsOn: null, repeatId: null });
+  });
+});
+
+describe("entry links (todo-links)", () => {
+  const PLAIN_ID = "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2fb501";
+  const plain = todo({ id: PLAIN_ID, title: "Ask about the eye drops" });
+  const NOTE = fx.note({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2fb502", text: "Drops sting" });
+  const NEW_NOTE = fx.note({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2fb503", text: "Drops help now" });
+  const GONE_NOTE = fx.note({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2fb504", deletedAt: hoursAgo(1) });
+  const SYMPTOM = fx.symptom({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2fb505" });
+  const linkedWorld = () => [
+    plain,
+    NOTE,
+    NEW_NOTE,
+    GONE_NOTE,
+    SYMPTOM,
+    entryTodo(NOTE.id, PLAIN_ID),
+    entryTodo(VISIT.id, PLAIN_ID),
+    entryTodo(GONE_NOTE.id, PLAIN_ID),
+  ];
+  const linksOf = async (db: Db, todoId: string) =>
+    (
+      await readRows<{ entry_id: string }>(db, {
+        sql: "SELECT entry_id FROM timeline_entry_todo WHERE todo_id = ? ORDER BY entry_id",
+        params: [todoId],
+      })
+    ).map((r) => r.entry_id);
+
+  test("updateTodo links the added ones and unlinks the removed ones, with the edit, leaving the rest (B-990)", async () => {
+    const { db } = await device(linkedWorld());
+    ok(
+      await updateTodo(db, PLAIN_ID, {
+        title: "Ask about the drops",
+        addEntryIds: [NEW_NOTE.id, VISIT.id, SYMPTOM.id, "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2fb5ff"],
+        removeEntryIds: [NOTE.id],
+      }),
+    );
+    // A symptom, an unknown id and one linked already add nothing; the event and the deleted note's link stay.
+    expect(await linksOf(db, PLAIN_ID)).toEqual([VISIT.id, NEW_NOTE.id, GONE_NOTE.id].sort());
+    const ops = await queued(db);
+    expect(ops.map((o) => o.op)).toEqual(["PATCH", "PUT", "DELETE"]);
+    expect(oneTransaction(ops)).toBe(true);
+
+    ok(
+      await updateTodo(db, PLAIN_ID, {
+        title: "Ask about the drops",
+        removeEntryIds: [VISIT.id, NEW_NOTE.id],
+      }),
+    );
+    expect(await linksOf(db, PLAIN_ID)).toEqual([GONE_NOTE.id]);
+  });
+
+  test("a link another member made after the sheet opened survives a title-only save, and one they removed isn't remade (B-990)", async () => {
+    const shown = await device(linkedWorld());
+    const { db } = shown;
+    // While the sheet is open: someone links the new note and unlinks the event.
+    await shown.sync([entryTodo(NEW_NOTE.id, PLAIN_ID)]);
+    await shown.unsync([entryTodo(VISIT.id, PLAIN_ID)]);
+    await shown.settle();
+    // The sheet saves its title only (it changed no links), and an old caller's full list is ignored.
+    ok(await updateTodo(db, PLAIN_ID, { title: "Ask about the drops", entryIds: [NOTE.id, VISIT.id] }));
+    expect(await linksOf(db, PLAIN_ID)).toEqual([NOTE.id, NEW_NOTE.id, GONE_NOTE.id].sort());
+    expect((await queued(db)).map((o) => o.op)).toEqual(["PATCH"]);
+  });
+
+  test("without added or removed ones (a title or provider change) the note and event links stay", async () => {
+    const { db } = await device(linkedWorld());
+    ok(await updateTodo(db, PLAIN_ID, { title: "Ask about the drops" }));
+    ok(await updateTodo(db, PLAIN_ID, { providerId: LARK.id }));
+    expect(await linksOf(db, PLAIN_ID)).toEqual([NOTE.id, VISIT.id, GONE_NOTE.id].sort());
+    expect((await queued(db)).map((o) => o.op)).toEqual(["PATCH", "PATCH"]);
+  });
+
+  test("createTodo links each live note or event in entryIds, once, in its transaction", async () => {
+    const { db } = await device(linkedWorld());
+    const made = await createTodo(db, TEST_GROUP.id, {
+      title: "Bring the drops",
+      entryIds: [NOTE.id, VISIT.id, NOTE.id, GONE_NOTE.id, SYMPTOM.id],
+    });
+    if (!made.ok) throw new Error(made.error);
+    expect(await linksOf(db, made.id)).toEqual([NOTE.id, VISIT.id].sort());
+    const ops = await queued(db);
+    expect(ops.map((o) => o.op)).toEqual(["PUT", "PUT", "PUT"]);
+    expect(oneTransaction(ops)).toBe(true);
+  });
+});
+
+describe("the trees' query and the Done list (todo-subtasks-3)", () => {
+  const tid = (n: number) => `7e1c9a40-2b6d-4f3e-8a15-0c9d4e2fc${String(n).padStart(3, "0")}`;
+  const doneNow = { doneAt: at(new Date(Date.now() - 60_000)), doneBy: TEST_USER.id };
+  const TREE = [
+    // An open tree: a done child, and three levels with the middle and leaf done.
+    todo({ id: tid(1), title: "Get ready for the hospital stay" }),
+    todo({ id: tid(2), title: "Print the medication list", parentId: tid(1), ...doneNow }),
+    todo({ id: tid(3), title: "Pack the bag", parentId: tid(1), ...doneNow }),
+    todo({ id: tid(4), title: "Pack the slippers", parentId: tid(3), ...doneNow }),
+    todo({ id: tid(5), title: "Arrange the dog sitter", parentId: tid(1), dueOn: tomorrow }),
+    todo({ id: tid(6), title: "Old step", parentId: tid(1), ...doneNow, deletedAt: hoursAgo(1) }),
+    // A done tree: its done children list in Done, flat.
+    todo({ id: tid(7), title: "Plan the birthday", ...doneNow }),
+    todo({ id: tid(8), title: "Order the cake", parentId: tid(7), ...doneNow }),
+    todo({ id: tid(9), title: "Book the eye exam", ...doneNow }),
+  ];
+  const ids = (rows: TodoRow[]) => rows.map((r) => r.id).sort();
+
+  test("the trees' query holds the open todos and the done subtasks of an open tree, at any depth; Done and its count leave those out and keep one whose top-level todo is done", async () => {
+    const { db } = await device([TREE]);
+    expect(ids(await readRows<TodoRow>(db, todoTreesQuery(TEST_GROUP.id)))).toEqual(
+      [tid(1), tid(2), tid(3), tid(4), tid(5)].sort(),
+    );
+
+    const done = await readRows<TodoRow>(db, todosQuery(TEST_GROUP.id, { done: true, doneListed: true }));
+    expect(ids(done)).toEqual([tid(7), tid(8), tid(9)].sort());
+    const [count] = await readRows<{ count: number }>(
+      db,
+      doneCountQuery(TEST_GROUP.id, { doneListed: true }),
+    );
+    expect(Number(count?.count)).toBe(3);
+
+    // The rule ANDs with the chip's: Mine of nothing assigned is empty.
+    const mine = todosQuery(TEST_GROUP.id, {
+      done: true,
+      doneListed: true,
+      who: "mine",
+      userId: TEST_USER.id,
+    });
+    expect(await readRows<TodoRow>(db, mine)).toEqual([]);
+  });
+
+  test("the trees' query goes in siblingOrder: dated first, then by when made", async () => {
+    const { db } = await device([TREE]);
+    const rows = await readRows<TodoRow>(db, todoTreesQuery(TEST_GROUP.id));
+    expect(rows[0]?.id).toBe(tid(5));
   });
 });
 

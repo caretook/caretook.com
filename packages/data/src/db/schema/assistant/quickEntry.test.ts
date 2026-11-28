@@ -209,6 +209,97 @@ describe("vitals", () => {
     expect(action(top("bp 130/85 hr 72"))).toMatchObject({ note: null });
   });
 
+  describe("a label after its number still counts (B-976)", () => {
+    test.each([
+      ["97o2", [{ type: "spo2", value: 97 }]],
+      ["97 o2", [{ type: "spo2", value: 97 }]],
+      ["97 spo2", [{ type: "spo2", value: 97 }]],
+      ["97% o2 sat", [{ type: "spo2", value: 97 }]],
+      ["96 pulse ox", [{ type: "spo2", value: 96 }]],
+      ["74 hr", [{ type: "heartRate", value: 74 }]],
+      ["74 pulse", [{ type: "heartRate", value: 74 }]],
+      ["74 bpm hr", [{ type: "heartRate", value: 74 }]],
+      ["74bpm", [{ type: "heartRate", value: 74 }]],
+      ["16 rr", [{ type: "respiratoryRate", value: 16 }]],
+      ["99.1 temp", [{ type: "temperature", value: expect.closeTo(37.28, 2) as number }]],
+      ["120 sugar", [{ type: "bloodGlucose", value: 120 }]],
+      ["140/78 bp", [{ type: "bloodPressure", systolic: 140, diastolic: 78 }]],
+      ["7 hr sleep", [{ type: "sleep", value: 7 }]],
+      [
+        "140/78 74bpm 97 o2",
+        [
+          { type: "spo2", value: 97 },
+          { type: "bloodPressure", systolic: 140, diastolic: 78 },
+          { type: "heartRate", value: 74 },
+        ],
+      ],
+      [
+        "97 o2 hr 74",
+        [
+          { type: "spo2", value: 97 },
+          { type: "heartRate", value: 74 },
+        ],
+      ],
+      [
+        "74 hr 97 o2",
+        [
+          { type: "heartRate", value: 74 },
+          { type: "spo2", value: 97 },
+        ],
+      ],
+      [
+        "bp 140/78 74 hr 97 o2",
+        [
+          { type: "bloodPressure", systolic: 140, diastolic: 78 },
+          { type: "heartRate", value: 74 },
+          { type: "spo2", value: 97 },
+        ],
+      ],
+      [
+        "bp 140/78 pulse 74 o2 97",
+        [
+          { type: "bloodPressure", systolic: 140, diastolic: 78 },
+          { type: "heartRate", value: 74 },
+          { type: "spo2", value: 97 },
+        ],
+      ],
+      [
+        "o2 97 74 hr",
+        [
+          { type: "spo2", value: 97 },
+          { type: "heartRate", value: 74 },
+        ],
+      ],
+    ])("%s", (line, readings) => {
+      const r = top(line);
+      expect(r.kind).toBe("vital");
+      const a = action(r);
+      expect(a).toMatchObject({ type: "logVital", note: null });
+      expect(a.type === "logVital" && a.readings).toEqual(readings);
+      expect(blocking(r)).toEqual([]);
+    });
+
+    test.each([
+      // A number between two labels stays label-first when the first has nothing else.
+      ["hr 74 o2", [{ type: "heartRate", value: 74 }], "o2"],
+      ["hr: 74 o2", [{ type: "heartRate", value: 74 }], "o2"],
+      ["temp 99 hr 74 o2", null, "o2"],
+      // A value the field can't take isn't read backwards.
+      ["7 hr", null, null],
+      ["970 o2", null, null],
+    ] as const)("%s keeps today's reading", (line, readings, note) => {
+      const r = top(line);
+      if (readings === null && note === null) {
+        expect(r.kind).not.toBe("vital");
+        return;
+      }
+      const a = action(r);
+      expect(a.type).toBe("logVital");
+      if (readings) expect(a.type === "logVital" && a.readings).toEqual(readings);
+      expect(a).toMatchObject({ note });
+    });
+  });
+
   test("a bare pair that can't be a blood pressure isn't one", () => {
     expect(top("11/20").kind).toBe("note");
     expect(top("3/10").kind).toBe("note");

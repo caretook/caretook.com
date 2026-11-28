@@ -37,7 +37,7 @@ export function TagChips({
         return (
           <li key={t.id} className="max-w-full">
             <Badge
-              className={`max-w-full ${onRemove ? "pr-1" : ""}`}
+              className={`max-w-full ${onRemove ? "gap-0.5 pr-0.5" : ""}`}
               fill={fill}
               data-tag-chip={t.id}
               data-tag-color={fill ? (t.color ?? undefined) : undefined}
@@ -49,8 +49,8 @@ export function TagChips({
                   aria-label={`Remove tag ${t.name}`}
                   title={`Remove tag ${t.name}`}
                   onClick={() => onRemove(t)}
-                  // A small mark with a larger hit area around it, for one tap.
-                  className="hover:bg-base-content/15 focus-visible:outline-base-content relative grid size-4 shrink-0 cursor-pointer place-items-center rounded-full focus-visible:outline-2 after:absolute after:-inset-2 after:content-['']"
+                  // A small mark close to the name, with a 32px hit area around it, for one tap.
+                  className="hover:bg-base-content/15 focus-visible:outline-base-content relative grid size-3.5 shrink-0 cursor-pointer place-items-center rounded-full focus-visible:outline-2 after:absolute after:-inset-[9px] after:content-['']"
                   data-tag-remove={t.id}
                 >
                   <X aria-hidden="true" className="size-3" />

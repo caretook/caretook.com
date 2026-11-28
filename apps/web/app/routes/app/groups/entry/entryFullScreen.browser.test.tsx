@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
 import { found, waitUntil } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
-import { fx, hoursAgo, TEST_GROUP } from "../../../../../test/fixtures";
+import { at, fx, hoursAgo, TEST_GROUP } from "../../../../../test/fixtures";
 import * as entryRoute from "./route";
 
 // B-765: a live note opens full screen. The same editor (its ProseMirror
@@ -19,6 +19,10 @@ const OPEN = () => document.querySelector<HTMLButtonElement>('button[aria-label=
 const EXIT = () =>
   document.querySelector<HTMLButtonElement>('dialog[open] button[aria-label="Exit full screen"]');
 const TOOLBAR = () => document.querySelector<HTMLElement>('[role=toolbar][aria-label="Formatting"]');
+/** The editor frame's bar (the toolbar and the full-screen button; full screen, the title and avatars too). */
+const BAR = () => document.querySelector<HTMLElement>("[data-note-bar]");
+const BAR_TITLE = () => BAR()?.querySelector("h2");
+const BAR_AVATARS = () => [...(BAR()?.querySelectorAll("[data-person]") ?? [])];
 const editorFocused = () => !!document.activeElement?.classList.contains("ProseMirror");
 
 const SAM = fx.person({ name: "Sam Okafor", role: "caretaker" });
@@ -85,9 +89,59 @@ describe("full screen", () => {
     expect(EDITOR()?.textContent).toBe("Slept well");
     expect(EDITOR()?.getAttribute("contenteditable")).toBe("false");
     expect(!!TOOLBAR()).toBe(false);
+    // B-962: still the title and Exit in the bar.
+    expect(BAR_TITLE()?.textContent).toBe("Night shift");
+    expect(!!EXIT() && BAR()?.contains(EXIT())).toBe(true);
 
     await userEvent.keyboard("{Escape}");
     await waitUntil(() => !FULL()?.open, "the dialog closed");
     await waitUntil(() => document.activeElement === OPEN(), "focus on the button");
+  });
+
+  // B-962: full screen fills the screen; the title and avatars move into the note's bar.
+  test("full screen: the bar holds the title, the avatars and Exit, with no heading row; on the page the bar has no title", async () => {
+    const entry = note();
+    const device = await renderWithDevice({ route: ROUTE, url: entryPath(entry.id), fixtures: [SAM, entry] });
+    await waitUntil(() => !!EDITOR()?.textContent?.includes("Slept well"), "the note's text");
+    // On the page: the toolbar and the button, no title (the page has its heading).
+    expect(!!BAR() && !!TOOLBAR() && BAR()?.contains(TOOLBAR())).toBe(true);
+    expect(BAR_TITLE()).toBeNull();
+    // Sam is writing, from their device.
+    await device.sync(
+      fx.document({ ownerId: entry.id, text: "Slept well", editors: JSON.stringify({ [SAM.id]: at() }) }),
+    );
+    await device.settle();
+
+    await userEvent.click(await found(OPEN));
+    await waitUntil(() => !!FULL()?.open, "the full-screen dialog");
+    const dialog = await found(FULL);
+    expect(dialog.getAttribute("aria-label")).toBe("Night shift");
+    const bar = await found(BAR);
+    expect(dialog.contains(bar)).toBe(true);
+    expect(BAR_TITLE()?.textContent).toBe("Night shift");
+    await waitUntil(() => BAR_AVATARS().length === 1, "Sam's avatar in the bar");
+    expect(BAR_AVATARS()[0]?.textContent).toBe("SO");
+    expect(!!EXIT() && bar.contains(EXIT())).toBe(true);
+    expect(!!TOOLBAR() && bar.contains(TOOLBAR())).toBe(true);
+    // No separate heading row: the bar's is the dialog's only heading, and the frame is the dialog's only content.
+    expect(dialog.querySelectorAll("h1, h2, h3").length).toBe(1);
+    // Edge to edge: the bar spans the dialog's width.
+    expect(bar.getBoundingClientRect().width).toBe(dialog.getBoundingClientRect().width);
+  });
+
+  test.each([
+    { width: 420, ownRow: true, screen: "a phone: the toolbar on its own row below the title" },
+    { width: 1024, ownRow: false, screen: "a wide screen: the toolbar in the title's row" },
+  ])("full screen on $screen", async ({ width, ownRow }) => {
+    const top = (el: Element | null | undefined) => el?.getBoundingClientRect().top ?? NaN;
+    const entry = note();
+    await renderWithDevice({ route: ROUTE, url: entryPath(entry.id), fixtures: [SAM, entry], width });
+    await waitUntil(() => !!EDITOR()?.textContent?.includes("Slept well"), "the note's text");
+    await userEvent.click(await found(OPEN));
+    await waitUntil(() => !!FULL()?.open, "the full-screen dialog");
+    await found(TOOLBAR);
+    expect(top(TOOLBAR()) > top(BAR_TITLE()) + 8).toBe(ownRow);
+    // Exit stays in the title's row.
+    expect(Math.abs(top(EXIT()) - top(BAR_TITLE()))).toBeLessThan(24);
   });
 });

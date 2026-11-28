@@ -11,6 +11,7 @@ import {
   googleEventLinkSchema,
   googleOauthStateSchema,
   memberCalendarSettingSchema,
+  todoSchema,
   userSchema,
 } from "../db/schema";
 import { isError } from "../errors";
@@ -263,6 +264,44 @@ describe("pushing", () => {
       .from(googleEventLinkSchema)
       .where(eq(googleEventLinkSchema.connectionId, conn.id));
     expect(links.map((l) => l.itemUid)).toEqual([`entry:${appointment.id}`]);
+  });
+
+  it("pushes no subtask, and deletes an event held for one at the next daily push", async () => {
+    const { owner, group, appointment, todo } = await setup();
+    // `held` was pushed while it was top-level (as before todo-subtasks-3); `fresh` is made a subtask.
+    const held = ok(
+      await todoService.create(owner.ctx, {
+        groupId: group.id,
+        title: "Call the pharmacy",
+        dueOn: inDays(1).slice(0, 10),
+      }),
+    )!;
+    const conn = await connect(owner, group.id);
+    const uids = () => google.events(conn.calendarId).map((e) => e.privateProperties[UID_PROPERTY]);
+    expect(uids()).toContain(`todo:${held.id}`);
+    await getDb().update(todoSchema).set({ parentId: todo.id }).where(eq(todoSchema.id, held.id));
+    const fresh = ok(
+      await todoService.create(owner.ctx, {
+        groupId: group.id,
+        parentId: todo.id,
+        title: "Measure the doorway",
+        dueOn: inDays(1).slice(0, 10),
+      }),
+    )!;
+    await settled();
+    // Only this test's connection is due: the others' stop syncing here.
+    await getDb()
+      .update(googleCalendarConnectionSchema)
+      .set({ lastError: "revoked" })
+      .where(ne(googleCalendarConnectionSchema.id, conn.id));
+    ok(await calendarSyncService.sweep({ now: new Date(Date.now() + 25 * 3_600_000) }));
+    expect(uids().sort()).toEqual([`entry:${appointment.id}`, `todo:${todo.id}`].sort());
+    const links = await getDb()
+      .select()
+      .from(googleEventLinkSchema)
+      .where(eq(googleEventLinkSchema.connectionId, conn.id));
+    expect(links.map((l) => l.itemUid).sort()).toEqual([`entry:${appointment.id}`, `todo:${todo.id}`].sort());
+    expect(links.map((l) => l.itemUid)).not.toContain(`todo:${fresh.id}`);
   });
 
   it("pushes a Caretook event 200 days out", async () => {

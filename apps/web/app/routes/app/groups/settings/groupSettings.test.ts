@@ -10,6 +10,7 @@ import {
   roleGroups,
   roleLabel,
   sortMembers,
+  symptomCatalogAccess,
   timeZoneLabel,
   timeZoneOptions,
 } from "./groupSettings";
@@ -28,6 +29,20 @@ describe("groupSettingsAccess", () => {
   it("gives viewers, and anyone without a role, nothing to edit", () => {
     expect(groupSettingsAccess(GROUP, "viewer")).toEqual({ renameGroup: false, editRecipient: false });
     expect(groupSettingsAccess(GROUP, null)).toEqual({ renameGroup: false, editRecipient: false });
+  });
+});
+
+describe("symptomCatalogAccess", () => {
+  it("lets writers archive, and only owners replace", () => {
+    expect(symptomCatalogAccess(GROUP, "owner")).toEqual({ archive: true, replace: true });
+    for (const role of ["admin", "caretaker"]) {
+      expect(symptomCatalogAccess(GROUP, role)).toEqual({ archive: true, replace: false });
+    }
+  });
+  it("gives every other role, an unknown one and no role nothing", () => {
+    for (const role of ["viewer", "easy_helper", "easy_viewer", "someone", null, undefined]) {
+      expect(symptomCatalogAccess(GROUP, role)).toEqual({ archive: false, replace: false });
+    }
   });
 });
 

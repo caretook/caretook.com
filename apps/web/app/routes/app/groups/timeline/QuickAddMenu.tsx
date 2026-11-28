@@ -10,7 +10,7 @@ import { appUrls } from "~/lib/app-shell/appUrls";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { localTimeZone } from "~/lib/core/format";
 import { SHEET_LINK_STATE } from "./sheet";
-import { dayKeyIn, dayStartAt } from "./timelineDays";
+import { dayKeyIn, dayStartAt } from "~/lib/timeline/timelineDays";
 
 /**
  * A day heading's + button ("Add to Today", "Add to Monday, Nov 16"; writers

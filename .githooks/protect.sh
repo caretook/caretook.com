@@ -7,7 +7,7 @@
 #                  Locally, the only update allowed is a fast-forward to what
 #                  origin already has (git pull).
 #   dev            isn't restricted: it takes landings (prd/ and plan/ merges),
-#                  backlog commits (pnpm backlog) and small direct changes.
+#                  backlog commits (risa backlog) and small direct changes.
 #
 # Override main and staging with CARETOOK_ALLOW_PROTECTED=1.
 

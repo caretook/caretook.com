@@ -1,45 +1,63 @@
-import type { FormEvent } from "react";
-import type { TodoTickProgress } from "~/components/todos";
+import type { QuickAddParent, TodoTickProgress } from "~/components/todos";
 import type { LocalTodo } from "~/lib/todos/todos.sync";
 
-import { canCompleteTodo, isTodoWriter } from "@caretook/data/schema";
-import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router";
-import { TodoTick, TodoUndoStatus, useTodoTick } from "~/components/todos";
-import { Button, Field, LINK, Message, Section } from "~/components/ui";
+import { useGroupRecordTags } from "~/components/tags";
+import { mayAddSubtask, TodoQuickAdd, TodoTree, TodoUndoStatus, useTodoTick } from "~/components/todos";
+import { LINK, Message, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
-import { getSync } from "~/lib/sync";
-import { createTodo } from "~/lib/todos/todos.sync";
+import { todoTrees } from "~/lib/todos/todoTreeView";
 
 /**
- * The Subtasks band (todo-subtasks): each live subtask with its tick (for
- * whoever may complete it, with Undo as everywhere), its title opening its
- * page, "n of m done", and writers' inline "Add subtask" while the todo may
- * take one. A subtask with open subtasks of its own has a disabled tick
- * reading "n of m" (`progressOf`). No subtasks and no add: no band. The parent follows its
- * children on the device (the rollup), so the page shows it live.
+ * The Subtasks band (todo-subtasks; the tree, todo-subtasks-3): "n of m
+ * done" over the shared `TodoTree` of every live todo under this one
+ * (children and grandchildren nested, done ones struck in place), each row
+ * with its tick for whoever may complete it (a parent's waits on its own
+ * open subtasks) and Undo for the shown ones, and for writers each row's
+ * compact quick add where a subtask may go; then writers' "Add subtask"
+ * field (the shared `TodoQuickAdd`, full) while the todo may take one. No
+ * subtasks and no add: no band. The parent follows its children on the
+ * device (the rollup), so the page shows it live.
  */
 export function TodoSubtasks({
-  todoId,
-  title,
+  todo,
+  ancestors,
+  chain,
   subtasks,
+  descendants,
   progress,
   progressOf,
-  canAdd,
+  nameOf,
+  now,
+  timeZone,
 }: {
-  todoId: string;
-  title: string;
+  todo: LocalTodo;
+  /** The todo's ancestor chain, for whether it may take a subtask. */
+  ancestors: readonly unknown[];
+  /** The todo and its ancestors: the chain above the tree's top level. */
+  chain: readonly QuickAddParent[];
+  /** Its own live subtasks. */
   subtasks: LocalTodo[];
+  /** Every live todo under it, from the page's one query. */
+  descendants: LocalTodo[];
   progress: { done: number; total: number };
-  /** Each subtask's own progress, from the group's one query. */
+  /** Each todo's progress under it, from the same rows. */
   progressOf: ReadonlyMap<string, TodoTickProgress>;
-  canAdd: boolean;
+  nameOf: (userId: string) => string;
+  now: number;
+  timeZone: string;
 }) {
   const group = useGroup();
   const tick = useTodoTick(group.id);
-  const adding = canAdd && isTodoWriter(group.role);
+  const trees = useMemo(
+    () => todoTrees(descendants, { now, timeZone, rootId: todo.id }),
+    [descendants, now, timeZone, todo.id],
+  );
+  // The rows' tags: one query for the whole tree, never one per row (tags-3).
+  const tags = useGroupRecordTags(group.id, "todo");
+  const adding = mayAddSubtask(group.role, ancestors, todo);
   if (!subtasks.length && !adding) return null;
 
   return (
@@ -49,83 +67,25 @@ export function TodoSubtasks({
           <p className="text-muted text-sm" data-subtask-progress>
             {progress.done} of {progress.total} done
           </p>
-          <ul
+          <TodoTree
+            trees={trees}
+            adding={adding}
+            ancestors={chain}
             className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y border px-3"
-            aria-label={`Subtasks of ${title}`}
-          >
-            {subtasks.map((sub) => (
-              <li key={sub.id} className="flex items-start gap-3 py-2.5" data-subtask={sub.id}>
-                {canCompleteTodo({ role: group.role, userId: group.userId, todo: sub }) ? (
-                  <TodoTick
-                    title={sub.title}
-                    done={!!sub.doneAt}
-                    disabled={tick.busy}
-                    progress={progressOf.get(sub.id)}
-                    onChange={(done) => void (done ? tick.complete(sub) : tick.reopen(sub))}
-                  />
-                ) : (
-                  <span className="w-6 shrink-0" aria-hidden="true" />
-                )}
-                <Link
-                  to={appUrls.todo(group.id, sub.id)}
-                  className={`link-hover min-w-0 flex-1 font-medium break-words ${sub.doneAt ? "text-muted line-through" : ""}`}
-                  data-subtask-title
-                >
-                  {sub.title}
-                </Link>
-              </li>
-            ))}
-          </ul>
-          <TodoUndoStatus groupId={group.id} todoIds={subtasks.map((s) => s.id)} />
+            nameOf={nameOf}
+            now={now}
+            timeZone={timeZone}
+            busy={tick.busy}
+            onTick={(t, done) => void (done ? tick.complete(t) : tick.reopen(t))}
+            progressOf={(id) => progressOf.get(id)}
+            tagsOf={(id) => tags.get(id)}
+          />
+          <TodoUndoStatus groupId={group.id} todoIds={descendants.map((t) => t.id)} />
           {tick.error && <Message tone="error">{tick.error}</Message>}
         </>
       )}
-      {adding && <AddSubtask groupId={group.id} parentId={todoId} />}
+      {adding && <TodoQuickAdd parent={todo} ancestors={ancestors} form="full" />}
     </Section>
-  );
-}
-
-/** A title field writing `createTodo` with this todo as the parent; it stays open for the next. */
-function AddSubtask({ groupId, parentId }: { groupId: string; parentId: string }) {
-  const [value, setValue] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const submit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const title = value.trim();
-    if (!title || busy) return;
-    setBusy(true);
-    setError(null);
-    void createTodo(getSync(), groupId, { title, parentId })
-      .then((result) => (result.ok ? setValue("") : setError(result.error)))
-      .catch((err: unknown) => {
-        console.error("Couldn't add the subtask", err);
-        setError("Couldn't save that. Try again.");
-      })
-      .finally(() => setBusy(false));
-  };
-
-  return (
-    <form className="space-y-2" onSubmit={submit} data-subtask-add="">
-      <div className="flex items-end gap-2">
-        <Field label="New subtask" labelHidden kind="input" className="min-w-0 flex-1">
-          {(control) => (
-            <input
-              {...control}
-              type="text"
-              placeholder="Add a subtask"
-              value={value}
-              onChange={(e) => setValue(e.currentTarget.value)}
-            />
-          )}
-        </Field>
-        <Button type="submit" icon={Plus} disabled={!value.trim()} busy={busy} busyLabel="Adding…">
-          Add subtask
-        </Button>
-      </div>
-      {error && <Message tone="error">{error}</Message>}
-    </form>
   );
 }
 

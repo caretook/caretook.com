@@ -12,9 +12,10 @@ import { getGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
 import { tagFilterOf } from "~/lib/tags/tagFilter";
 import { tagsQuery } from "~/lib/tags/tags.sync";
-import { subtaskProgressQuery, todosQuery } from "~/lib/todos/todos.sync";
+import { subtaskProgressQuery, todosQuery, todoTreesQuery } from "~/lib/todos/todos.sync";
 import { membersQuery, readRows } from "~/lib/timeline/timeline.sync";
 import { emptyTodosText, todoQueryOf, whoOf } from "~/lib/todos/todoList";
+import { todoViewOf } from "~/lib/todos/todoView";
 import { PlannerHeader } from "../planner/PlannerHeader";
 import { DoneTodos } from "./DoneTodos";
 import { todoFilterBar } from "./TodoFilters";
@@ -26,7 +27,9 @@ import { DONE_PAGE, useTodoList } from "./useTodoList";
 // todos, read from the device's local copy (live, so it works offline and
 // follows other members' changes): the open ones the Filter menu's Assigned
 // to shows (Everyone, or `?who=` Mine / Unassigned) and the search box's text
-// (`?q=`) keeps, in sections by due, then Done. A tick
+// (`?q=`) keeps, as trees (todo-subtasks-3: a subtask shows only in its tree,
+// with a quick add on each row for writers; or, with `?subtasks=own`, each on
+// its own row with "Part of": todo-links-2) in sections by due, then Done. A tick
 // completes a todo on the device, with Undo. The add and edit sheets render
 // over it (the header's Add menu opens the add sheet).
 
@@ -36,7 +39,7 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
   const group = getGroup(context);
   const { db } = context.get(sessionContext);
   const [openRows, memberRows, progressRows] = await Promise.all([
-    readRows<TodoRow>(db, todosQuery(params.groupId)),
+    readRows<TodoRow>(db, todoTreesQuery(params.groupId)),
     readRows<MemberRow>(db, membersQuery(params.groupId)),
     readRows<SubtaskProgressRow>(db, subtaskProgressQuery(params.groupId)),
   ]);
@@ -47,7 +50,7 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
     db,
     todosQuery(params.groupId, {
       done: true,
-      listed: true,
+      doneListed: todoViewOf(search) === "tree",
       who,
       userId: group.userId,
       tagId: tag?.id,
@@ -100,7 +103,14 @@ export default function Todos({ loaderData, params }: Route.ComponentProps) {
   return (
     <Page>
       <PlannerHeader
-        bar={todoFilterBar({ who: list.who, tags: list.tags, value: text, urlQuery, onChange: setText })}
+        bar={todoFilterBar({
+          who: list.who,
+          view: list.view,
+          tags: list.tags,
+          value: text,
+          urlQuery,
+          onChange: setText,
+        })}
       />
 
       <TodoUndoStatus groupId={params.groupId} />

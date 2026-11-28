@@ -28,8 +28,8 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } fr
 import { dirname, relative } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { timeGate } from "../loops/time-gate.mjs";
-import { tierData } from "./tier-data.mjs";
+import { timeGate } from "risa/loops/time-gate.mjs";
+import { tierData } from "risa/ci/tier-data.mjs";
 import { parseQuarantine } from "./lists.mjs";
 import { progressFileOf } from "./progress-reporter.mjs";
 import { NARROWED_FILE, fileGroup } from "./tiers.mjs";
@@ -41,7 +41,7 @@ export const TIME_GATE_FLAG = "--time-gate";
 
 /**
  * @typedef {{ run: (args: string[], env: Record<string, string>) => number, readText: (path: string) => string | null, log: (line: string) => void, root: string,
- *   now?: () => number, gates?: () => Readonly<import("./tier-data.mjs").Gates>,
+ *   now?: () => number, gates?: () => Readonly<import("risa/ci/tier-data.mjs").Gates>,
  *   write?: (path: string, text: string) => void, summary?: (text: string) => void }} JobIo
  *   now: milliseconds; gates: the time gates' data; write: a file; summary: the job summary
  */

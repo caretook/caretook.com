@@ -21,9 +21,7 @@ describe("todoFromForm", () => {
           dueTime: "",
           providerId: "p1",
           medicationId: "",
-          eventId: "e1",
           repeatRule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=FR",
-          entryId: "n1",
         }),
       ),
     ).toEqual({
@@ -34,9 +32,7 @@ describe("todoFromForm", () => {
       dueTime: null,
       providerId: "p1",
       medicationId: null,
-      eventId: "e1",
       repeatRule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=FR",
-      entryId: "n1",
     });
     expect(todoFromForm(form({}))).toEqual({
       title: "",
@@ -46,10 +42,29 @@ describe("todoFromForm", () => {
       dueTime: null,
       providerId: null,
       medicationId: null,
-      eventId: null,
       repeatRule: null,
-      entryId: null,
     });
+  });
+
+  it("reads the linked notes and events, repeated, once each; the list's empty field alone is none", () => {
+    const f = form({ title: "Call" });
+    for (const id of ["", "n1", "e1", " n1 "]) f.append("entryIds", id);
+    expect(todoFromForm(f).entryIds).toEqual(["n1", "e1"]);
+    const empty = form({ title: "Call", entryIds: "" });
+    expect(todoFromForm(empty).entryIds).toEqual([]);
+    // No list sent: none given, so an edit leaves the links alone.
+    expect(todoFromForm(form({ title: "Call" }))).not.toHaveProperty("entryIds");
+  });
+
+  it("reads an edit's own added and removed notes and events, once each; none sent is no change (B-990)", () => {
+    const f = form({ title: "Call" });
+    for (const id of ["n1", " n1 ", "", "e1"]) f.append("addEntryIds", id);
+    f.append("removeEntryIds", "e2");
+    expect(todoFromForm(f)).toMatchObject({ addEntryIds: ["n1", "e1"], removeEntryIds: ["e2"] });
+    expect(todoFromForm(f)).not.toHaveProperty("entryIds");
+    const none = todoFromForm(form({ title: "Call", addEntryIds: "" }));
+    expect(none).not.toHaveProperty("addEntryIds");
+    expect(none).not.toHaveProperty("removeEntryIds");
   });
 
   it("knows which issues the fields show", () => {

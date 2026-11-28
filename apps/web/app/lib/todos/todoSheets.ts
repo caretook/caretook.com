@@ -1,5 +1,6 @@
 import { TAG_PARAM } from "@caretook/data/schema";
 import { appUrls } from "../app-shell/appUrls";
+import { SUBTASKS_PARAM } from "./todoView";
 
 // The todo list's sheet routes (`todos/new`, `todos/:todoId/edit`): which
 // sheet a URL opens, or where it goes instead, and the history state that
@@ -44,11 +45,11 @@ export const editTodoGuard = <T extends { groupId: string; deletedAt: string | n
   return { sheet: todo };
 };
 
-/** The list's own search (its filters: `?who=` and `?tag=`), without a sheet's prefills. */
+/** The list's own search (its filters: `?who=`, `?tag=` and the view, `?subtasks=`), without a sheet's prefills. */
 export const listSearch = (search: string) => {
   const params = new URLSearchParams(search);
   const out = new URLSearchParams();
-  for (const key of ["who", TAG_PARAM]) {
+  for (const key of ["who", TAG_PARAM, SUBTASKS_PARAM]) {
     const value = params.get(key);
     if (value) out.set(key, value);
   }

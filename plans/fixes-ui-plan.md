@@ -16,23 +16,12 @@ Notes for every wave:
 
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 
-**Previous hand-over:** wave 16 landed 2026-11-26 as dev d6e934e9 through PR #231, `--no-review` (Codex out of credits), CI components green (run 45879574428, 200c4c14); report a283; to-test/2026-11-26-1413-fixes-ui.md. Slices 86–94 (B-885 sonnet; B-897+B-900, B-902, B-904, B-905, B-906, B-908, B-909, B-916 opus); rows in the history file. Parked mid-wave for orchestration-split-3 wave 1 (dev 00c60f0c, new browser.sh via hooks.browser) at the backlog session's request, then synced. Browser `--changed --base dev`: layout-offline, first-sync, marketing pass; ui failed once under load (0×0 sheet), passed alone twice: filed B-922 (fixes-tooling). Lesson: slice 93 ran to 13 files; split an item with a schema key, an API and two screens. Docs folded (5ef43e2c) into assistant, app-shell, ui-kit, providers, medications. Slice worktrees removed.
+**Restarted 2026-11-27 (this session), run-through:** landing mode run everything through. Anchors ok, ingest empty, prd/fixes-ui = dev (1e628db49). Wave 21: B-975 (marketing AI 'will not') slice 108 on sonnet; B-980 (subtask add button on the title line) slice 109 on opus; parallel.
 
-**Wave 17 (this session, 2026-11-26):** B-694 (Long create forms on tabs) released: the user approved every split today. Slices 95–98, all opus: 95 shared tabs component; 96 provider tabs and 97 medication tabs (both after 95, parallel); 98 schedule overlay (after 97). Synced: prd/fixes-ui up to date with dev. Still held: B-325 (Capacitor).
+**Wave 21 landed 2026-11-27** as dev 40ff2e6 through PR #297 (Codex clean on 75f1874), CI components green on the synced tip (run 46092112343, 6f0b5cce); to-test/2026-11-27-2025-fixes-ui.md. Slices 108 (B-975 marketing AI 'will not', sonnet, 1689bd40d) and 109 (B-980 subtask add on the title line via `TodoQuickAdd inline`, opus, c5e753432). Sync conflict in TodoTree (todo-links-2's `chain`), kept both. Browser `--changed --base dev`: marketing pass. Docs folded into todos. Slice worktrees removed. Lesson: format the plan after every Status edit, not only after writing slices (slice 108's check tripped on it). No fixes-ui item waits: topic closed.
 
-**Wave 17 landed 2026-11-26** as dev 919af00 through PR #235, `--no-review` (Codex out of credits), CI components green (run 45892683323, f9403a5b), browser ui pass; to-test/2026-11-26-1548-fixes-ui.md. B-694 (long create forms on tabs), slices 95–98 all opus (shared FormTabs; provider Essentials | More; medication Essentials | Details | Refills; At set times overlay). Parked mid-wave once for orchestration-split-3 wave 4 (48db0d34), then synced. Docs folded (f375234f) into ui-kit, providers, medications. Follow-up idea: FormTabs could focus after the switch commits so forms needn't wrap `revealField` in `requestAnimationFrame` (noted on B-694).
-
-**Released 2026-11-26** by the backlog session (caretook-com-3c; ListAgents if it rotates again): orchestration-split-3 wave 5 is on dev (6265872b; that PRD is done). Synced: prd/fixes-ui merged dev as 95021acb (tooling and scripts only for us). Rotated right after so the next session runs on the new scripts. Reports go to caretook-com-3c.
-
-**Wave 18 landed 2026-11-26** as dev dc9bffb through PR #237, `--no-review` (Codex out of credits); CI components failed only dev's doc.test.mjs (B-928; run 45906838038, 765d0282); landed unsynced (dev's 1 commit in other files); report a290; to-test/2026-11-26-1755-fixes-ui.md. Slices 99–102 all opus (B-899 copy link into the entry ⋯; B-923 specialty datalist; B-924 provider header Edit + ⋯; B-925 arrows `-me-2`); rows in the history file. Two CI fix rounds for tests asserting the old menus and roundtrip's viewer step. Lesson: changing who sees a ⋯ breaks tests outside its folder and `scripts/browser-checks/`; grep `aria-label^="Actions"` there when writing such a slice. `browser --suite` is classifier-blocked (ask before it); ran `--changed --base dev`. Docs folded (197999f6). Slice worktrees removed. Rotated after (past the soft context limit).
-
-**Wave 19 (this session, 2026-11-27):** ingest: nothing new in the inbox; triaged for us B-937, B-939, B-940 (B-325 still held for Capacitor). Synced dev into prd/fixes-ui as 17864957 (local dev 1 backlog commit ahead of origin). Only fixes-ui is running, so no hot-file overlap. Slices 103–105, parallel, all opus; all merged, items done. Wave gate: CI components (proposed). For the landing docs: providers.md's "Full rows carry no contact details" (B-422) is reversed by 105; 103 added `elsewhere` to `TimelineEntryRow` and `rowDayLabel` (timeline.md), and `LinkedEntries` imports the timeline route folder (follow-up filed). CI components on 1f79a41f (run 45951811176): `file`, 4 failures, all the branch's (blame 45952661845): timelineDoses, medicationForm, allergies (the brand list) sent to slice 104; providerTags to slice 105. Fixes merged (104 fix 7f9e9fd5, test-only; 105 fix test-only: linked entries' rows now carry their own Add tag, so the test scoped its pick). CI components rerun on d58283fb (run 45953425948): `flake` only (search.sync perf, brake list, not our files): green. Sync: up to date. Browser `--changed --base dev`: roundtrip fails at its tags step twice alone (not our code): filed B-951 (fixes-bug), told the backlog session (caretook-com-ea). PR #250 open; Codex review waiting. Follow-up B-950 (fixes-nit): move TimelineEntryRow into components/entry. Reports go to the backlog session (ListAgents: `caretook-com-<n>`).
-
-| Slice | Item                                              | State                   | Merge    |
-| ----- | ------------------------------------------------- | ----------------------- | -------- |
-| 103   | B-937 linked entries use the timeline row (opus)  | merged (slice 683a0e4b) | 88660c00 |
-| 104   | B-939 medication brand names (opus)               | merged (slice dfddba9b) | 13111221 |
-| 105   | B-940 provider rows show phone and address (opus) | merged (slice 4f49f76d) | 0ebc73a6 |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
@@ -1533,3 +1522,68 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 - [ ] Component test: a full row with none of them shows no contact line and no gap.
 - [ ] Component test: a condensed row shows the provider type icon.
 - [ ] Grep tests and `scripts/browser-checks/` for assertions that full rows have no contact links (B-422) and update them.
+
+## Wave 20 (written 2026-11-27 by the orchestrator, from the triaged fixes-ui items)
+
+Every slice: no migration, no dependency. Slices 106 and 107 touch separate files and run in parallel. Still held: B-325 (Capacitor).
+
+## Slice 106: First load shows a friendlier loading screen with progress (B-957)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/app-shell.md, docs/domain/sync.md · Tests: component, unit
+
+**Problem.** From sign-in to the first timeline row takes about 2 s on a 4G phone and 4 s on 3G (B-764). Meanwhile the user sees the mark and "Loading…" (`components/brand/AppLoading.tsx`, root's `HydrateFallback`) and then "Getting your care groups…" (`components/shell/FirstSyncPending.tsx`), with no sense that anything is moving.
+
+**Build.** One shared loading display with a short, friendly step line and a progress bar, used by both screens (extend `LoadingMark`, which `ui/PageLoading` shares, rather than making a second look). The steps, in order: opening the app (route chunks loading), opening your device copy (the local database, `lib/sync/client`), syncing your care groups (PowerSync's first sync: connecting, then `downloadProgress` when it has one, so the bar moves on a big download), and opening the screen. Keep the step state in one small client-only store under `lib/sync/` (or `lib/app-shell/`, whichever owns the startup), that the startup code advances and the display reads (`useSyncExternalStore`); never a server loader. Before scripts run (the server's page and the native SPA's file) the display shows its first step with no bar movement, as today; app.css's 300 ms invisible start and the reduced-motion rule stay (reduced motion: no animated bar, just the step line). The bar never moves backwards; a step that is skipped (a returning device with the copy already synced) is passed over, so a fast start still looks like today. Words: warm and short ("Opening Caretook…", "Getting your notes ready…", "Syncing your care groups… 40%"); no technical words (no "WASM", "database", "sync stream"). It still says nothing about being offline (the frame's banner does). Accessible: the bar is a `<progress>` with a label, the step line a polite live region that announces a step change, not every percent.
+
+**Acceptance criteria.**
+
+- [ ] Unit test: the startup store moves forward through the steps, never back, skips steps, and maps download progress to a percentage.
+- [ ] Component test: the loading display shows the current step's words and a labelled progress bar; with no progress it shows the step only.
+- [ ] Component test (`FirstSyncPending.browser.test.tsx`): first sync in progress shows the syncing step with its percentage; done still reruns the loaders.
+- [ ] Grep tests and `scripts/browser-checks/` for "Loading…" and "Getting your care groups…" and update any that assert the old words.
+
+## Slice 107: Live note full screen fills the screen, its title in the note's bar (B-962)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/live-notes.md · Tests: component
+
+**Problem.** The live note full screen (`components/notes/NoteFullScreen.tsx`, B-765) keeps a centred `max-w-3xl` column with padding and its own title row (the entry's heading and the editor avatars) above the editor frame, which keeps its rounded border, so on a phone it wastes width and reads as a card on a page, not full screen.
+
+**Build.** In full screen, the editor frame fills the dialog edge to edge: no max width, padding, border or radius, and safe-area aware (`env(safe-area-inset-*)` padding inside the bar and the text, so nothing sits under a notch). Drop the separate title row. The title (short, truncated, what the note is attached to: the `title` the caller passes today) and the avatars (`aside`) move into the frame's bar (`LiveNotesEditor.tsx`, the `BAR` row with the full screen toggle), left of Exit full screen; the dialog keeps its accessible name. Layout: on a wide screen one row (title, avatars, the writer's toolbar, Exit); on a phone, title + avatars + Exit on the first row and the toolbar on its own row below, so the toolbar never squeezes the title. On the page (not full screen) the bar looks as today: no title in it (the page has its heading). A viewer (no toolbar) still gets the title, avatars and Exit. The text area scrolls inside the frame; the keyboard handling (visual viewport height) and Escape behaviour stay.
+
+**Acceptance criteria.**
+
+- [ ] Component test: in full screen the bar holds the title, the avatars and Exit full screen, and there is no separate heading row; the dialog's accessible name is the title.
+- [ ] Component test: a viewer in full screen sees the title and Exit, and no toolbar.
+- [ ] Component test: not in full screen, the bar has no title.
+- [ ] Existing NoteFullScreen and live notes tests still pass; grep tests and `scripts/browser-checks/` for `data-note-full-screen` and the old heading and update any that assert it.
+
+## Wave 21 (written 2026-11-27 by the orchestrator, from the triaged fixes-ui items)
+
+Slices 108 and 109 share no file and run in parallel.
+
+## Slice 108: Marketing home says AI providers will not keep or train on your data (B-975)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/marketing.md · Tests: component
+
+**Problem.** The marketing home's "Not for AI training" answer (`apps/web/app/routes/marketing/home/content.ts`, the `noAiTraining` item) ends "If we add AI features, their providers may not keep your data or train on it." "May not" reads as "might not", the opposite of the promise (AGENTS.md _Compliance_: AI vendors that don't retain or train on our data).
+
+**Build.** Change "may not keep your data or train on it" to "will not keep your data or train on it". Grep `apps/web/app/routes/marketing/` for the same "may not keep" wording elsewhere (privacy pages) and fix any match the same way; change nothing else.
+
+**Acceptance criteria.**
+
+- [ ] The home's AI answer says "will not keep your data or train on it"; no "may not keep" remains under `routes/marketing/`.
+- [ ] Existing marketing tests pass (no word-for-word copy test is added).
+
+## Slice 109: A nested todo's add-subtask button sits right-aligned on its title's line (B-980)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/todos.md · Tests: component
+
+**Problem.** In the nested todo tree, `TodoRow.tsx` renders the `addSubtask` slot (`TodoTree`'s per-row compact `TodoQuickAdd`) under the row's text (around lines 174, 220 and 260, one per look), so it takes its own line below the title.
+
+**Build.** In each `TodoRow` look that renders `addSubtask`, put it at the end of the title's line, right-aligned (the title truncates or wraps before it, never under it), keeping its tap target room from neighbouring controls (the row's own ⋯ or tick). When the quick add opens its input, the input may take the row's width below as it does today; only the closed button moves. Rows without `addSubtask` look exactly as today. Update the doc comment at the top of `TodoRow.tsx` ("under the row's text").
+
+**Acceptance criteria.**
+
+- [ ] Component test: in each look that renders it, the add-subtask button is inside the title's line (the same row container as the title), after the title.
+- [ ] Component test: a row without `addSubtask` renders as before.
+- [ ] Existing TodoRow, TodoTree and planner/todos tests pass; grep tests and `scripts/browser-checks/` for the add-subtask button's label and update any that assert its old place.

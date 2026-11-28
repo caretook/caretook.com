@@ -19,7 +19,7 @@ export function readRisa(root) {
 
 /**
  * What the tool's own command NAME (prd, backlog) is called in the repo at `root`
- * (risa.json's tool.NAME: `pnpm prd` here, `risa` after the move), for a hint that names
+ * (risa.json's tool.NAME: `risa` here), for a hint that names
  * it; the bare NAME when the config doesn't say.
  * @param {string} root
  * @param {"prd" | "backlog"} name

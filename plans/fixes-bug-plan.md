@@ -10,10 +10,11 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+| Slice | Item  | State                                 | Merge     |
+| ----- | ----- | ------------------------------------- | --------- |
+| 89    | B-992 | merged (opus); CI integration run out | a83841058 |
 
-**Idle after wave 17** (landed 44561c0e through PR #251, 2026-11-27, `--no-review`: Codex out of credits; components green, run 45989155987). Slices 74 (B-936, Opus) and 75 (B-951, Opus: no app bug, a stack missing migration 0048) merged; follow-up B-954 (fixes-tooling: browser checks refuse a stack behind on migrations). This stack needed `pnpm datastore:reset` after the sync for roundtrip to pass. **Next session:** `pnpm prd sync`, ingest, `pnpm backlog list`; write wave 18 from new triaged items (B-750 only once its notes name files; B-752 only if B-753's watchdog names a recurrence). Lane freed with `pnpm prd rm fixes-bug` (standing).
+**Wave 25** (session 2026-11-27): slice 89 (B-992, symptom catalog lock) started on opus; hot files set. Wave 24 landed through PR #293 (18720a3d2); see history.
 
 ## Wave 1
 
@@ -800,3 +801,153 @@ The browser check `scripts/browser-checks/roundtrip.spec.mjs:61` fails at its ta
 - Reproduce first: an integration test beside `packages/api/src/syncTags.int.test.ts` that uploads the two devices' creates (same name, different case, as the devices write them since d362bd70) and their links, and expects one tag and both links on the server. Then run the roundtrip check once (`pnpm prd browser` for that spec) to confirm.
 - Find why the server drops them (a rejected upload, a conflict path that discards, a color field the server refuses) and say so in the hand-off; fix it in the upload handler or the device write, keeping one tag per case-insensitive name per group.
 - Uploads must not silently drop: if the server refuses a write, the test shows the error path, not a missing row.
+
+## Wave 18
+
+Four second-zone failures from dev's release run on 39b4beaf (2026-11-27), independent, run at once. Each slice owns one test file and follows wave 12's _The zone slices_: run it in both zones first (component files: `CARETOOK_TEST_ZONE=America/New_York TZ=America/New_York pnpm exec vitest run --project web:components <file>`, then `America/Los_Angeles`; browser checks: `CARETOOK_TEST_ZONE=America/New_York TZ=America/New_York pnpm prd browser <spec>`, then Los Angeles), find out why each failure happens, then fix the test (it assumed Los Angeles: state or compute its zone, never weaken it, change the runner's zone or skip it) or the app (small and inside the slice's area, with the test proving it; else file a `fixes-bug` item and say so). If it doesn't reproduce in either zone, say so in the hand-off with the runs that show it (three in New York) and change nothing. Stay out of todo-subtasks-3's hot files (`pnpm backlog prd list`), `vitest.config.ts` and `scripts/ci/`. B-750 stays the standing umbrella; B-752 waits on B-753's watchdog.
+
+### Slice 76: Google calendar settings test passes in New York (B-968)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/calendars.md · Tests: component
+
+`apps/web/app/routes/app/groups/settings/calendarGoogle.browser.test.tsx` fails in America/New_York. Follow _The zone slices_ above.
+
+### Slice 77: group settings test passes in New York (B-969)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/app-shell.md · Tests: component
+
+`apps/web/app/routes/app/groups/settings/groupSettings.browser.test.tsx` fails in America/New_York. Follow _The zone slices_ above. Slice 76 runs beside it in the same folder: change only this file and what it tests.
+
+### Slice 78: the offline layout check passes in New York (B-970)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/app-shell.md, docs/domain/sync.md · Tests: e2e:layout-offline
+
+`scripts/browser-checks/layout-offline.spec.mjs` fails with `CARETOOK_TEST_ZONE=America/New_York`. Follow _The zone slices_ above; first make sure the stack is on dev's migrations (wave 17's B-951 was a stack missing one).
+
+### Slice 79: the roundtrip check passes in New York (B-971)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/sync.md, docs/domain/timeline.md · Tests: e2e:roundtrip
+
+`scripts/browser-checks/roundtrip.spec.mjs` fails with `CARETOOK_TEST_ZONE=America/New_York`. Follow _The zone slices_ above; first make sure the stack is on dev's migrations (wave 17's B-951 failed this check on a stack missing one), and name the failing step in the hand-off.
+
+## Wave 19
+
+One slice: quick entry vitals with the label after the number.
+
+### Slice 80: a vital's label after its number still counts (B-976)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md, docs/domain/timeline.md · Tests: unit
+
+Quick entry reads a vital only when its label comes first: `140/78 74bpm 97 o2` keeps the blood pressure and heart rate but drops the O2 (`o2 97` works), and heart rate as `74 hr` is dropped the same way. These are very common lines. The parsing lives in `packages/data/src/db/schema/assistant/quickEntry.ts` and `timeline/vitals.ts`.
+
+- Each vital quick entry knows (O2/SpO2, heart rate/HR/pulse/bpm, and the others with a short label) reads with its label before or after its number, with or without a space (`97o2`, `97 o2`, `o2 97`, `74 hr`, `hr 74`, `74bpm`). A number between two labels goes to the nearer one; when that's unclear, keep today's label-first reading.
+- Nothing that reads today changes: label-first lines, units (`98.6 °F`, `97%`), blood pressure, and the measurement-word rules of slices 20–40 (a number after a label is still no date, an amount or a time).
+- Unit tests: `140/78 74bpm 97 o2` gives all three; `97 o2 hr 74`, `74 hr 97 o2` and `bp 140/78 pulse 74 o2 97` each give each vital once with the right value; the preview (`quickEntryPreview.ts`) shows the same.
+
+## Wave 20
+
+One slice: an installed app notices a new version without being reopened.
+
+### Slice 81: an installed app shows the update notice without a restart (B-978)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/app-shell.md · Tests: unit
+
+An installed PWA resumed from the background shows no update notice until it's closed and reopened. `registerServiceWorker` (`apps/web/app/lib/app-shell/serviceWorkerRegister.ts`) registers `/sw.js` once at load and relies on the browser's navigation-time update check; a resumed app never navigates, so `updatefound` never fires and `UpdateNotice` stays hidden. **First confirm with a failing test** (the fake container in `serviceWorkerRegister.test.ts`).
+
+- The page asks the registration for an update (`registration.update()`) when it becomes visible again (`visibilitychange` to visible) and on a slow interval (about hourly) while visible, throttled so a burst of visibility changes asks at most once every few minutes. A failed `update()` (offline) is swallowed quietly and tried again next time.
+- A worker found this way shows the existing notice through the existing `updatefound` path; no new notice, control or copy. Nothing changes for a first install or for a page no worker controls.
+- The timer and listener are owned in one place (the registration code or its caller), so a second registration or a test doesn't stack them; tests pass the document/clock as parameters the way the container already is.
+- Unit tests: becoming visible calls `update()`; two visibility changes inside the throttle call it once; the interval calls it; a rejected `update()` doesn't throw or stop later checks; an update found after resume sets the waiting worker.
+
+## Wave 21
+
+One slice: search results' tag chips follow a rename or recolor from another device.
+
+### Slice 82: search result tag chips stay current after a tag rename or recolor (B-979)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/search.md, docs/domain/tags.md · Tests: component
+
+On the search page, a result's tag chips (`data.namedTags`, from `loadSearch`) keep a tag's old name or color after another device renames or recolors it, while the filter chips update. `useSearchPage` (`apps/web/app/routes/app/groups/search/useSearchPage.ts`) reruns `loadSearch` on the watched tag ids, `linkKey`, index changes and status, but not on tag metadata: tags aren't an index change source. **First confirm with a failing test** (the existing `searchTags.browser.test.tsx` setup).
+
+- A rename or recolor of a tag shown on a result updates that result's chips without a navigation or reload, whichever device made it. Pick the smaller sound fix: rerun the search when the names or colors of the group's tags change (a key built from the live `tags` list), or have the result chips read name and color from the live group tags by id. Note the choice in a comment.
+- Typing doesn't flicker the list (the previous results stay up, as today); no extra query per keystroke beyond what the fix needs.
+- A deleted or merged tag drops off the chips the same way (if the chosen fix covers it for free; otherwise leave it as today and say so in the hand-off).
+- Component test: a result shows tag "Alpha" (fictional data); renaming it in the local database to "Beta" and recoloring it updates the result's chip; the filter chip still updates as before.
+
+## Wave 22
+
+Four slices, Codex follow-ups from connectors-3 on the connector's dose tools (`packages/api/src/connectors/tools/pastDoses.ts`, `logPastDoses.ts`, and `packages/data/src/services/assistantActionService.ts`). They run at once; 84 to 86 change different functions of `assistantActionService.ts`, so keep each change inside its own function and add no reformatting. **First confirm each bug with a failing test**; if it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code. All test data fictional.
+
+### Slice 83: past_doses reads a bounded window, so old days don't show given doses as missed (B-982)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/connectors.md, docs/domain/medications.md · Tests: integration
+
+`past_doses` (`pastDoses.ts`, about line 123) calls `entriesBetween` with only `from` (the day before the range), newest first, capped at 40 pages of 50. A group logging about 24 doses a day asking for a day 90 days back can run out of pages before it reaches the range, and the doses it never read show as missed.
+
+- Pass `to` as well: the start of the day after the range, plus one day (as `from` takes one day before), so the read covers only the window.
+- When the read still fills its last page (the cap reached), don't report the result as a complete record: return an error or a clear note that the range was too busy to read whole, whichever fits the tool's existing error shape (say which in the hand-off).
+- Integration test (`packages/api/src/connectors/`): a fictional group with many recent doses and one given dose 90 days back; `past_doses` for that day reports it given, not missed. A second test for the cap note if it can be reached cheaply (lower the page cap through an existing seam if there is one; otherwise say so).
+
+### Slice 84: one dose slot can't take two statuses at once (B-984)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/connectors.md, docs/domain/medications.md · Tests: integration
+
+`log_dose` and `log_past_doses` (`assistantActionService.ts`, about lines 340 to 450 and 891 to 980) lock `doseSlotIdFor`'s id, which includes the status, so a given and a refused for the same medication, day and slot written at once take different locks and both insert.
+
+- Lock a status-free key (medication, day, slot) before the doses are read, in both paths, in a stable sorted order as today; keep the row's id as it is (no change to stored ids or data).
+- Integration test: two concurrent writes for one fictional slot, one given and one refused (via both `log_dose` twice and `log_past_doses` against `log_dose`); exactly one dose row results, and the other call returns what a repeat returns today.
+
+### Slice 85: log_past_doses records the dose usual on that day, not today's (B-985)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/connectors.md, docs/domain/medications.md · Tests: integration
+
+`log_past_doses` takes `slot.amount` from `slotAmount`, which falls back to the medication's current dose; `scheduleHistory` rebuilds the schedule as of a past day but not the usual dose. Changing 1 tablet to 2 today and logging yesterday's box records 2. `past_doses` shows the same wrong amount.
+
+- Resolve the usual dose at the slot's time from the medication-change entries (the same source `scheduleHistory` reads), and use it both for what `log_past_doses` writes and for the amount `past_doses` shows. Put the lookup where both can share it (beside `scheduleHistory`), not twice.
+- Integration test: a fictional medication changed from 1 tablet to 2 today; logging yesterday's slot records 1 tablet, `past_doses` for yesterday shows 1, and today's slot still shows 2.
+
+### Slice 86: log_past_doses sees every medication, not the first 100 (B-986)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/connectors.md, docs/domain/medications.md · Tests: integration
+
+`log_past_doses` (`assistantActionService.ts`, about line 936) asks `medicationModel.list` for 500, but `paginate` is clamped to `MAX_PAGE_SIZE` 100, so marks for any later medication come back `noSlot`, while `past_doses` (`medicationService.list`) reads all. The same `limit: 500` sits near line 271 (and passes near 272 and 941 at 100): check whether each one has the same cut-off and fix those that do.
+
+- Load the medications the marks name (preferred: a filter by id), or every page; say which in the hand-off.
+- Integration test: a fictional group with 101 or more medications; a mark for the last one logs its dose rather than `noSlot`.
+
+## Wave 23
+
+One slice, a follow-up from slice 86 on the connector's dose tools. **First confirm the bug with a failing test**; if it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code. All test data fictional.
+
+### Slice 87: log_dose sees every pass, not the first 100 (B-987)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/connectors.md, docs/domain/medications.md · Tests: integration
+
+`log_dose`'s `slotDose` (`packages/data/src/services/assistantActionService.ts`, about line 405) reads `medicationPassModel.list` with `includeDeleted` and `paginate: { page: 1, limit: 100 }`, so a group that has ever made over 100 passes (deleted ones count) can miss a pass and resolve the wrong slot.
+
+- Read every pass as slice 86 did for `log_past_doses` and `give_pass` (drop the page, or read only the medication's passes if the model has that filter; say which in the hand-off). Keep the change inside `slotDose`, no reformatting.
+- Integration test: a fictional group with 100 or more deleted passes and one live pass made last; `log_dose` against that pass's slot logs it in that pass.
+
+## Wave 24
+
+One slice, a Codex follow-up from todo-links (PR #290). **First confirm the bug with a failing test**; if it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code. All test data fictional.
+
+### Slice 88: past all-day events don't crowd upcoming ones out of link suggestions (B-993)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/todos.md, docs/domain/appointments.md · Tests: components
+
+`upcomingEvents` (`apps/web/app/lib/todos/linkSearch.sync.ts`, about line 230) admits all-day events that started up to two days ago and takes `LIMIT limit + 10` in `occurred_at` order before `upcomingItems` drops the ones already over, so a group with more than `limit + 10` all-day events in the last two days suggests no upcoming event at all.
+
+- Make the query's limit hold only for what can survive: either filter ended all-day events in SQL first (careful: an all-day event's day is in its own zone, which is why the window is two days), or page in `occurred_at, id` order until `limit` survive `upcomingItems` or the rows run out. Say which in the hand-off. Keep the change inside `upcomingEvents`; Upcoming's order and the in-progress all-day rule stay as they are.
+- Test (beside the existing `suggestLinkables` tests, or a new `linkSearch` sync test if none): a fictional group with `limit + 11` or more all-day events from yesterday and the day before (ended) and one timed event tomorrow; the suggestions include tomorrow's event.
+
+## Wave 25
+
+### Slice 89: a symptom entry write can't land on a symptom replace just retired (B-992)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/timeline.md, docs/domain/data-layer.md, docs/domain/sync.md · Tests: integration
+
+`timelineEntryService.update` reads the entry unlocked, and `symptomTypeFor` (`packages/data/src/services/timelineEntryService.ts`, about line 137) skips `ensure` (and its advisory lock) when the stored pointer matches the name-derived id; an edit read before `symptomTypeService.replace`'s bulk UPDATE and written after it puts back the old name and pointer, leaving the entry on a tombstone. A create naming an older tombstone A (A→B) racing replace(B→C) has the same shape: `ensure` locks only A's derived id, resolves to B before replace moves B's entries, and inserts after, so the entry stays on tombstone B.
+
+- One per-group symptom-catalog advisory lock (`pg_advisory_xact_lock` on a `symptom_catalog:<groupId>` key, as `tagService.ts` does for tags): `replace` takes it exclusive; every symptom entry write (create, update, the connector's log, the sync upload's path through the service) takes it shared before resolving the symptom, then checks the resolved row isn't a tombstone (follow it if it is). Non-symptom entry writes take no lock. Keep the change inside `symptomTypeService.ts` and `timelineEntryService.ts` (plus the models they use); don't touch `packages/api/src/sync.ts`.
+- Integration tests (fictional group, two transactions on the shared test Postgres): an update read before replace and committed after it ends on the replacement symptom; a create naming a tombstone A (A→B) racing replace(B→C) ends on C. Say in the hand-off how the tests force the interleaving.

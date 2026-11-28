@@ -2,7 +2,7 @@
 # Caretook's dev stack for a worktree (Postgres, PowerSync and its storage, and
 # the dev server's env): the config's stack hooks (hooks.stackUp, stackDown,
 # stackStatus, stackReady, stackStop, stackStart, stackEngine, stackLeftovers).
-# The core calls them (pnpm prd stack, new, rm, gc, status, down, recover,
+# The core calls them (risa stack, new, rm, gc, status, down, recover,
 # reclaim, tidy) and knows nothing of Docker beyond their facts.
 #
 #   stack.sh up DIR [--slot N] [--base B]
@@ -23,11 +23,11 @@
 #                            running, stopped_secs=<how long ago it stopped>
 #                            (its newest container's end; no containers: the
 #                            root .env's age)
-#   stack.sh stop DIR        stop its containers, data kept (pnpm prd down);
+#   stack.sh stop DIR        stop its containers, data kept (risa down);
 #                            its facts; no stack: nothing
 #   stack.sh start DIR       start a stopped stack, wait for its Postgres
 #                            (CARETOOK_RECOVER_PG_SECS, 60) and migrate, retried
-#                            once, never seeding (pnpm prd recover); its facts,
+#                            once, never seeding (risa recover); its facts,
 #                            and migrating=yes once it gets to the migrate
 #   stack.sh engine [status|start]   running=yes|no and name=Docker; start
 #                            opens Docker Desktop and waits for it

@@ -1,10 +1,11 @@
-import type { TodoRuleFields } from "@caretook/data/schema";
 import type { TimedEntry } from "../../../../lib/appointments/upcoming";
-import type { PlannerTodo } from "../../../../lib/todos/plannerTodos";
+import type { PlannerTree } from "../../../../lib/todos/plannerTodos";
+import type { TreeTodo } from "../../../../lib/todos/todoTreeView";
 import type { EntryFilters, LocalQuery } from "../../../../lib/timeline/timeline.sync";
 
 import { upcomingSections } from "../../../../lib/appointments/upcomingDays";
-import { plannerTodos, withDueTodos } from "../../../../lib/todos/plannerTodos";
+import { plannerDayTrees, withDueTodos } from "../../../../lib/todos/plannerTodos";
+import { todoTrees } from "../../../../lib/todos/todoTreeView";
 import { inUpcomingHorizon, upcomingQueries } from "../planner/upcomingQueries";
 
 // Easy mode's opened Upcoming list (`useEasyUpcoming`), pure so web:unit tests it.
@@ -26,21 +27,27 @@ export const easyUpcomingQuery = (groupId: string, now: Date | number): LocalQue
 /**
  * The first `EASY_UPCOMING_CAP` items in Upcoming's order at `now`: the
  * query's rows split by the live clock (what has passed leaves, what is past
- * the horizon waits), its sections with the open dated todos merged in.
+ * the horizon waits), its sections with the todos merged in as the
+ * Planner's day trees (`plannerDayTrees`; todo-subtasks-3): `todos` are the
+ * trees' rows (`todoTreesQuery`), cut per day through `through` (the
+ * horizon's last day, "YYYY-MM-DD"); a parent's tree on its day, a step's
+ * branch under its ancestors on the step's.
  */
-export const easyUpcomingItems = <E extends TimedEntry, K extends TodoRuleFields>(
+export const easyUpcomingItems = <E extends TimedEntry, K extends TreeTodo>(
   entries: readonly E[],
   todos: readonly K[],
   now: Date,
   viewerZone: string,
   todoZone: string,
-): (E | PlannerTodo<K>)[] => {
+  through?: string,
+): (E | PlannerTree<K>)[] => {
   const sections = upcomingSections(
     entries.filter((e) => inUpcomingHorizon(e, now)),
     now,
     viewerZone,
   );
-  return withDueTodos(sections, plannerTodos(todos, now, todoZone), now, viewerZone, todoZone)
+  const trees = plannerDayTrees(todoTrees(todos, { now, timeZone: todoZone }), now, todoZone, { through });
+  return withDueTodos(sections, trees, now, viewerZone, todoZone)
     .flatMap((section) => section.items)
     .slice(0, EASY_UPCOMING_CAP);
 };

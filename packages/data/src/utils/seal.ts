@@ -10,7 +10,7 @@ const IV_BYTES = 12;
 const TAG_BYTES = 16;
 
 /**
- * A local check build (`pnpm prd serve --built`: VITE_CHECK_BUILD=1 and a
+ * A local check build (`risa serve --built`: VITE_CHECK_BUILD=1 and a
  * localhost APP_URL) runs with NODE_ENV=production but is a dev server in
  * every other way, so it may use a dev key (as @caretook/notifications'
  * `isCheckBuild` lets it use the dev mailbox).

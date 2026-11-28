@@ -2,7 +2,10 @@ import type { TodoRuleFields } from "@caretook/data/schema";
 
 import { describe, expect, it } from "vitest";
 import { upcomingSections } from "../appointments/upcomingDays";
-import { isPlannerTodo, showsTodos, plannerTodos, withDueTodos } from "./plannerTodos";
+import type { TodoTreeNode } from "./todoTreeView";
+
+import { isPlannerTree, plannerDayTrees, showsTodos, withDueTodos } from "./plannerTodos";
+import { splitTrees, todoTrees } from "./todoTreeView";
 
 const LA = "America/Los_Angeles";
 const NY = "America/New_York";
@@ -37,31 +40,11 @@ const keyOf = (i: object) => ("key" in i ? (i as { key: string }).key : (i as It
 const shape = (sections: { label: string; items: object[] }[]) =>
   sections.map((s) => [s.label, s.items.map(keyOf)]);
 
-describe("plannerTodos", () => {
-  it("keeps open dated todos in the order given, with their state and the moment a timed one falls", () => {
-    const items = plannerTodos(
-      [
-        todo("late", "2026-11-16"),
-        todo("today", "2026-11-18", "17:00"),
-        todo("later", "2026-11-20"),
-        todo("undated", null),
-        todo("done", "2026-11-18", null, { doneAt: "2026-11-18T17:00:00.000Z" }),
-      ],
-      NOW,
-      LA,
-    );
-    expect(items.map((i) => [i.key, i.state, i.at])).toEqual([
-      ["todo:late", "overdue", null],
-      ["todo:today", "today", "2026-11-19T01:00:00.000Z"],
-      ["todo:later", "upcoming", null],
-    ]);
-    expect(items.every(isPlannerTodo)).toBe(true);
-  });
-
-  it("a todo due today at a time already past is overdue", () => {
-    expect(plannerTodos([todo("t", "2026-11-18", "09:00")], NOW, LA)[0]?.state).toBe("overdue");
-  });
-});
+/** Each todo as a one-todo tree's day items, in the order given. */
+const dueItems = (todos: ReturnType<typeof todo>[], now: Date, timeZone: string) =>
+  todos.flatMap((t) =>
+    plannerDayTrees(todoTrees([{ ...t, parentId: null, deletedAt: null }], { now, timeZone }), now, timeZone),
+  );
 
 describe("withDueTodos", () => {
   const place = (
@@ -69,15 +52,13 @@ describe("withDueTodos", () => {
     todos: ReturnType<typeof todo>[],
     { viewer = LA, recipient = LA, now = NOW } = {},
   ) =>
-    shape(
-      withDueTodos(
-        upcomingSections(entries, now, viewer),
-        plannerTodos(todos, now, recipient),
-        now,
-        viewer,
-        recipient,
-      ),
-    );
+    withDueTodos(
+      upcomingSections(entries, now, viewer),
+      dueItems(todos, now, recipient),
+      now,
+      viewer,
+      recipient,
+    ).map((s) => [s.label, s.items.map((i) => (isPlannerTree(i) ? `todo:${i.todo.id}` : i.id))]);
 
   it("puts overdue todos first under Today, never under Now", () => {
     const visit = entry("visit", "2026-11-18T17:30:00.000Z", { endsAt: "2026-11-18T19:00:00.000Z" });
@@ -172,24 +153,119 @@ describe("showsTodos", () => {
   });
 });
 
-describe("plannerTodos and the tree (todo-subtasks-2)", () => {
-  it("drops an undated, unassigned subtask and keeps a dated or assigned one", () => {
-    const step = (id: string, dueOn: string | null, extra: Partial<TodoRuleFields> = {}) => ({
-      ...todo(id, dueOn, null, extra),
-      parentId: "parent",
-    });
-    const items = plannerTodos(
-      [
-        { ...todo("parent", "2026-11-18"), parentId: null },
-        step("plain-step", null),
-        step("named-undated-step", null, { assigneeName: "Aunt May" }),
-        step("dated-step", "2026-11-19"),
-        step("mine-step", "2026-11-20", { assigneeId: "me" }),
-      ],
+describe("plannerDayTrees (todo-subtasks-3)", () => {
+  const TUESDAY = "2026-11-24";
+  const FRIDAY = "2026-11-27";
+  const node = (id: string, dueOn: string | null, parentId: string | null = null) => ({
+    ...todo(id, dueOn),
+    parentId,
+    deletedAt: null,
+  });
+  const trees = (todos: ReturnType<typeof node>[]) => todoTrees(todos, { now: NOW, timeZone: LA });
+  /** A tree as nested ids, context ones marked with `~`. */
+  type Shape = { [id: string]: Shape };
+  const treeShape = (n: TodoTreeNode<{ id: string }>): Shape => ({
+    [`${n.context ? "~" : ""}${n.todo.id}`]: Object.assign({}, ...n.children.map(treeShape)) as Shape,
+  });
+  const items = (todos: ReturnType<typeof node>[], through?: string) =>
+    plannerDayTrees(trees(todos), NOW, LA, { through }).map((i) => [
+      i.day,
+      i.state,
+      i.todo.id,
+      treeShape(i.tree),
+    ]);
+
+  it("a Friday parent with a Tuesday step: the whole tree on Friday, the step's branch on Tuesday", () => {
+    const todos = [node("trip", FRIDAY), node("sitter", TUESDAY, "trip"), node("pack", null, "trip")];
+    expect(items(todos)).toEqual([
+      [TUESDAY, "upcoming", "sitter", { "~trip": { sitter: {} } }],
+      [FRIDAY, "upcoming", "trip", { trip: { sitter: {}, pack: {} } }],
+    ]);
+    const [first] = plannerDayTrees(trees(todos), NOW, LA);
+    expect(first?.key).toBe(`tree:trip:${TUESDAY}`);
+    expect(first && isPlannerTree(first)).toBe(true);
+  });
+
+  it("an overdue step's branch sits with the overdue items, first under today", () => {
+    const todos = [node("trip", FRIDAY), node("forms", "2026-11-16", "trip")];
+    expect(items(todos)).toEqual([
+      ["overdue", "overdue", "forms", { "~trip": { forms: {} } }],
+      [FRIDAY, "upcoming", "trip", { trip: { forms: {} } }],
+    ]);
+    const sections = withDueTodos(
+      upcomingSections([entry("visit", "2026-11-18T19:00:00.000Z")], NOW, LA),
+      plannerDayTrees(trees(todos), NOW, LA),
       NOW,
       LA,
+      LA,
     );
-    // An undated subtask is never a Planner item, assigned or not: it lists on the Todos tab.
-    expect(items.map((i) => i.todo.id)).toEqual(["parent", "dated-step", "mine-step"]);
+    expect(shape(sections)).toEqual([
+      ["Today", [`tree:trip:overdue`, "visit"]],
+      ["Friday, Nov 27", [`tree:trip:${FRIDAY}`]],
+    ]);
+  });
+
+  it("an undated tree with no dated step gives nothing; with one, only that step's branch", () => {
+    expect(items([node("move", null), node("boxes", null, "move")])).toEqual([]);
+    expect(items([node("move", null), node("boxes", null, "move"), node("movers", TUESDAY, "move")])).toEqual(
+      [[TUESDAY, "upcoming", "movers", { "~move": { movers: {} } }]],
+    );
+  });
+
+  it("drops the days after `through`, keeping overdue", () => {
+    const todos = [
+      node("trip", FRIDAY),
+      node("sitter", TUESDAY, "trip"),
+      node("forms", "2026-11-16", "trip"),
+    ];
+    expect(items(todos, "2026-11-25").map(([day]) => day)).toEqual(["overdue", TUESDAY]);
+  });
+
+  it("a match's context rows place no tree", () => {
+    const matched = todoTrees([node("trip", FRIDAY), node("sitter", TUESDAY, "trip")], {
+      now: NOW,
+      timeZone: LA,
+      matches: (t) => t.id === "sitter",
+    });
+    expect(plannerDayTrees(matched, NOW, LA).map((i) => i.day)).toEqual([TUESDAY]);
+  });
+});
+
+describe("plannerDayTrees over splitTrees (todo-links-2)", () => {
+  const TUESDAY = "2026-11-24";
+  const FRIDAY = "2026-11-27";
+  const node = (id: string, dueOn: string | null, parentId: string | null = null, done = false) => ({
+    ...todo(id, dueOn, null, done ? { doneAt: "2026-11-17T12:00:00.000Z" } : {}),
+    parentId,
+    deletedAt: null,
+  });
+  const split = (todos: ReturnType<typeof node>[]) =>
+    plannerDayTrees(splitTrees(todos, { now: NOW, timeZone: LA }), NOW, LA);
+
+  it("a step due on another day than its parent is its own item on its day, led by itself; the parent alone on its own", () => {
+    const todos = [
+      node("trip", FRIDAY),
+      node("sitter", TUESDAY, "trip"),
+      node("pack", null, "trip"),
+      node("passport", TUESDAY, "trip", true),
+    ];
+    const items = split(todos);
+    expect(items.map((i) => [i.day, i.key, i.todo.id, i.tree.todo.id, i.tree.children.length])).toEqual([
+      [TUESDAY, `tree:sitter:${TUESDAY}`, "sitter", "sitter", 0],
+      [FRIDAY, `tree:trip:${FRIDAY}`, "trip", "trip", 0],
+    ]);
+    for (const item of items) {
+      expect(item.tree.lead).toBe(item.todo);
+      expect(item.tree.context).toBe(false);
+    }
+  });
+
+  it("an overdue step goes first under today, its parent on its own day", () => {
+    const items = split([node("trip", FRIDAY), node("forms", "2026-11-16", "trip")]);
+    const sections = withDueTodos(upcomingSections([], NOW, LA), items, NOW, LA, LA);
+    expect(shape(sections)).toEqual([
+      ["Today", ["tree:forms:overdue"]],
+      ["Friday, Nov 27", [`tree:trip:${FRIDAY}`]],
+    ]);
   });
 });

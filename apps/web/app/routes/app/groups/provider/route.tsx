@@ -10,6 +10,7 @@ import { LinkedTodos } from "~/components/todos";
 import { BackLink, Message, Notice, Page, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { useRecordView } from "~/lib/core/recentlyViewed";
 import { sessionContext } from "~/lib/auth/session";
 import { getSync, useLiveQuery } from "~/lib/sync";
 import { providerQuery, toProvider } from "~/lib/providers/providers.sync";
@@ -66,6 +67,8 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
   const live = rows[0] ? toProvider(rows[0]) : null;
   const provider = live ?? loaderData.provider;
   const deleted = !live || !!live.deletedAt || live.groupId !== groupId;
+  // Recently viewed (B-947): the todo link box suggests it.
+  useRecordView(userId, "provider", deleted ? null : providerId);
   // Tags (tags-2): every chip for every role; × and Add tag for whoever may tag it (`QuickTags`).
   const tags = useRecordTags("provider", providerId);
   const mayTag =
