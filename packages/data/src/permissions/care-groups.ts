@@ -109,8 +109,10 @@ export const CARE_GROUPS_PERMISSIONS = {
   },
 
   // Who agreed to what a group shares, and when. Written only by the system
-  // (careGroupInviteService.accept); read by the group's owners and admins,
-  // and by the member themselves.
+  // (careGroupInviteService.accept, joinRequestService.requestWithLink); read
+  // by the group's owners and admins, and by the member themselves. A row
+  // whose group is gone matches no group rule, and one whose account is gone
+  // has no owner: only the system reads it then.
   careGroupConsentSchema: {
     ownerField: "userId",
     groupField: "groupId",
