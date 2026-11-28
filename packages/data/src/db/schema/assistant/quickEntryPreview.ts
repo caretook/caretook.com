@@ -1,9 +1,9 @@
 import type { UnitChoices } from "../timeline/vitals";
 import type { AssistantAction } from "./assistantActions";
 
-import { dayLabel } from "../core/dayLabel";
+import { dayLabel } from "../../../domain/core/dayLabel";
 import { doseText, listText, medicationCountText, medicationTitle } from "../medications/medicationDisplay";
-import { dueText, todoRepeatLine } from "../todos/todoDisplay";
+import { dueText, todoRepeatLine } from "../../../domain/todos/todoDisplay";
 import { formatReading, isKnownReading } from "../timeline/vitals";
 
 // The wording of a quick-entry card: what an assistant action will save, in

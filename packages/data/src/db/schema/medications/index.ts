@@ -6,4 +6,4 @@ export * from "./doseSchedule";
 export * from "./doseRecord";
 export * from "./scheduleHistory";
 export * from "./medicationDisplay";
-export * from "./medicationTypeDisplay";
+export * from "../../../domain/medications";

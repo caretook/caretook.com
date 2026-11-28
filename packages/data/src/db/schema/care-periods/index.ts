@@ -1,2 +1,2 @@
 export * from "./carePeriod";
-export * from "./carePeriodTrack";
+export * from "../../../domain/care-periods";

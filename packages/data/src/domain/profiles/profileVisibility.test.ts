@@ -1,4 +1,4 @@
-import type { GroupRoleName } from "../../../constants/roles";
+import type { GroupRoleName } from "../../constants/roles";
 import type { RecipientFieldGroup } from "./profileVisibility";
 
 import { describe, expect, it } from "vitest";

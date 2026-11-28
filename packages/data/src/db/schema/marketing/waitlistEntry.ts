@@ -1,11 +1,11 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import type { ProtectedField } from "../core/columns";
-import type { WaitlistSource } from "./publicFormRules";
+import type { WaitlistSource } from "../../../domain/marketing/publicFormRules";
 
 import { sql } from "drizzle-orm";
 import { check, jsonb, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
 import { audits, enumCheck, id, timestamps } from "../core/columns";
-import { CARING_FOR, HEARD_FROM_MAX } from "./publicFormRules";
+import { CARING_FOR, HEARD_FROM_MAX } from "../../../domain/marketing/publicFormRules";
 
 // Someone waiting to start using Caretook (marketing slice 4), from the
 // marketing site's waitlist form. One row per address: the email is stored

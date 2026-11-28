@@ -4,7 +4,7 @@ import type { ProtectedField } from "../core/columns";
 import { sql } from "drizzle-orm";
 import { check, pgTable, text } from "drizzle-orm/pg-core";
 import { audits, enumCheck, id, timestamps } from "../core/columns";
-import { CONTACT_MESSAGE_MAX, CONTACT_TOPICS } from "./publicFormRules";
+import { CONTACT_MESSAGE_MAX, CONTACT_TOPICS } from "../../../domain/marketing/publicFormRules";
 
 // A message from the marketing site's contact form (marketing slice 4). Kept
 // beside the `contactMessage` email to SUPPORT_EMAIL, which is queued in the

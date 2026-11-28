@@ -17,7 +17,7 @@ import {
   userSchema,
   zonedInstant,
 } from "../schema";
-import { seriesVisits } from "../schema/appointments/seriesVisits";
+import { seriesVisits } from "../../domain/appointments/seriesVisits";
 import { DEV_GROUP_ID, DEV_RECIPIENT_ID } from "./careGroups";
 import { SEED_GROUPS as PROVIDER_GROUPS } from "./providers";
 

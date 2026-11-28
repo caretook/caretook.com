@@ -24,7 +24,7 @@ import { appointmentSeriesSchema } from "../appointments/appointmentSeries";
 import { careGroupSchema } from "../care-groups/careGroup";
 import { careRecipientSchema } from "../profiles/careRecipient";
 import { audits, enumCheck, id, timestamps } from "../core/columns";
-import { isStartOfDay } from "../core/entryTiming";
+import { isStartOfDay } from "../../../domain/core/entryTiming";
 import { doseDetailsZSchema, medicationChangeEntryDetailsZSchema } from "../medications/medication";
 import { conditionChangeDetailsZSchema } from "../profiles/conditionChange";
 import { timeZoneZSchema } from "../core/timeZone";

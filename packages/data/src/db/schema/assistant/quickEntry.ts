@@ -2,18 +2,24 @@ import type { ActionKind, AssistantAction } from "./assistantActions";
 import type { DoseStatus } from "../medications/medication";
 import type { ProviderType } from "../providers/provider";
 import type { NewItemDraft } from "./quickEntryNewItem";
-import type { ResolvedTime, TimeDirection, TimeSpec } from "./quickEntryTime";
-import type { VocabularyMatch, VocabularyRole } from "./quickEntryVocabulary";
+import type { ResolvedTime, TimeDirection, TimeSpec } from "../../../domain/assistant/quickEntryTime";
+import type { VocabularyMatch, VocabularyRole } from "../../../domain/assistant/quickEntryVocabulary";
 import type { UnitChoices, UnitFor, VitalFieldSpec, VitalReading, VitalType } from "../timeline/vitals";
 
-import { DEVICE_FUTURE_SKEW_MS, FUTURE_DATE_MESSAGE, localDate } from "../core/entryTiming";
-import { findTime, periodUnderway, resolveTime, saysFuture, wallTime } from "./quickEntryTime";
-import { findVocabulary, vocabularyWord } from "./quickEntryVocabulary";
-import { readRepeat } from "./quickEntryRepeat";
+import { DEVICE_FUTURE_SKEW_MS, FUTURE_DATE_MESSAGE, localDate } from "../../../domain/core/entryTiming";
+import {
+  findTime,
+  periodUnderway,
+  resolveTime,
+  saysFuture,
+  wallTime,
+} from "../../../domain/assistant/quickEntryTime";
+import { findVocabulary, vocabularyWord } from "../../../domain/assistant/quickEntryVocabulary";
+import { readRepeat } from "../../../domain/assistant/quickEntryRepeat";
 import { keepsNewItemLine, readNewItem } from "./quickEntryNewItem";
-import { foldSearchText } from "../search/search";
+import { foldSearchText } from "../../../domain/search/search";
 import { TODO_LIMITS } from "../todos/todo";
-import { localTime } from "../todos/todoRules";
+import { localTime } from "../../../domain/todos/todoRules";
 import { TIMELINE_LIMITS } from "../timeline/timelineEntry";
 import { similarSymptoms } from "../timeline/symptomCatalog";
 import {

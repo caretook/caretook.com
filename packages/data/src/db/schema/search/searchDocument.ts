@@ -1,5 +1,5 @@
 import type { MedicationType } from "../medications/medication";
-import { medicationTypeLabel } from "../medications/medicationTypeDisplay";
+import { medicationTypeLabel } from "../../../domain/medications/medicationTypeDisplay";
 import { VITALS } from "../timeline/vitals";
 
 // What each searchable thing's text is: one pure builder, used by the

@@ -10,7 +10,7 @@ import {
   providerCreateZSchema,
   providerUpdateZSchema,
 } from "..";
-import { uuidV5 } from "../core/uuidV5";
+import { uuidV5 } from "../../../domain/core/uuidV5";
 
 const issuesOf = (res: { success: boolean; error?: { issues: { path: PropertyKey[] }[] } }) =>
   res.success ? [] : [...new Set((res.error?.issues ?? []).map((i) => i.path.join(".")))];

@@ -1,4 +1,4 @@
-import type { ConditionStatus } from "./recipientCondition";
+import type { ConditionStatus } from "../../db/schema/profiles/recipientCondition";
 
 // The order a recipient's conditions are shown in, shared by the profile's
 // screens and the connected assistant: active first, then resolved; within
