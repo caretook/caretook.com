@@ -9,13 +9,13 @@ PRD: [`plans/live-notes-ux-prd.md`](../../plans/live-notes-ux-prd.md).
   - `note_document`: `snapshot` (compacted Yjs, base64), derived `text`, and `editors` jsonb `{ [userId]: lastEditAt }` (default `{}`, system-only writes; a forged one in an upload is ignored).
   - A deleted entry, provider, medication, period or todo has its note emptied ([data-layer](data-layer.md#scrub)).
   - **Its owner** is `subject` (`entry | provider | medication | carePeriod | todo`, default `entry`) with `entry_id` or `provider_id`: exactly one set, equal to `id`, each a cascading composite FK. A provider's notes are its document. A todo's notes are its document too (`todo_id`, `task_id` until migration `0032_todos`): `createTodoDocument` makes it on the device; `noteDocumentService.liveOwner` looks the todo up (missing or deleted: `todoNotFound`) ([todos](todos.md)). `useLiveDocuments` and the Live now banner join through `timeline_entry`, so provider documents never show there.
-  - `note_update`: append-only, base64 `data`, at most 1,000,000 chars.
-  - Composite FKs cascade from the entry. `timeline_entry` has a unique `(group_id, id)` for this.
+  - `note_update`: append-only, base64 `data`, ≤ 1,000,000 chars.
+  - Composite FKs cascade from the entry (`timeline_entry` has a unique `(group_id, id)`).
 - **Helpers** (`db/schema/live-notes/noteYjs.ts`, client-safe): base64, `isYjsUpdate`, `buildNoteDoc`, `encodeNoteDoc`, `noteText` and its inverse `noteDocFromText(text, mentions?)` (one paragraph per line, `• ` lines as a bullet list; each `NoteMention { id, label }` becomes a mention node at `@<label>`, longest first, else at the end; none leaves the output unchanged). The fragment is `NOTE_FRAGMENT = "default"`.
 - **`noteDocumentService`** (write through it):
   - `create` is idempotent and requires a live note or event; an id another group's document holds is a 403 (checked as the system).
-  - `appendUpdate` is idempotent on the update id.
-  - `currentText` includes pending updates (for AI and workers); so do the timeline service's reads (`withDocumentText`, read-only), and search first compacts the group's pending updates (`compactPending`).
+  - `appendUpdate` is idempotent on the update id; locks its owner (B-1053).
+  - `currentText` includes pending updates (AI, workers); so do the timeline service's reads (`withDocumentText`, read-only), and search first compacts the group's pending updates (`compactPending`).
   - `compact` (system, row locked `FOR UPDATE`) folds pending updates into the snapshot and text, merges their authors into `editors` (`mergeEditors`, latest time per user), and deletes them.
 - **Recent editors** (`db/schema/live-notes/noteEditors.ts`, client-safe): `recentEditors({ editors, pending, now, excludeUserId })` combines `editors` with pending `note_update` rows. The window is 2 min (`RECENT_EDITORS_WINDOW_MS`, edge inclusive, one window of future skew allowed), re-evaluated every 15 s (`useNow`). On the device, `lib/live-notes/editors.sync.ts` has `documentEditorsQuery`, `groupLiveEditorsQuery` and `useLiveDocuments` (the group's live notes and events, for the live dot and banner), `toRecentEditors` and `useRecentEditors`. `EditorAvatars` shows up to 3 initials then "+N", never the viewer. An update's `created_at` is the server's: offline edits count as "now" after upload.
   - `compactIfDue`: at 20 pending updates, or after 60 s.
