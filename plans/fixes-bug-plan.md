@@ -10,15 +10,14 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item   | State                                                                                    | Merge     |
-| ----- | ------ | ---------------------------------------------------------------------------------------- | --------- |
-| 99    | B-1046 | merged; CI green (run 46188338488); dev synced (eac24a515), CI on tip + Codex on PR #356 | e51817358 |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
-Wave 29 started 2026-11-28: `risa sync` needed no merge; slice 99 written; its agent (opus) handed off bd147b50e (slice check green; WebKit covered by unit tests only, hand-test iOS Safari and the PWA); merged as e51817358; CI components running (tier proposed full only for dev's quarantine.txt from the sync; land with --tier components --why). B-1046 stays open for report 2.
+Idle hand-over: no slice in flight.
 
-**Wave 28 landed** (2026-11-28): PR #354 (dev 1c2b872), Codex clean, CI components flake (run 46186862084; todayCard, filed B-1065); to-test `2026-11-28-1540-fixes-bug.md`; landing report filed. B-1056, B-1058 done; worktrees removed; docs folded into assistant.
+**Wave 28 landed** (2026-11-28): PR #354 (dev 1c2b872), Codex clean, CI components flake (run 46186862084; todayCard, filed B-1065); to-test `2026-11-28-1540-fixes-bug.md`. B-1056, B-1058 done.
 
-**Next (wave 29):** `risa sync`, then plan a slice for B-1046 as decided (ask a430, skeptic s105, the user may veto): stop `content-visibility: auto` (`lib/timeline/offscreenRows.ts`, from B-139) on WebKit or for the newest days, keeping `timelineBlank.browser.test.tsx` (slice 96, no repro in Chromium). B-1046 stays open after it for report 2 (empty after the logo until reopened: likely the local database not answering after an iOS resume). Plus any newly triaged `fixes-bug` items. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: prettier pads the Status table, so match rows by number, not text.
+**Next (wave 30):** `risa sync`, then `risa backlog list`. B-1046 stays open for report 2 (empty after the logo, reopen fixed it: likely the local database not answering after an iOS resume); it needs a lead before a slice. Triaged here: B-1049 (a deleted medication pass's scrubbed name blanks listMedications' old schedule) and B-1053 (a note upload overlapping a delete appends after the scrub): both touch scrub code in data-rights' hot files (`packages/data/src/db/schema/core/scrub`), so wait until data-rights lands. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: prettier pads the Status table, so match rows by number, not text.
 
 ## Wave 1
 
