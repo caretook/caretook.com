@@ -10,11 +10,11 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item   | State          | Merge |
-| ----- | ------ | -------------- | ----- |
-| 93    | B-1008 | started (opus) |       |
-| 94    | B-1009 | started (opus) |       |
-| 95    | B-1010 | started (opus) |       |
+| Slice | Item   | State                                  | Merge |
+| ----- | ------ | -------------------------------------- | ----- |
+| 93    | B-1008 | started (opus)                         |       |
+| 94    | B-1009 | handed off (opus, ad7069d84), reviewed |       |
+| 95    | B-1010 | started (opus)                         |       |
 
 **Wave 27 running** (2026-11-28): onboarding-2 is done, so its three follow-ups run now; prd/fixes-bug was up to date with dev at the start. Hot files set to the three slices' paths. Landed wave 26: PR #321 (dev 56424f1), report a385. `risa status-trim` still to run after this landing (it crashed last time). Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table.
 
