@@ -271,6 +271,45 @@ describe("on the timeline", () => {
   });
 });
 
+describe("a deleted medication", () => {
+  // Scrubbed as a delete leaves it: no name or strength, its change's summary gone.
+  const GONE = fx.medication({ name: "", strength: null, dose: null, deletedAt: at(daysAgo(0, 7)) });
+  const GONE_DOSE = fx.dose({
+    medicationId: GONE.id,
+    amount: "1 tablet",
+    occurredAt: at(new Date(Date.now() - 600_000)),
+  });
+  const GONE_CHANGE = fx.medicationChange({
+    medicationId: GONE.id,
+    occurredAt: at(new Date(Date.now() - 1_200_000)),
+    details: JSON.stringify({ medicationId: GONE.id, change: "changed" }),
+  });
+  const withGone = () => [doseWorld(), GONE, GONE_DOSE, GONE_CHANGE];
+  const heading = (text: string) => rowWith(text)?.querySelector<HTMLElement>("[data-medication-entry]");
+
+  test("its dose reads Removed medication, greyed and not a link, on the timeline and on the dose's sheet", async () => {
+    await open({ query: "?kind=dose", fixtures: withGone() });
+    await expect.poll(texts).toContain("Removed medication: Given 1 tablet");
+    const named = heading("Removed medication: Given 1 tablet")!;
+    expect(named.querySelector("[data-medication], a")).toBeNull();
+    expect(named.querySelector(".text-faint")?.textContent).toBe("Removed medication");
+
+    await tapAt(() => rowWith("Removed medication: Given 1 tablet")?.querySelector('a[aria-label^="Edit "]'));
+    await expect
+      .poll(() => SHEET()?.querySelector("[data-dose-medication]")?.textContent?.trim())
+      .toBe("Removed medication");
+  });
+
+  test("its change reads Removed medication changed, one greyed line", async () => {
+    await open({ query: "?kind=medicationChange", fixtures: withGone() });
+    await expect.poll(texts).toContain("Removed medication changed");
+    const line = heading("Removed medication changed")!;
+    expect(line.hasAttribute("data-removed")).toBe(true);
+    expect(line.classList.contains("text-faint")).toBe(true);
+    expect(line.querySelector("a")).toBeNull();
+  });
+});
+
 describe("the Dose sheet", () => {
   // Never given; as needed, so it has no due slot.
   const IBUPROFEN = fx.medication({

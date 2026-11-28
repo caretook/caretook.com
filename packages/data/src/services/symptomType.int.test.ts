@@ -393,11 +393,13 @@ describe("replace (symptom-catalog-3 slice 2)", () => {
       ok(await symptomTypeService.replace(u.owner.ctx, { groupId, id: nauseous.id, replacementId: nausea })),
     ).toEqual({ moved: 2 });
 
+    // A deleted entry keeps its scrubbed details (`SCRUB_SPECS`): only its pointer moves.
+    expect(deleted.details).toBeNull();
     for (const before of [live, deleted]) {
       const after = await entryOf(before.id);
       expect(after).toMatchObject({
         symptomTypeId: nausea,
-        details: { ...(before.details as object), name: "Nausea" },
+        details: before.deletedAt ? null : { ...(before.details as object), name: "Nausea" },
         updatedBy: u.owner.user.id,
         deletedAt: before.deletedAt,
       });

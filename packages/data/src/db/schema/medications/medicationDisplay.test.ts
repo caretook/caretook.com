@@ -28,6 +28,7 @@ import {
   passStateText,
   passTitle,
 } from "./medicationDisplay";
+import { REMOVED_PASS } from "./medicationPass";
 
 const MED = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
 const MORNING = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b9d1001";
@@ -261,6 +262,20 @@ describe("change wording", () => {
       ),
     ).toBe("Changed schedule Morning and Evening → As needed, up to 2 a day");
     expect(scheduleChangeParts({ type: "asNeeded" }, at({ passId: MORNING }))).toBeNull();
+  });
+  it("names a deleted pass, its name cleared by the delete, Removed med time (data-rights)", () => {
+    const scrubbed = PASSES.map((p) => (p.id === MORNING ? { ...p, name: "" } : p));
+    const at = (...slots: ({ passId: string } | { time: string })[]) => ({
+      type: "scheduled" as const,
+      slots,
+    });
+    expect(scheduleText(at({ passId: MORNING }, { time: "14:00" }), scrubbed)).toBe(
+      `${REMOVED_PASS} and 14:00`,
+    );
+    expect(scheduleChangeParts(at({ passId: MORNING }), at({ passId: EVENING }), scrubbed)).toEqual([
+      "added to Evening",
+      `removed from ${REMOVED_PASS}`,
+    ]);
   });
   it("adds a schedule edit to a restart", () => {
     expect(

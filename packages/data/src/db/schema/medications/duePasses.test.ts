@@ -13,6 +13,7 @@ import {
   passLogIdFor,
   passRoundId,
 } from "./duePasses";
+import { REMOVED_PASS } from "./medicationPass";
 
 const LA = "America/Los_Angeles";
 const MORNING = "11111111-1111-4111-8111-111111111111";
@@ -92,6 +93,16 @@ describe("duePasses", () => {
       ["a", "1000 mg"],
       ["b", "1 tablet"],
       ["c", "1 tablet"],
+    ]);
+  });
+
+  it("names a deleted pass, its name cleared by the delete, Removed med time (data-rights)", () => {
+    const scrubbed = [{ ...PASSES[0]!, name: "", deletedAt: "2026-11-19T15:00:00.000Z" }, PASSES[1]!];
+    const due = dueDoses({ medications: MEDS, passes: scrubbed, doses: [], now: at("07:00"), timeZone: LA });
+    expect(summary(duePasses(due, scrubbed))).toEqual([
+      `${REMOVED_PASS} 08:00 upcoming 3/3`,
+      "c@14:00 14:00 upcoming 1/1",
+      "Evening 20:00 upcoming 1/1",
     ]);
   });
 

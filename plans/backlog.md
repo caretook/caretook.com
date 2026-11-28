@@ -42,8 +42,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `symptom-catalog-3` | done | `symptom-catalog-2` | `packages/data/src/db/schema/timeline/symptomCatalog.ts`, `packages/data/src/services/symptomTypeService.ts`, `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/assistantActionService.ts`, `packages/api/src/timeline/`, `apps/web/app/lib/timeline/symptomTypes.sync.ts`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/lib/assistant/quickEntry.sync.ts`, `apps/web/app/routes/app/groups/timeline/`, `apps/web/app/routes/app/groups/settings/symptoms/` | — |
 | `push-notifications` | hold | `calendars-2` | `packages/notifications/`, `apps/web/app/lib/app-shell/serviceWorker`, `scripts/build/service-worker`, `apps/web/app/routes/app/groups/settings/calendar/`, `apps/web/app/lib/calendars/`, `apps/web/app/lib/auth/session`, `apps/web/app/lib/sync/client`, `apps/web/app/routes/marketing/privacy/`, `apps/web/app/routes/marketing/health-data-privacy/`, `packages/data/src/db/schema/auth/legalRules`, `packages/data/src/db/schema/calendars/`, `packages/data/src/db/schema/notifications/`, `packages/data/src/services/calendar`, `packages/api/src/calendars/`, `packages/auth/src/authUser`, `ops/runbook.md` | to write (B-377): push notifications for event reminders; cut from calendars-2 to keep it small. Its planner asks about a web-push dependency and the push vendors. Builds on calendars-2 slice 3 (the outbox expiry) |
 | `code-health` | done | `check-speed`, `orchestration-2` | `packages/data/src/db/schema/`, `packages/data/src/domain/`, `packages/data/src/services/`, `packages/data/src/db/`, `packages/data/package.json`, `package.json`, `apps/web/package.json`, `packages/*/package.json`, `pnpm-lock.yaml`, `apps/web/app/lib/profiles/`, `apps/web/app/routes/app/groups/settings/calendar/`, `scripts/project/check-areas.d/`, `scripts/build/` (slice 6`, `later: import lines across apps/web/app and packages/api)` | [PRD](code-health-prd.md), [plan](code-health-plan.md) (B-361, B-365, B-366, B-367): 6 slices, waves (1, 2, 3, 5) → 4 → 6: exact pins and a test refusing ranges, unused exports removed, the backlog lock held once and a knobs page, tests on pr/ready/review/land, pure logic moved to @caretook/data/domain, then every importer switched (slice 6, alone, after simple-mode lands; it touches import lines across apps/web/app and packages/api). No behaviour change, no migration. Follow-ons: code-health-2, code-health-3 |
-| `code-health-2` | — | `code-health`, `simple-mode`, `sync-safety` | `packages/data/src/models/`, `packages/data/src/services/`, `packages/data/src/constants/roles.ts`, `packages/data/src/permissions/`, `apps/web/app/lib/core/` | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** to write (B-362, B-363), cut from code-health by its planner, 2026-11-21: the role table as what simple-mode leaves (canComplete, role checks in the API's invites and join requests, a test refusing role names outside the role module, isUserRoleName and isGroupRoleName removed), the soft-delete model factory, one upsert helper on sync-safety's create-if-absent shape, one invalid, the device side's refuse, invalid, canWrite, formString and shouldRevalidate |
-| `code-health-3` | — | `code-health-2` | `apps/web/app/lib/`, `apps/web/app/libLayout.test.ts`, `packages/data/src/models/base/`, `packages/api/src/sync` | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** to write (B-364, B-368, B-369), cut from code-health by its planner, 2026-11-21: device row types derived from the device schema and the layout guard refusing SQL outside *.sync.ts (17 files today), the list count only on request and the sync PATCH's round trips (that slice after sync-safety-2), plan-pointing comments (a count that may only fall, then a sweep) |
+| `code-health-2` | — | `code-health`, `simple-mode`, `sync-safety` | `packages/data/src/models/`, `packages/data/src/services/upserted.ts`, `packages/data/src/services/providerService.ts`, `packages/data/src/services/recipientAllergyService.ts`, `packages/data/src/services/recipientConditionService.ts`, `packages/data/src/services/carePeriodService.ts`, `packages/data/src/services/medicationService.ts`, `packages/data/src/services/medicationPassService.ts`, `packages/data/src/services/appointmentSeriesService.ts`, `packages/data/src/services/serviceLayout.test.ts` | plans/code-health-2-prd.md (B-362: soft-delete model factory, create-if-absent upsert); B-363 moved to code-health-4, the device half to code-health-3 (B-1055) |
+| `code-health-3` | — | `code-health-2`, `data-rights` | `apps/web/app/lib/`, `apps/web/app/libLayout.test.ts`, `packages/data/src/models/base/`, `packages/api/src/sync` | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** to write (B-364, B-368, B-369), cut from code-health by its planner, 2026-11-21: device row types derived from the device schema and the layout guard refusing SQL outside *.sync.ts (17 files today), the list count only on request and the sync PATCH's round trips (that slice after sync-safety-2), plan-pointing comments (a count that may only fall, then a sweep) |
+| `code-health-4` | — | `simple-mode` | `packages/data/src/constants/roles.ts`, `packages/data/src/domain/todos/todoRules.ts`, `packages/data/src/domain/admin/groupAdminRules.ts`, `packages/data/src/db/schema/care-groups/inviteRules.ts`, `scripts/eslint/`, `eslint.config.js` | to write (B-363), cut from code-health-2 by its planner, 2026-11-28; the planner's findings are in plans/code-health-2-prd.md Notes. The call-site sweep touches data-rights' and account-security-2's hot files: that part waits for both. |
 | `contract-migrations` | — | — | — | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** Contract steps tracked from fixes-nit (B-379): B-455, B-456, B-457. Migrations: run alone in its wave. To write. |
 | `marketing-2` | done | — | `apps/web/app/routes/marketing/`, `apps/web/public/og-default.png` | Light copy wave before sharing the link (B-417) |
 | `planner-3` | done | `simple-mode` | `packages/data/src/db/schema/todos/`, `packages/data/src/db/schema/assistant/`, `packages/data/src/permissions/todos.ts`, `packages/data/src/services/entryTodoService.ts`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `packages/api/src/connectors/tools/listTodos.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/lib/appointments/`, `apps/web/app/lib/assistant/quickEntry.sync.ts`, `apps/web/app/components/todos/`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `scripts/browser-checks/sync-matrix.mjs` | Replanned 2026-11-23: entries and todos many to many (B-245) and quick entry repeats (B-254). |
@@ -153,7 +154,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-53 | feature | in-progress | data-rights | prd/data-rights | Ability to delete ALL data from the app. |
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
 | B-56 | feature | triaged | documents |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
-| B-84 | feature | in-progress | data-rights | prd/data-rights | Deleting an entry, provider or medication scrubs its content everywhere |
+| B-84 | feature | landed | data-rights | prd/data-rights | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security-4 |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-145 | question | triaged | encryption |  | Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for… |
 | B-183 | chore | triaged | hosting |  | Mask manual Actions' inputs in public run logs before production (staff emails, Database access and Rotate JWT keys reasons) |
@@ -192,7 +193,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-357 | question | triaged | data-rights |  | Consent evidence is deleted with the user or group (care_group_consent, connector_grant cascade), and the audit log loses target_user_id: keep them? |
 | B-358 | question | triaged | data-rights-2 |  | Should the legal drafts promise only what is built (deletion, 'permanently removed' entries, backups, at-rest encryption), and who fills the placeholders ([Company legal name], [privacy email], [backup retention period])? |
 | B-362 | change | triaged | code-health-2 |  | A soft-delete model factory and a shared upsert helper: nine models are the same file, twelve upserts repeat the exists-as-system, visible-as-actor sequence, 'invalid' is defined 18 times |
-| B-363 | change | triaged | code-health-2 |  | One exported role-capability table (canWrite(role), canComplete(role)) used by services, device modules and screens, before any role is added |
+| B-363 | change | triaged | code-health-4 |  | One exported role-capability table (canWrite(role), canComplete(role)) used by services, device modules and screens, before any role is added |
 | B-364 | change | triaged | code-health-3 |  | Device reads are 164 raw SQL strings with hand-typed row types, 17 files outside *.sync.ts: derive row types from the device schema and make libLayout.test.ts refuse SQL elsewhere |
 | B-368 | chore | triaged | code-health-3 |  | Comments that point at plans instead of behaviour: 198 'slice N' references in 154 source files and 262 PRD-name parentheticals |
 | B-369 | change | triaged | code-health-3 |  | baseModel.list always runs a second COUNT query, and a sync PATCH costs about seven round trips (a 100-op batch about a thousand, serially) |
@@ -309,9 +310,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1048 | feature | triaged | fixes-ui |  | Symptom catalog list: make each symptom's entry count a link to the timeline already filtered to… |
 | B-1049 | bug | triaged | data-rights |  | A deleted medication pass's name is scrubbed, so the connector's listMedications shows blank pass names in an old schedule (it reads deleted passes on purpose) |
 | B-1050 | change | triaged | undo-first |  | Finishing a todo's last subtask silently completes the parent and it vanishes from the list;… |
-| B-1051 | bug | in-progress | fixes-tooling | prd/fixes-tooling | CI flake: assistantActionManyMedications.int.test.ts 'givePass gives every medication in the pass, past the first 100' times out at 5 s under load |
+| B-1051 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: assistantActionManyMedications.int.test.ts 'givePass gives every medication in the pass, past the first 100' times out at 5 s under load |
 | B-1052 | change | triaged | fixes-ui |  | Todo tick Undo shows in the page (an inline 'Done: … Undo' line under the list) instead of the… |
 | B-1053 | bug | triaged | data-rights |  | A note upload that overlaps a delete can append a note_update after the scrub cleared the document, so the deleted note keeps new content |
+| B-1054 | bug | triaged | fixes-tooling |  | Browser check session-end fails at line 120: no symptom row in the caretaker's first timeline page, so main a[href*=kind=symptom] is never visible (assumes seed data in view) |
+| B-1055 | change | triaged | code-health-3 |  | The device side of the one-helper cleanup and the services' one invalid: refuse, invalid and canWrite repeated in the *.sync.ts writers, FormData reads that skip core/form.ts formString, the identical shouldRevalidate in the group routes, the 24 local invalid definitions in services, and todoService's upsert onto createIfAbsent (empties code-health-2's upsert guard's todoService exception) |
+| B-1056 | bug | triaged | quick-entry-3 |  | Quick entry on a provider's page: a visit line naming no provider ("saw her yesterday") reads as a note, not the event "saw Dr. Lee yesterday" gives; the fallback event card has no providerIds |
 
 ## Items
 
@@ -392,10 +396,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-84 · feature · Deleting an entry, provider or medication scrubs its content everywhere
 
-- status: in-progress
+- status: landed
 - prd: data-rights
 - owner: prd/data-rights
-- commit:
+- commit: 59f414282
 
 - 2026-11-19 (plan/encryption): From the security review (plans/security-review.md on plan/encryption), S-1 (launch): soft-deleted rows keep title, body, details and the document, and sync to every member's device. Scrub to a tombstone and purge later. The undo window and retention are open for the data-rights interview (user, 2026-11-19).
 - 2026-11-25 (plan/data-rights): plan/data-rights (2026-11-25): planned in plans/data-rights-plan.md. User answered (a238-a240, as recommended): scrub at once, names too, already-deleted rows included; a last owner hands over or deletes first; consent evidence kept with bare ids until a retention period.
@@ -785,16 +789,18 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. Device side too: refuse x10, invalid x8, canWrite x7, a FormData text() x9 although core/form.ts has formString, the identical shouldRevalidate in 32 routes.
 - 2026-11-21 (plan/code-health): Moved to code-health-2 by the code-health planner, 2026-11-21: waits on simple-mode (it builds the role sets and canWrite/canLog) and sync-safety (it rewrites every soft-delete upsert). B-363 also removes isUserRoleName and isGroupRoleName, which B-365 names, if still unread.
+- 2026-11-28 (plan/code-health-2): Planned 2026-11-28: plans/code-health-2-plan.md slices 1-6 (models 1-3, upserts 4-6). The device half, the services' one invalid and todoService's upsert went to B-1055 (code-health-3); the timeline entry's upsert stays (dose steps), a listed guard exception.
 
 ### B-363 · change · One exported role-capability table (canWrite(role), canComplete(role)) used by services, device modules and screens, before any role is added
 
 - status: triaged
-- prd: code-health-2
+- prd: code-health-4
 - owner:
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. 'viewer' literals: 38 lines in 27 non-test files; WRITER_ROLES in lib/timeline/timeline.sync.ts:32 duplicates WRITERS in permissions/blocks.ts:75; sync-config.yaml:156 has role != 'viewer'; role checks leaked into packages/api care-groups/invites.ts:69-70 and joinRequests.ts:84-85. Collides with the Easy helper and Easy viewer roles PRD (simple-mode): do it first or inside it.
 - 2026-11-21 (plan/code-health): Moved to code-health-2 by the code-health planner, 2026-11-21: waits on simple-mode (it builds the role sets and canWrite/canLog) and sync-safety (it rewrites every soft-delete upsert). B-363 also removes isUserRoleName and isGroupRoleName, which B-365 names, if still unread.
+- 2026-11-28 (plan/code-health-2): Moved to code-health-4 by the code-health-2 planner, 2026-11-28 (code-health-2 holds six slices for B-362). What's left after simple-mode: plans/code-health-2-prd.md Notes.
 
 ### B-364 · change · Device reads are 164 raw SQL strings with hand-typed row types, 17 files outside *.sync.ts: derive row types from the device schema and make libLayout.test.ts refuse SQL elsewhere
 
@@ -2002,10 +2008,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1051 · bug · CI flake: assistantActionManyMedications.int.test.ts 'givePass gives every medication in the pass, past the first 100' times out at 5 s under load
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: 16598a82d
 
 - 2026-11-28 (prd/fixes-tooling): 2026-11-28 (fixes-tooling slice 102): timed out at 5000 ms once in 10 runs of packages/data integration at machine load 20-27; the earlier fix is archived B-986.
 - 2026-11-28 (slice/fixes-tooling/109): 2026-11-28 (fixes-tooling slice 109): cause shown: givePass made ~1,000 round trips for 101 medications (a lock and a read per slot id, then a create per dose with ~8 queries each). Unloaded 0.9-1.1 s (plan 221 ms, write 893 ms); at load 18-48 the givePass ran 13.7 s (plan 1.4 s, write 12.2 s) and timed out at 5 s every time. Now set-based (lockIds, one read, createMany with one dose-medication read): 90-120 ms unloaded, 89-1186 ms at load 47-127.
@@ -2028,3 +2034,30 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (prd/data-rights): Codex on PR #341 (thread PRRT_kwDOVx-WLM69Gy4E, 0051_scrub_deleted.sql:60): noteDocumentService.appendUpdate checks visibleDocument/mayWriteOwner without locking the owner, so an in-flight append can land after the scrub trigger cleared the document and deleted its updates; the stream replicates it and compaction can write it back. Fix: lock the owner row (FOR SHARE) in appendUpdate and recheck deleted_at under the lock, refusing the append when deleted.
+
+### B-1054 · bug · Browser check session-end fails at line 120: no symptom row in the caretaker's first timeline page, so main a[href*=kind=symptom] is never visible (assumes seed data in view)
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-28 (prd/quick-entry-3): Seen 3/3 on prd/quick-entry-3 synced with dev 0578f2ae6, 2026-11-28 (error-context: today's rows show doses, notes, events, vitals; no symptom link). quick-entry-3 touches no timeline, entry or seed code. Fix: pick a row the seed guarantees (or seed a symptom today), or scroll to one, rather than assume.
+
+### B-1055 · change · The device side of the one-helper cleanup and the services' one invalid: refuse, invalid and canWrite repeated in the *.sync.ts writers, FormData reads that skip core/form.ts formString, the identical shouldRevalidate in the group routes, the 24 local invalid definitions in services, and todoService's upsert onto createIfAbsent (empties code-health-2's upsert guard's todoService exception)
+
+- status: triaged
+- prd: code-health-3
+- owner:
+- commit:
+
+- 2026-11-28 (plan/code-health-2): Cut from B-362 by the code-health-2 planner, 2026-11-28: code-health-2 stays at six slices (models and upserts). Touches data-rights' hot files (todoService.ts, apps/web/app/lib/ areas): waits for data-rights.
+
+### B-1056 · bug · Quick entry on a provider's page: a visit line naming no provider ("saw her yesterday") reads as a note, not the event "saw Dr. Lee yesterday" gives; the fallback event card has no providerIds
+
+- status: triaged
+- prd: quick-entry-3
+- owner:
+- commit:
+
+- 2026-11-28 (prd/quick-entry-3): Codex on PR #344 (thread PRRT_kwDOVx-WLM69HDyw, quickEntry.ts:1856): the event eligibility check runs before aboutProvider, so the page provider doesn't count as named. Care needed: slice 3 kept the page provider out of naming on purpose (else every line on a provider's page, e.g. 'refill sent', becomes an event); fix only the visit-verb case and give the fallback event the page provider.

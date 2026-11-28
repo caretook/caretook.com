@@ -92,14 +92,18 @@ export type LocalProvider = {
 const isProviderType = (value: string | null): value is ProviderType =>
   (PROVIDER_TYPES as readonly (string | null)[]).includes(value);
 
-/** A local row as a provider, or null for one this build can't show (a newer type, a half-synced row). */
+/**
+ * A local row as a provider, or null for one this build can't show (a newer
+ * type, a half-synced row). A deleted one may have no name (a delete scrubs
+ * it): screens name it "Removed provider".
+ */
 export const toProvider = (row: ProviderRow): LocalProvider | null => {
-  if (!isProviderType(row.type) || !row.group_id || !row.name) return null;
+  if (!isProviderType(row.type) || !row.group_id || (!row.name && !row.deleted_at)) return null;
   return {
     id: row.id,
     groupId: row.group_id,
     type: row.type,
-    name: row.name,
+    name: row.name ?? "",
     specialty: row.specialty,
     practiceId: row.practice_id,
     phones: parseProviderPhones(row.phones),

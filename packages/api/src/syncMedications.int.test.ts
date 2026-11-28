@@ -897,10 +897,10 @@ describe("sync.upload: two members' doses for one slot", () => {
       expect(await upload(caretaker.api, [first])).toEqual([{ id: first.id, status: "applied" }]);
 
       expect(await doses()).toEqual([]);
-      expect(await storedDose(owner.ctx, first.id)).toMatchObject({
-        createdBy: owner.user.id,
-        details: { note: "B's tap" },
-      });
+      // Still B's, and scrubbed (data-rights): the slot stays, the note goes.
+      const stored = await storedDose(owner.ctx, first.id);
+      expect(stored).toMatchObject({ createdBy: owner.user.id, details: { status: "given" } });
+      expect(stored.details).not.toHaveProperty("note");
     });
 
     it("still records a fresh log of that dose after a delete, by its author or another member", async () => {

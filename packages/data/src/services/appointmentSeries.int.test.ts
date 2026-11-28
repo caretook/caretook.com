@@ -511,7 +511,8 @@ describe("appointmentSeriesService: visits", { timeout: VISITS_TIMEOUT }, () => 
     const { row: replay } = ok(
       await appointmentSeriesService.upsert(u.owner.ctx, { ...input({ title: "Late edit" }), id }),
     );
-    expect(replay).toMatchObject({ title: "Dialysis" });
+    // Scrubbed by the delete (`SCRUB_SPECS`), and the late edit isn't written.
+    expect(replay).toMatchObject({ title: null, kind: "event" });
     expect(replay.deletedAt).not.toBeNull();
   });
 });
