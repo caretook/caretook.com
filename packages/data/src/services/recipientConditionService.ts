@@ -40,7 +40,7 @@ import {
   timelineEntryModel,
 } from "../models";
 import { rejectError } from "../permissions";
-import { asCreated, unchanged } from "./upserted";
+import { createIfAbsent } from "./upserted";
 import { resolveRecipient } from "./medicationService";
 
 // The care recipient's conditions (conditions PRD). Write through here, not
@@ -343,20 +343,17 @@ export const upsert = (
     if (!parsed.success) return invalid(parsed.error);
     const { id, groupId, recipientId } = parsed.data;
 
-    const existing = await recipientConditionModel.getById(id, {
-      authUser: SYSTEM_USER,
+    return createIfAbsent({
+      ctx,
       tx,
-      includeDeleted: true,
+      getById: recipientConditionModel.getById,
+      id,
+      create: () => create({ ...ctx, tx }, input, opts),
+      immutable: (visible) =>
+        visible.groupId !== groupId || (recipientId !== undefined && visible.recipientId !== recipientId)
+          ? newError({ code: "recipientConditionService:immutable" })
+          : undefined,
     });
-    if (isError(existing)) return existing;
-    if (!existing) return asCreated(await create({ ...ctx, tx }, input, opts));
-
-    const visible = await recipientConditionModel.getById(id, { ...ctx, tx, includeDeleted: true });
-    if (isError(visible)) return visible;
-    if (!visible) return rejectError(ctx.authUser);
-    if (visible.groupId !== groupId || (recipientId !== undefined && visible.recipientId !== recipientId))
-      return newError({ code: "recipientConditionService:immutable" });
-    return unchanged(visible);
   }, ctx);
 
 /** Soft delete (writers), for a condition entered by mistake. It leaves every list; no change entry. */
