@@ -29,6 +29,14 @@ import { takeSignUpUse } from "./linkSignUpUses";
 
 export const schemaName = careGroupJoinRequestModel.schemaName;
 
+/**
+ * After a request is declined or withdrawn, asking again within this many
+ * days gets the answer a waiting request gets ("requested"), with no new
+ * request and no email, so a refused person can't fill managers' inboxes.
+ */
+export const REASK_COOLDOWN_DAYS = 7;
+const DAY_MS = 24 * 60 * 60_000;
+
 type K = typeof schemaName;
 
 const system = (tx?: Tx) => ({ authUser: SYSTEM_USER, tx });
@@ -120,7 +128,10 @@ const send = async (mail: JoinMailer | undefined, notice: JoinNotice, tx: Tx) =>
 /**
  * Ask to join with link `invite` as `userId`, who agreed to CONSENT_TEXT.
  * Returns their pending request: the one already waiting (asking again
- * changes nothing), or a new one, which counts a use of the link (unless
+ * changes nothing); within REASK_COOLDOWN_DAYS of their last request being
+ * declined or withdrawn, that one, as if waiting (no new row, use or
+ * email; the caller answers "requested" either way); or a new one, which
+ * counts a use of the link (unless
  * their sign-up through it already did: linkSignUpUses.ts), records
  * consent and emails the group's owners and admins. With `existingOnly`, only
  * the waiting one (or null). Runs as the system in
@@ -143,6 +154,19 @@ export const requestWithLink = async (
   if (isError(waiting)) return waiting;
   if (waiting) return { request: waiting, created: false, queued: [] as string[] };
   if (opts.existingOnly) return null;
+
+  const cutoff = new Date(Date.now() - REASK_COOLDOWN_DAYS * DAY_MS).toISOString();
+  const refused = await careGroupJoinRequestModel.get({
+    ...system(tx),
+    filter: {
+      groupId: { type: "eq", value: invite.groupId },
+      userId: { type: "eq", value: userId },
+      status: { type: "inArray", value: ["declined", "withdrawn"] },
+      decidedAt: { type: "gte", value: cutoff },
+    },
+  });
+  if (isError(refused)) return refused;
+  if (refused) return { request: refused, created: false, queued: [] as string[] };
 
   if (!linkRoleAllowed(invite.role)) return newError({ code: "careGroupInviteService:linkRole" });
   const role = invite.role as LinkRole;
