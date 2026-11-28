@@ -17,7 +17,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Wave 28 landed** (2026-11-28): PR #354 (dev 1c2b872), Codex clean, CI components flake (run 46186862084; todayCard, filed B-1065); to-test `2026-11-28-1540-fixes-bug.md`. B-1056, B-1058 done.
 
-**Wave 30 running** (sync skipped: dev shared no file). B-1049 decided as a label ("Removed time"), no scrub change. B-1046 stays open for report 2 (empty after the logo, reopen fixed it: likely the local database not answering after an iOS resume); it needs a lead before a slice. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: prettier pads the Status table, so match rows by number, not text.
+**Wave 30 running** (sync skipped: dev shared no file): both slices merged; CI integration run requested (the gate). B-1071 (dev build over budget) traced to code-health-4 slice 3 (f89bcae4f, permissions barrel in the app shell); told code-health-4, not taken unless it asks. B-1049 decided as a label ("Removed time"), no scrub change. B-1046 stays open for report 2 (empty after the logo, reopen fixed it: likely the local database not answering after an iOS resume); it needs a lead before a slice. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: prettier pads the Status table, so match rows by number, not text.
 
 ## Wave 1
 
