@@ -1708,6 +1708,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit: 78010f59b
 
 - 2026-11-28 (prd/quick-entry-3): Seen 3/3 on prd/quick-entry-3 synced with dev 0578f2ae6, 2026-11-28 (error-context: today's rows show doses, notes, events, vitals; no symptom link). quick-entry-3 touches no timeline, entry or seed code. Fix: pick a row the seed guarantees (or seed a symptom today), or scroll to one, rather than assume.
+- 2026-11-28 (Robert Bo Davis): Backlog 2026-11-28: not a Risa issue. CI runs the browser suite only at a staging candidate cut (tiers.mjs: candidate); landings run browser checks locally (orchestrator step 1, --changed). The last candidate (rc-20261128-1302, 8d65d117c, browser green) predates both suspects: 285a2d2fd (B-1015 one timeline entry display) and 3428db815 (B-667 seeded onboarding account, which may change the caretaker's seed). Start there.
 
 ### B-1055 · change · The device side of the one-helper cleanup and the services' one invalid: refuse, invalid and canWrite repeated in the *.sync.ts writers, FormData reads that skip core/form.ts formString, the identical shouldRevalidate in the group routes, the 24 local invalid definitions in services, and todoService's upsert onto createIfAbsent (empties code-health-2's upsert guard's todoService exception)
 
