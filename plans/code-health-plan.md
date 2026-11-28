@@ -12,7 +12,7 @@
 
 **Notes for the fold:** `initClient` kept (read by `packages/api/src/sync.ts`); the pins test also accepts a git dependency at a full commit hash (the root's `risa`). Slice 5 moved 29 modules, not 48: the quick entry parser, due doses, medication display and series edits stay (they need schema values; splitting them is a follow-up). `symptomCatalog` and `connectorRules` stay (read by path from `scripts/`).
 
-**Other PRDs:** hot files narrowed to wave 1's real paths (2026-11-27) so fixes-nit's B-950 (moves `TimelineEntryRow.tsx` and `useOpenTodoCounts` into `components/entry/`) runs alongside; slice 6 rewrites import lines on whatever `dev` holds when it starts.
+**Other PRDs:** hot files narrowed to wave 1's real paths (2026-11-27) so fixes-nit's B-950 (moves `TimelineEntryRow.tsx` and `useOpenTodoCounts` into `components/entry/`) runs alongside; slice 6 rewrites import lines on whatever `dev` holds when it starts. **At wave 1's landing, message `fixes-nit-34`** (it holds B-995 on `settings/calendar/`).
 
 | Slice | Wave | State                         | Merge into `prd/code-health` (slice commits) |
 | ----- | ---- | ----------------------------- | -------------------------------------------- |
