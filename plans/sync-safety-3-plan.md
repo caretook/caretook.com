@@ -4,13 +4,13 @@
 
 ## Status
 
-| Slice | Wave | State         | Merge into `prd/sync-safety-3` (slice commits) |
-| ----- | ---- | ------------- | ---------------------------------------------- |
-| 1     | 1    | merged (opus) | 98f9114db (e46c7c7c7, 96dc47533)               |
-| 2     | 2    | merged (opus) | c3121383a (a0b109cfe)                          |     |
-| 3     | 3    | next          |                                                |
-| 4     | 1    | merged (opus) | 95b947f22 (0aa0e004d, fe68fed3e)               |
-| 5     | 4    | planned       |                                                |
+| Slice | Wave | State          | Merge into `prd/sync-safety-3` (slice commits) |
+| ----- | ---- | -------------- | ---------------------------------------------- |
+| 1     | 1    | merged (opus)  | 98f9114db (e46c7c7c7, 96dc47533)               |
+| 2     | 2    | merged (opus)  | c3121383a (a0b109cfe)                          |
+| 3     | 3    | running (opus) |                                                |
+| 4     | 1    | merged (opus)  | 95b947f22 (0aa0e004d, fe68fed3e)               |
+| 5     | 4    | planned        |                                                |
 
 **Landing mode: run everything through** (dispatcher start, 2026-11-28): start every ready slice, land each green wave, ask only real questions.
 
@@ -30,7 +30,7 @@
 - Slice 2 handed off (quick check green on a0b109cfe), merged c3121383a. `syncRegistry.ts` unchanged (softDelete and tag PATCH already pass `ctx`). `SYNC_BATCH_LIMIT = 100` stays in `sync.ts`. A 500-op write took about 3.4 s locally (savepoints cost almost nothing). For slice 3: `refusedId` only with `sync:writeRefused`; `failed` always at the write's first op; over 100 ops only when every op shares one `write`; a NUL refuses the whole write (`sync:invalid` on that op). Docs fold at landing: sync _Upload_ still says 100 ops and per-op results. Wave 2 gate: `risa ci run integration` (risa tier: server code).
 
 - **Wave 2 landed** in dev through PR #325 (dev cefab09), tier integration (run 46148641016 green; Codex clean on f389a70; browser roundtrip + live-notes 2/2); landed on an unsynced tip (dev's 2 commits shared no file). Report filed; to-test `2026-11-28-0825-sync-safety-3.md`. Slice worktree 2 removed. Sync doc _Upload_ folded (f389a70fe).
-- **Next session (wave 3):** `risa backlog ingest` and `list`, `risa sync`, then `risa slice sync-safety-3 3` and one opus agent on `risa prompt slice sync-safety-3 3`. Tell it slice 2's contract: `refusedId` only with `sync:writeRefused`; `failed` always at the write's first op; over 100 ops only when every op shares one `write` (≤ `SYNC_WRITE_LIMIT`); a NUL refuses the whole write (`sync:invalid` on that op); `SYNC_BATCH_LIMIT = 100` stays in `packages/api/src/sync.ts`. At landing, fold sync _Device_ (`uploader.ts`: whole writes). B-294 stays in progress until slice 5.
+- 2026-11-28 13:30Z: **wave 3 started** (after a restart). Backlog ingest: nothing new for this topic. `risa sync`: no merge needed. Worktree `sync-safety-3-3` made; one opus agent spawned on `risa prompt slice sync-safety-3 3`, told slice 2's contract. At landing, fold sync _Device_ (`uploader.ts`: whole writes). B-294 stays in progress until slice 5.
 
 ## Durable decisions
 
