@@ -22,7 +22,6 @@ import * as legalAcceptanceService from "./legalAcceptanceService";
 
 export { groupDisplayName };
 
-export const serviceName = "careGroupInvite";
 export const schemaName = careGroupInviteModel.schemaName;
 
 type K = typeof schemaName;

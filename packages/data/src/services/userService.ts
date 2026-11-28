@@ -8,7 +8,6 @@ import { mergeSetupDismissed, userSchema } from "../db/schema";
 import { isError } from "../errors";
 import { userModel } from "../models";
 
-export const serviceName = "user";
 export const schemaName = userModel.schemaName;
 
 type K = typeof schemaName;

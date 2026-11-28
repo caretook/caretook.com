@@ -29,7 +29,6 @@ import { enqueue as enqueueCalendarPush } from "./calendarSyncService";
 // only owners change it. Turning it off makes everyone generic at once
 // (shareLevel); members' recorded consent is kept for when it's back on.
 
-export const serviceName = "calendarSetting";
 export const schemaName = memberCalendarSettingModel.schemaName;
 
 /** What the settings page, and later the feed, reminders and Google, read of a member's settings. */

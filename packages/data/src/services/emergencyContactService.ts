@@ -21,7 +21,6 @@ import { isSystemUser } from "../permissions";
 // admins set both; only members who share a phone with the group can be on
 // the list or be the primary contact. Every write renumbers the list 1…n.
 
-export const serviceName = "emergencyContact";
 export const schemaName = careGroupMemberModel.schemaName;
 
 const system = (tx: Tx) => ({ authUser: SYSTEM_USER, tx });
