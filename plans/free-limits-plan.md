@@ -16,7 +16,7 @@
 
 | Slice | Wave | State   | Merge into `prd/free-limits` (slice commits) |
 | ----- | ---- | ------- | -------------------------------------------- |
-| 1     | 1    | merged  | e66e2fecf (f04414fb5)                            |
+| 1     | 1    | merged  | e66e2fecf (f04414fb5)                        |
 | 2     | 2    | planned | —                                            |
 | 3     | 3    | planned | —                                            |
 | 4     | 4    | planned | —                                            |
