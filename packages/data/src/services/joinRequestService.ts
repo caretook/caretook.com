@@ -18,6 +18,7 @@ import {
 import { isSystemUser } from "../permissions";
 import * as careGroupMemberService from "./careGroupMemberService";
 import { groupDisplayName } from "./groupNames";
+import { takeSignUpUse } from "./linkSignUpUses";
 
 // Requests to join a care group from an invite link (invites slice 4).
 // Using a link (careGroupInviteService.accept) makes a pending request;
@@ -119,7 +120,8 @@ const send = async (mail: JoinMailer | undefined, notice: JoinNotice, tx: Tx) =>
 /**
  * Ask to join with link `invite` as `userId`, who agreed to CONSENT_TEXT.
  * Returns their pending request: the one already waiting (asking again
- * changes nothing), or a new one, which counts a use of the link, records
+ * changes nothing), or a new one, which counts a use of the link (unless
+ * their sign-up through it already did: linkSignUpUses.ts), records
  * consent and emails the group's owners and admins. With `existingOnly`, only
  * the waiting one (or null). Runs as the system in
  * the caller's transaction, with the invite's row locked and its state checked.
@@ -152,12 +154,17 @@ export const requestWithLink = async (
   if (isError(request)) return request;
   if (!request) return newError({ code: "joinRequestService:notFound" });
 
-  const used = await careGroupInviteModel.update({
-    ...system(tx),
-    filter: byId(invite.id),
-    data: { useCount: invite.useCount + 1 },
-  });
-  if (isError(used)) return used;
+  // Their sign-up through this link already counted their use (B-333).
+  const requester = await userOf(userId, tx);
+  if (isError(requester)) return requester;
+  if (!(await takeSignUpUse(tx, invite.id, requester.email))) {
+    const used = await careGroupInviteModel.update({
+      ...system(tx),
+      filter: byId(invite.id),
+      data: { useCount: invite.useCount + 1 },
+    });
+    if (isError(used)) return used;
+  }
 
   const consented = await careGroupConsentModel.create({
     ...system(tx),
@@ -171,12 +178,7 @@ export const requestWithLink = async (
   });
   if (isError(consented)) return consented;
 
-  const [requester, groupName, to] = [
-    await userOf(userId, tx),
-    await nameOfGroup(invite.groupId, tx),
-    await managersOf(invite.groupId, tx),
-  ];
-  if (isError(requester)) return requester;
+  const [groupName, to] = [await nameOfGroup(invite.groupId, tx), await managersOf(invite.groupId, tx)];
   if (isError(groupName)) return groupName;
   if (isError(to)) return to;
   const queued = await send(

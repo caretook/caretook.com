@@ -1,8 +1,10 @@
 import { hashPassword } from "better-auth/crypto";
 import { eq, sql } from "drizzle-orm";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   accountSchema,
+  careGroupInviteSchema,
+  careGroupInviteService,
   getDb,
   isError,
   notificationOutboxSchema,
@@ -12,7 +14,7 @@ import {
 } from "@caretook/data";
 import { setBackgroundRunner, sharedMemorySender } from "@caretook/notifications";
 import { createGroup, createUser, ok, system } from "../../data/test/fixtures";
-import { getAuth, getAuthUser } from ".";
+import { createAuth, createAuthLimits, getAuth, getAuthUser, signUpWithTicket } from ".";
 
 // Each test makes its own user and group, so tests never depend on each other.
 
@@ -378,5 +380,190 @@ describe("password reset", () => {
     const unknown = await api().requestPasswordReset({ body: { email }, asResponse: true });
     expect(await unknown.json()).toEqual(await known.json());
     expect(await mailTo(email)).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Our limits (account-security slice 2)
+// ---------------------------------------------------------------------------
+
+const randomIp = () => `10.${[0, 0, 0].map(() => Math.floor(Math.random() * 250) + 1).join(".")}`;
+
+describe("per-address sign-in limits (limits on)", () => {
+  const limited = createAuth({ rateLimitEnabled: true });
+  const sendSignInEmail = (email: string) =>
+    limited.api.signInMagicLink({ body: { email }, headers: new Headers(), asResponse: true });
+  // Through the handler, as a browser sends it (a refusal in a before hook is
+  // thrown from a direct API call), each from its own address (Better Auth's
+  // per-IP limit is on too).
+  const signInWithCode = (email: string, otp: string) =>
+    limited.handler(
+      new Request("http://localhost:5173/api/auth/sign-in/email-otp", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "http://localhost:5173",
+          "x-forwarded-for": randomIp(),
+        },
+        body: JSON.stringify({ email, otp }),
+      }),
+    );
+  const codeIn = (text: string) => text.match(/^\s*(\d{6})\s*$/m)?.[1] ?? "";
+  /** The code in the newest sign-in email to `email`. */
+  const newestCode = async (email: string) => codeIn((await mailTo(email)).at(-1)?.text ?? "");
+  const wrongFor = (code: string) => (code === "000000" ? "111111" : "000000");
+
+  it("answers a sixth sign-in email in an hour as the first, and queues nothing", async () => {
+    const login = await createLogin();
+    const first = await sendSignInEmail(login.email);
+    const firstBody: unknown = await first.json();
+    for (let i = 0; i < 4; i++) await sendSignInEmail(login.email);
+    expect((await mailTo(login.email)).length).toBe(5);
+
+    // Another spelling of the address is the same address.
+    const sixth = await sendSignInEmail(`  ${login.email.toUpperCase()} `);
+    expect(sixth.status).toBe(first.status);
+    expect(await sixth.json()).toEqual(firstBody);
+    expect((await mailTo(login.email)).length).toBe(5);
+
+    // Another address is unaffected.
+    const other = await createLogin();
+    await sendSignInEmail(other.email);
+    expect((await mailTo(other.email)).map((m) => m.name)).toEqual(["signInEmail"]);
+  });
+
+  it("refuses the eleventh code try in an hour, across fresh codes, even the right one", async () => {
+    const login = await createLogin();
+    let code = "";
+    let tries = 0;
+    while (tries < 10) {
+      await sendSignInEmail(login.email);
+      code = await newestCode(login.email);
+      expect(code).toMatch(/^\d{6}$/);
+      // Each code allows three tries; the last email's code keeps one back.
+      for (let i = 0; i < 3 && tries < 10; i++, tries++) {
+        expect((await signInWithCode(login.email, wrongFor(code))).status).toBe(400);
+      }
+    }
+    const refused = await signInWithCode(login.email, code);
+    expect(refused.status).toBe(400);
+    expect(((await refused.json()) as { code?: string }).code).toBe("INVALID_OTP");
+    expect(await getAuthUser(cookieHeaders(refused))).toBeNull();
+
+    // Another address is unaffected.
+    const other = await createLogin();
+    await sendSignInEmail(other.email);
+    expect((await signInWithCode(other.email, await newestCode(other.email))).status).toBe(200);
+  });
+});
+
+describe("Better Auth's /update-user", () => {
+  it("is off (404): name and image change only through our procedures", async () => {
+    const login = await createLogin();
+    const headers = cookieHeaders(await signIn(login.email));
+    headers.set("content-type", "application/json");
+    headers.set("origin", "http://localhost:5173");
+    const res = await getAuth().handler(
+      new Request("http://localhost:5173/api/auth/update-user", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ name: "x".repeat(5000), image: "https://tracker.example.com/p.gif" }),
+      }),
+    );
+    expect(res.status).toBe(404);
+    const user = ok(await userService.getWholeById(system, login.user.id));
+    expect(user?.name).not.toBe("x".repeat(5000));
+  });
+});
+
+describe("link sign-up (the ticket path)", () => {
+  /** A link to a fresh group, made by its owner. */
+  const createLink = async (maxUses?: number) => {
+    const owner = await createUser("link-owner");
+    const { group } = await createGroup(owner);
+    const made = ok(
+      await careGroupInviteService.createLink(owner.ctx, {
+        groupId: group.id,
+        role: "viewer",
+        ...(maxUses ? { maxUses } : {}),
+      }),
+    );
+    return { inviteId: made.invite.id, token: made.token };
+  };
+  const useCount = async (inviteId: string) =>
+    (
+      await getDb()
+        .select({ useCount: careGroupInviteSchema.useCount })
+        .from(careGroupInviteSchema)
+        .where(eq(careGroupInviteSchema.id, inviteId))
+    )[0]?.useCount;
+  const signUp = (
+    token: string,
+    email: string,
+    opts: Parameters<typeof signUpWithTicket>[1] = { clientIp: randomIp() },
+  ) =>
+    signUpWithTicket(
+      { ticket: { kind: "invite", token, legal: true }, name: "Link Person", email, password: PASSWORD },
+      opts,
+    );
+
+  it("answers an address with an account as a new one, and hashes the password for both", async () => {
+    const { token } = await createLink();
+    const existing = await createLogin();
+    const hash = vi.spyOn((await getAuth().$context).password, "hash");
+    try {
+      const fresh = await signUp(token, unknownEmail());
+      const known = await signUp(token, existing.email);
+      expect(isError(fresh) || isError(known)).toBe(false);
+      const shape = (r: typeof fresh) =>
+        isError(r) ? r : { email: typeof r.email, verified: r.emailVerified };
+      expect(shape(known)).toEqual(shape(fresh));
+      expect(hash).toHaveBeenCalledTimes(2);
+    } finally {
+      hash.mockRestore();
+    }
+  });
+
+  it("refuses past the per-link limit as a used-up link", async () => {
+    const { token } = await createLink();
+    const limits = createAuthLimits({ enabled: true, limits: { linkSignUpLink: 2 } });
+    for (let i = 0; i < 2; i++) {
+      expect(isError(await signUp(token, unknownEmail(), { clientIp: randomIp(), limits }))).toBe(false);
+    }
+    const email = unknownEmail();
+    const refused = await signUp(token, email, { clientIp: randomIp(), limits });
+    expect(isError(refused) && refused.code).toBe("ticket:invalid");
+    expect(await userCount(email)).toBe(0);
+  });
+
+  it("refuses past the per-IP limit, on any link", async () => {
+    const limits = createAuthLimits({ enabled: true, limits: { linkSignUpIp: 1 } });
+    const clientIp = randomIp();
+    const first = await createLink();
+    expect(isError(await signUp(first.token, unknownEmail(), { clientIp, limits }))).toBe(false);
+    const second = await createLink();
+    const refused = await signUp(second.token, unknownEmail(), { clientIp, limits });
+    expect(isError(refused) && refused.code).toBe("ticket:invalid");
+    // Another address is unaffected.
+    expect(isError(await signUp(second.token, unknownEmail(), { clientIp: randomIp(), limits }))).toBe(false);
+  });
+
+  it("counts a sign-up toward max_uses; at it, sign-up is refused, and the join request adds no use", async () => {
+    const { inviteId, token } = await createLink(1);
+    const email = unknownEmail();
+    const created = await signUp(token, email);
+    if (isError(created) || !created.id) throw new Error("sign-up failed");
+    expect(await useCount(inviteId)).toBe(1);
+
+    const refused = await signUp(token, unknownEmail());
+    expect(isError(refused) && refused.code).toBe("ticket:invalid");
+
+    // The person who signed up still asks to join, and their request adds no use.
+    const authUser = { id: created.id, roleNames: ["member" as const] };
+    const asked = ok(
+      await careGroupInviteService.accept({ authUser }, { token, consent: true, legal: true }),
+    );
+    expect(asked.status).toBe("requested");
+    expect(await useCount(inviteId)).toBe(1);
   });
 });

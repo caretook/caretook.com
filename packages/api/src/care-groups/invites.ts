@@ -22,7 +22,7 @@ import { z } from "zod";
 import { iso } from "../dto";
 import { unwrap } from "../errors";
 import { joinMailer } from "./joinRequests";
-import { authedProcedure, publicProcedure } from "../procedures";
+import { authedProcedure, optionalAuthUser, publicProcedure } from "../procedures";
 
 // `invite.*`: care group invites by email (invites slice 3) and by link
 // (slice 4). Managers (owners and admins) list, send, resend and revoke
@@ -219,8 +219,10 @@ export const invite = {
    * the group's display name, the inviter's name, the role and the address
    * it was sent to; anything else gives only its state, never the group.
    */
-  preview: publicProcedure.input(z.object({ token })).handler(async ({ input }) => {
-    const found = unwrap(await careGroupInviteService.preview(input.token));
+  preview: publicProcedure.input(z.object({ token })).handler(async ({ context, input }) => {
+    // The session is looked up only for a used-up link (the service says why).
+    const viewerId = async () => (await optionalAuthUser(context))?.id;
+    const found = unwrap(await careGroupInviteService.preview(input.token, { viewerId }));
     if (!found) return { state: "notFound" as const };
     if (found.state !== "usable" || !found.invite) return { state: found.state };
     return {
@@ -252,14 +254,18 @@ export const invite = {
         legal: z.literal(true),
       }),
     )
-    .handler(async ({ input }) => {
+    .handler(async ({ context, input }) => {
       const user = unwrap(
-        await signUpWithTicket({
-          ticket: { kind: "invite", token: input.token, legal: input.legal },
-          name: input.name,
-          email: input.email,
-          password: input.password,
-        }),
+        await signUpWithTicket(
+          {
+            ticket: { kind: "invite", token: input.token, legal: input.legal },
+            name: input.name,
+            email: input.email,
+            password: input.password,
+          },
+          // A link's sign-up is limited per client IP (and per link).
+          { clientIp: context.clientIp },
+        ),
       );
       return { email: user.email, verified: user.emailVerified };
     }),

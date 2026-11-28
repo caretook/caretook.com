@@ -66,6 +66,12 @@ const SAMPLES: { [N in keyof typeof NOTIFICATIONS]: Parameters<typeof renderNoti
     groupName: "Grandma Example",
     memberName: "Robin",
   },
+  staffGroupChange: {
+    groupId: "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001",
+    groupName: "Grandma Example",
+    change: { kind: "roleChanged", memberName: "Robin", from: "viewer", to: "caretaker" },
+    supportEmail: "support@example.com",
+  },
 };
 
 // Notifications whose email carries no link.
