@@ -4,22 +4,28 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 ## Status
 
-**Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions via `pnpm prd ask`).
+**From the user:** (no directive this run yet)
 
-**History:** earlier hand-offs and landed waves' rows are in [`plans/fixes-tooling-history.md`](fixes-tooling-history.md) (`pnpm prd status-trim`).
+**Landing mode: run everything through** (started run-through by the dispatcher 2026-11-28; land each green wave, clean up, ask only real questions via `risa ask`).
 
-- **Wave 11 landed** (2026-11-26) as c99c452 (PR #227, `--no-review`: Codex out of credits; components green on 0ca46a79, run 45867259701; flake on the synced tip 3c8934a0, run 45868514410, none in the branch's files; landed unsynced). Slices 86–93 (B-903, B-810, B-809, B-465, B-431, B-432, B-862, B-864), all opus. Report filed; to-test/2026-11-26-1240-fixes-tooling.md. Docs folded: machinery.md, recovery.md. New item B-911. The running dispatcher needs one `pnpm prd dispatch --stop`, then `pnpm prd dispatch`, to pick up the re-exec code (backlog session told).
-- **Run ended after wave 11** (the user, via the backlog session: the row carries `hold`; no wave 12). The worktree is removed to free the slot. Next run: wave boundary (`pnpm backlog ingest`, list), pick wave 12 from the waiting items, number from `pnpm prd status-trim fixes-tooling --next`.
-- **Watch:** `land-gate.test.mjs`'s dev-brake test failed under load in slices 87–90's checks (wave 11) and slice 72's (passes alone 28/28). Earlier: timed out under load ~60 twice in wave 8. File it if CI shows it.
-- **Waiting triaged items for later waves:** B-375, B-459, B-477, B-619, B-667, B-681, B-720, B-721, B-722, B-749, B-757, B-776, B-778, B-780, B-782, B-785, B-790, B-791, B-802, B-808, B-813, B-839, B-851, B-852, B-880..B-883, B-886, B-889, B-911 (their `This item: wave` notes are from the 2026-11-23 numbering; ignore the number).
-- **Follow-ups for later:** B-542's cap is 4 (a half-the-cores proposal is noted on the item). The quarantine lines for B-633 and B-769 can go once `pnpm prd ci` drops them; B-824's can go now that slice 63 (B-867) has landed (not in repo code: check `pnpm prd ci`'s list).
+**History:** earlier hand-offs and landed waves' rows are in [`plans/fixes-tooling-history.md`](fixes-tooling-history.md) (`risa status-trim`).
 
-**Later waves:** each item's notes carry its wave (`This item: wave <n>`). Run full checks on a quiet machine, under `caffeinate -i`; wait on a check with `pnpm prd wait check`; confirm any failure alone 3x before calling it a flake.
+- **Wave 11 landed** (2026-11-26) as c99c452 (PR #227). Since then the Risa split landed: the loop tooling is Risa's (`risa …` replaces `pnpm prd …`/`pnpm backlog …`); Caretook keeps `scripts/project/` and `scripts/browser-checks/`.
+- **Wave 12 started 2026-11-28** (dev synced: ebf948dc). Slices 94–101 (CI/browser-check flakes and check-area mapping), all opus. Hot files: free-limits holds the admin services and routes, so B-778/B-782 (admin int-test flakes) wait.
+- **Waiting triaged items for later waves:** B-375 (less its timelineScroll part, in 97), B-667, B-750 and B-752 (parked, not runnable), B-757, B-778, B-782, B-791, B-802, B-852, B-863 (Risa tooling, held), B-907 (large: ~50 test files), B-921 (candidate to close once quarantine shows it steady), B-954 (Risa's `serve`/`browser`: belongs in Risa), B-977 (a deploy-workflow feature, not a fix).
+- **Watch:** wait on a check with `risa wait check`; confirm any failure alone 3x before calling it a flake. Agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
+- Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`).
 
-- Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
-
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+| Slice | Item                        | State           | Merge |
+| ----- | --------------------------- | --------------- | ----- |
+| 94    | B-619, B-839, B-998, B-1000 | starting (opus) |       |
+| 95    | B-808, B-922, B-983         | starting (opus) |       |
+| 96    | B-1004, B-1005              | starting (opus) |       |
+| 97    | B-785, B-790                | starting (opus) |       |
+| 98    | B-949                       | starting (opus) |       |
+| 99    | B-967                       | starting (opus) |       |
+| 100   | B-776                       | starting (opus) |       |
+| 101   | B-749, B-851                | starting (opus) |       |
 
 ## Wave 1
 
@@ -941,3 +947,79 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/tags.md, docs/domain/compo
 
 - The fixture derives the id from `tagKey(name)` the way the app does.
 - Component test (beside the fixture's other tests, or a tags one): a fixture tag named with mixed case and spaces has the id a device derives for that name; existing tag tests pass.
+
+## Wave 12
+
+Started 2026-11-28 by the run-through orchestrator, after the Risa split (the loop tooling now lives in Risa and runs as `risa`; Caretook keeps `scripts/project/`, `scripts/browser-checks/` and its tests). The CI and browser-check flakes that keep failing other topics' runs, then two check-area mapping gaps. Each item's backlog notes (`risa backlog show B-<n>`) carry the details, including the failing numbers. For a flake, **first show the cause** (a deterministic failure, or a reasoned reading of the race) and fix that cause; a looser bound alone is acceptable only when the hand-off shows the work is genuinely that slow on a loaded runner. Never touch a running topic's hot files (`risa backlog prd list`; free-limits holds the admin services, schema and routes). Never touch `vitest.config.ts`, `eslint.config.js` or `scripts/eslint/`.
+
+### Slice 94: search.sync's timing test holds on a loaded CI runner (B-619, B-839, B-998, B-1000)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/search.md, docs/domain/components.md · Tests: component · Blocked by: none · Check: apps/web/app/lib/search/search.sync.browser.test.tsx
+
+`apps/web/app/lib/search/search.sync.browser.test.tsx` 'about 2,000 entries the rebuild takes under 2 s, and a …' fails on CI several times a day: a query over its 50 ms wall-clock budget ('the' at 51–79 ms while the others take 5–40 ms), and once the rebuild bound. It is on the brake list, so each flake refuses a promote.
+
+- Find what makes one query slow on a loaded runner (a first-query warm-up, a cold statement cache, a GC pause measured as query time) and fix the measurement or the cause, so the test still catches a real regression (a query several times slower, a rebuild that scans per entry) without failing on runner noise: e.g. a warm-up query before timing, the best of a few runs per query, or a budget relative to a measured baseline. Say in the hand-off why the new bound still catches a real slowdown.
+- Component test: the rewritten timing case passes 10 of 10 in the slice check's zone under `risa`'s load gate; a deliberately slowed query (a temporary sleep, shown and removed) still fails it.
+
+### Slice 95: ui.spec measures the add sheet only after it lays out (B-808, B-922, B-983)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/components.md, scripts/browser-checks/ui.spec.mjs · Tests: e2e:ui · Blocked by: none · Check: scripts/browser-checks/ui.spec.mjs
+
+`scripts/browser-checks/ui.spec.mjs` '420 dark › add sheet: the full screen' (and 420 light) reads the Symptom add sheet's surface as 0×0 (or height 0 against 900) under load: the walk to the first non-transparent ancestor runs before the sheet's open animation has given it a size. Passes alone.
+
+- Wait until the surface has a non-zero box (a polling `expect` on its bounding box, or the sheet's open state) before measuring; the full-screen assertion itself is unchanged.
+- e2e: ui.spec passes; show in the hand-off that measuring with the wait removed and a delayed open (a temporary slowdown) reproduces 0×0, and with the wait it passes.
+
+### Slice 96: the Link to box tests wait for the rows they expect (B-1004, B-1005)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/todos.md, docs/domain/components.md · Tests: component · Blocked by: none · Check: apps/web/app/components/todos/linkToBox.browser.test.tsx
+
+`apps/web/app/components/todos/linkToBox.browser.test.tsx` 'the Link to box leaves out what's linked, and a pic…' and 'the empty Link to box's suggestions (B-947) …' fail on CI with `expected [] to deeply equal [ [ { type: 'event', … } ] ]` inside a poll: the pick callback was never called, likely because the test clicks a suggestion before the device's query has filled it (or clicks one that's re-rendered away).
+
+- Find the race (the read before the suggestions are rendered, or the click landing on a stale row) and wait on the thing the click needs; keep the assertions.
+- Component test: both cases pass 10 of 10 in both zones; the hand-off shows the cause.
+
+### Slice 97: the timeline paging and infinite-scroll tests survive load (B-785, B-790)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/timeline.md, docs/domain/components.md · Tests: component · Blocked by: none · Check: apps/web/app/routes/app/groups/timeline/timelineJumpPaging.browser.test.tsx
+
+`apps/web/app/routes/app/groups/timeline/timelineJumpPaging.browser.test.tsx` 'scrolling newer from a day Back …' (quarantined after failing again on run 45989155987) and `timelineScroll.browser.test.tsx` 'infinite scroll three pages down, an…' flake on CI.
+
+- Find each race (a scroll fired before the next page's sentinel is observed, a read of rows before the page lands) and wait on what the next step needs; keep the assertions. Take `timelineScroll`'s `retry: 2` off if the fix makes it steady (B-375's part).
+- Component test: both files pass 10 of 10 in both zones; say in the hand-off whether the paging test can leave quarantine (and remove its quarantine line if it lives in the repo).
+
+### Slice 98: sheetExit's reduced-motion Back test waits for the navigation (B-949)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md, docs/domain/components.md · Tests: component · Blocked by: none · Check: apps/web/app/components/ui/sheetExit.browser.test.tsx
+
+`apps/web/app/components/ui/sheetExit.browser.test.tsx` 'closed by navigating with reduced motion Back complete…' fails on CI with `expected '/sheet' to be '/'`: the path is read before the Back navigation has settled.
+
+- Find the race (a read right after `history.back()` with no wait, or the exit not yet started) and wait on the navigation; if it shows a real bug in `useSheetExit.tsx` (Back not completing with reduced motion), fix that and say so.
+- Component test: passes 10 of 10 in both zones.
+
+### Slice 99: layout-offline's edit-link check clicks a link the tag chips don't cover (B-967)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/tags.md, docs/domain/components.md, scripts/browser-checks/layout-offline.spec.mjs · Tests: e2e:layout-offline · Blocked by: none · Check: scripts/browser-checks/layout-offline.spec.mjs
+
+`scripts/browser-checks/layout-offline.spec.mjs` 'offline: a row's edit link opens its edit sheet' fails 4 of 4: it clicks `main ol a[aria-label^="Edit "]` (an absolute inset-0 overlay) at its centre, where the row's tag chips sit on top.
+
+- First decide whether a person tapping the row's middle reaches the edit sheet today. If the chips swallow that tap and do nothing, that's a UI bug: say so in the hand-off and stop (it goes to fixes-ui). If the chips are their own controls by design, make the check click a part of the row the overlay serves (or the row's Edit action) the way a person would.
+- e2e: layout-offline passes.
+
+### Slice 100: the planner header test survives load (B-776)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md · Tests: component · Blocked by: none · Check: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx
+
+`apps/web/app/routes/app/groups/planner/planner.browser.test.tsx` 'the header the tabs carry what each reads: U…' flaked on CI (passed on rerun).
+
+- Find the race and wait on what the assertion needs; keep the assertion. If no cause shows after a fair try (the file 15 times in both zones under load), say so with the runs and make no change.
+- Component test: the file passes 10 of 10 in both zones.
+
+### Slice 101: check-areas maps the roundtrip writers, and a check-plan rule for scripts/build/ (B-749, B-851)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/sync.md, scripts/project/check-areas.d/, scripts/project/check-plan-rules.json · Tests: unit · Blocked by: none · Check: scripts/project/check-areas.test.mjs
+
+The `*.sync.ts` writers `scripts/browser-checks/sync-writers.mjs` calls for roundtrip (todos, allergies, conditions, medicationConditions, notes) map to no browser check in `scripts/project/check-areas.d/`, so a change to one doesn't run roundtrip; and `scripts/build/` (hand-run build scripts such as `share-image.mjs`) has no rule in `scripts/project/check-plan-rules.json`, so a new one proposes the full tier.
+
+- Add each writer the roundtrip check calls to its area's `check-areas.d/<area>` file with `roundtrip` (read `sync-writers.mjs` for the list today; additive lines at the end of each group). Add a rule for `scripts/build/` at the tier its files need (tooling: unit tests that live there, `scripts/build/pins.test.mjs` among them).
+- Unit tests (`check-areas.test.mjs` and the check-plan rules' tests): a writer maps to roundtrip; a new `scripts/build/` file proposes no higher than the tier the rule gives.
