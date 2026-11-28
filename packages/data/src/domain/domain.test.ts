@@ -133,6 +133,7 @@ const DOMAIN_EXPORTS = [
   "noteText",
   "notesSnippet",
   "ordinal",
+  "pageContextFor",
   "parseEditTime",
   "parseNoteEditors",
   "parseRule",
