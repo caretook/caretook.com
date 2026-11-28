@@ -12,7 +12,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 | PRD | Flags | After | Hot files | Doc and notes |
 | --- | ----- | ----- | --------- | ------------- |
-| `fixes-bug` | standing | — | — | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
+| `fixes-bug` | standing | — | `apps/web/app/lib/timeline/`, `apps/web/app/routes/app/groups/timeline/`, `packages/data/src/db/schema/assistant/quickEntry`, `apps/web/app/components/quick-entry/useQuickEntryShortcut.ts`, `apps/web/app/components/quick-entry/quickEntryShortcut.browser.test.tsx` | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
 | `fixes-ui` | standing | — | — | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
 | `marketing-3` | hold | — | `apps/web/app/routes/marketing/sections/`, `apps/web/app/routes/marketing/home/`, `apps/web/app/routes/marketing/features/`, `apps/web/app/routes/marketing/layout/`, `apps/web/app/routes/marketing/accessibility/`, `apps/web/app/routes/marketing/contact/route.tsx`, `apps/web/app/routes/marketing/site/pages.ts`, `apps/web/app/routes/marketing/routes.ts`, `scripts/browser-checks/marketing.spec.mjs`, `docs/research/` | to write: marketing copy and site refresh (B-887, B-888, B-855, B-836, B-563, B-829); split from the held marketing topic 2026-11-28 by the user |
 | `account-security` | done | — | `packages/auth/`, `packages/api/src/rateLimit.ts`, `packages/api/src/procedures.ts`, `packages/api/src/connectors/http.ts`, `packages/api/src/calendars/feed.ts`, `packages/api/src/marketing/publicForms.ts`, `packages/data/src/services/careGroupMemberService.ts`, `packages/data/src/services/careGroupInviteService.ts`, `packages/data/src/services/joinRequestService.ts`, `packages/data/src/services/connectorGrantService.ts`, `packages/data/src/services/groupAdminService.ts`, `packages/data/src/services/accountAdminService.ts`, `packages/data/src/services/adminAuditService.ts`, `packages/data/src/db/roles/`, `packages/notifications/`, `scripts/browser-checks/session-end.spec.mjs`, `scripts/browser-checks/roundtrip.spec.mjs` | to write (B-85: two-factor required for owners, admins and staff; breached-password check) · Depends on: `invites` (done); B-80 (the Devices page) first (soft) · Hot files: `packages/auth`, account settings, group settings Members, `careGroupService` and the access-code and invite flows (owners must enrol) |
@@ -277,7 +277,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1043 | feature | triaged | quick-entry-find |  | Quick entry find, switch and contact: 'find <text>' opens search, 'switch to <group>', 'call <provider>' opens the dialer |
 | B-1044 | feature | triaged | quick-entry-find |  | Quick entry 'go to <provider or medication>' by name (after moving the parser's name matchers into the assistant domain) |
 | B-1045 | bug | triaged | fixes-tooling |  | Inbox handoff (risa rotate --self) didn't work |
-| B-1046 | bug | triaged | fixes-bug |  | Timeline sometimes renders blank: only the Today header and vitals summary show, the rest of the… |
+| B-1046 | bug | in-progress | fixes-bug | prd/fixes-bug | Timeline sometimes renders blank: only the Today header and vitals summary show, the rest of the… |
 | B-1047 | feature | triaged | fixes-ui |  | Pull down to refresh in the installed PWA (no browser reload control there; a tester had to close… |
 | B-1048 | feature | triaged | fixes-ui |  | Symptom catalog list: make each symptom's entry count a link to the timeline already filtered to… |
 | B-1049 | bug | triaged | data-rights |  | A deleted medication pass's name is scrubbed, so the connector's listMedications shows blank pass names in an old schedule (it reads deleted passes on purpose) |
@@ -287,9 +287,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1053 | bug | triaged | data-rights |  | A note upload that overlaps a delete can append a note_update after the scrub cleared the document, so the deleted note keeps new content |
 | B-1054 | bug | landed | fixes-tooling | prd/fixes-tooling | Browser check session-end fails at line 120: no symptom row in the caretaker's first timeline page, so main a[href*=kind=symptom] is never visible (assumes seed data in view) |
 | B-1055 | change | triaged | code-health-3 |  | The device side of the one-helper cleanup and the services' one invalid: refuse, invalid and canWrite repeated in the *.sync.ts writers, FormData reads that skip core/form.ts formString, the identical shouldRevalidate in the group routes, the 24 local invalid definitions in services, and todoService's upsert onto createIfAbsent (empties code-health-2's upsert guard's todoService exception) |
-| B-1056 | bug | triaged | fixes-bug |  | Quick entry on a provider's page: a visit line naming no provider ("saw her yesterday") reads as a note, not the event "saw Dr. Lee yesterday" gives; the fallback event card has no providerIds |
+| B-1056 | bug | in-progress | fixes-bug | prd/fixes-bug | Quick entry on a provider's page: a visit line naming no provider ("saw her yesterday") reads as a note, not the event "saw Dr. Lee yesterday" gives; the fallback event card has no providerIds |
 | B-1057 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/settings/tagsSettings.browser.test.tsx: the Tags page an owner merges Urgent i… |
-| B-1058 | bug | triaged | fixes-bug |  | Quick entry shortcut: / and Cmd/Ctrl+K open the sheet while a native <dialog> confirm is open (the layer guard matches only [role=dialog], not dialog elements) |
+| B-1058 | bug | in-progress | fixes-bug | prd/fixes-bug | Quick entry shortcut: / and Cmd/Ctrl+K open the sheet while a native <dialog> confirm is open (the layer guard matches only [role=dialog], not dialog elements) |
 | B-1059 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/layout/frame.browser.test.tsx: the group menu and the last group names the current gr… |
 | B-1060 | change | triaged | code-health-5 |  | The services' and the API's group-role-name checks onto the role module (careGroupMemberService, careGroupInviteService, careGroupService, groupAdminService, assistantRequestService, calendarSettingService, connectors connect and groupOverview), the group details settings page and the profile test world (its isWriter treats easy roles as writers): empties the role guard's 'swept by code-health-5' entries |
 
@@ -1625,9 +1625,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1046 · bug · Timeline sometimes renders blank: only the Today header and vitals summary show, the rest of the…
 
-- status: triaged
+- status: in-progress
 - prd: fixes-bug
-- owner:
+- owner: prd/fixes-bug
 - commit:
 
 - 2026-11-28 (Robert Bo Davis): From the inbox: Timeline sometimes renders blank: only the Today header and vitals summary show, the rest of the screen is empty until the user scrolls, then everything appears (alpha tester, mobile)
@@ -1726,9 +1726,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1056 · bug · Quick entry on a provider's page: a visit line naming no provider ("saw her yesterday") reads as a note, not the event "saw Dr. Lee yesterday" gives; the fallback event card has no providerIds
 
-- status: triaged
+- status: in-progress
 - prd: fixes-bug
-- owner:
+- owner: prd/fixes-bug
 - commit:
 
 - 2026-11-28 (prd/quick-entry-3): Codex on PR #344 (thread PRRT_kwDOVx-WLM69HDyw, quickEntry.ts:1856): the event eligibility check runs before aboutProvider, so the page provider doesn't count as named. Care needed: slice 3 kept the page provider out of naming on purpose (else every line on a provider's page, e.g. 'refill sent', becomes an event); fix only the visit-verb case and give the fallback event the page provider.
@@ -1747,9 +1747,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1058 · bug · Quick entry shortcut: / and Cmd/Ctrl+K open the sheet while a native <dialog> confirm is open (the layer guard matches only [role=dialog], not dialog elements)
 
-- status: triaged
+- status: in-progress
 - prd: fixes-bug
-- owner:
+- owner: prd/fixes-bug
 - commit:
 
 - 2026-11-28 (prd/quick-entry-3): Codex P2 on PR #345 (thread PRRT_kwDOVx-WLM69HOQZ): add 'dialog' to inOtherLayer's selector in useQuickEntryShortcut.ts, with a row in quickEntryShortcut.browser.test.tsx
