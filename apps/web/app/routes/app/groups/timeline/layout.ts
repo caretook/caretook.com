@@ -9,9 +9,6 @@ export const COLUMN_CAP = "mx-auto max-w-5xl";
 /** The box an entry list (and an empty Today) sits in: bordered, rounded, lightly raised. */
 export const ROWS_BOX = "rounded-box border-base-300 bg-base-100 overflow-hidden border shadow-sm";
 
-/** A row's right-hand column: the ⋯ menu with the author under it (rows and pass logs, so the chips line up). */
-export const ASIDE_CLASS = "flex shrink-0 flex-col items-center gap-1";
-
 /**
  * A header tile showing what it remembered from earlier this session (the
  * tile cache), until its live query confirms: dimmed, beside `data-stale`.

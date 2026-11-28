@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { at, fx, TEST_GROUP } from "../../../../../test/fixtures";
 import { found, waitUntil } from "../../../../../test/found";
-import { dayKeyIn } from "./timelineDays";
+import { dayKeyIn } from "~/lib/timeline/timelineDays";
 import { chooseEasyMode, openTimeline, rows, rowWith, setView, TIMELINE_URL } from "./timelineWorld";
 
 // Copy link (B-737, B-899): each day header's button copies its `?day=` link;

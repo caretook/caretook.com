@@ -2,8 +2,8 @@ import type { EntryOpen } from "~/lib/timeline/entryOpen";
 import type { TimelineEntry } from "~/lib/core/rpc";
 
 import { Link } from "react-router";
-import { openLabel } from "./entryLabels";
-import { SHEET_LINK_STATE } from "./sheet";
+import { openLabel } from "~/lib/timeline/entryLabels";
+import { SHEET_LINK_STATE } from "~/lib/timeline/timelineSheet";
 
 /**
  * The whole row's tap target: a link stretched over the row or card, so it's
