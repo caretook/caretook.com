@@ -54,7 +54,8 @@ const LIST_CLASS = "rounded-box border-base-300 bg-base-100 divide-base-200 divi
  * (`plannerDayTrees`; todo-subtasks-3): the shared `TodoTree`, its top row
  * in the `card` look (lined up with the day's events) and its steps
  * indented under it; a step due before its top-level todo shows under its
- * dimmed ancestors. Writers get each row's quick add. One tick for the list
+ * dimmed ancestors. With subtasks on their own (`data.parentOf`, todo-links-2)
+ * each tree is one todo, a subtask's card with its "Part of" line. Writers get each row's quick add. One tick for the list
  * (Undo in the route's `TodoUndoStatus`).
  * `readOnly` (the easy roles' Planner): no ⋯ menus, no filter links, and tags as chips only.
  */
@@ -178,6 +179,7 @@ export function UpcomingList({
                     busy={tick.busy}
                     tagsOf={(id) => data.tagsOf("todo", id)}
                     progressOf={data.progressOf}
+                    parentOf={data.parentOf}
                   />
                 </li>
               ) : (

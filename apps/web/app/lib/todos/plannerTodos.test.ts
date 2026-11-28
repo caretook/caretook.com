@@ -5,7 +5,7 @@ import { upcomingSections } from "../appointments/upcomingDays";
 import type { TodoTreeNode } from "./todoTreeView";
 
 import { isPlannerTree, plannerDayTrees, showsTodos, withDueTodos } from "./plannerTodos";
-import { todoTrees } from "./todoTreeView";
+import { splitTrees, todoTrees } from "./todoTreeView";
 
 const LA = "America/Los_Angeles";
 const NY = "America/New_York";
@@ -228,5 +228,44 @@ describe("plannerDayTrees (todo-subtasks-3)", () => {
       matches: (t) => t.id === "sitter",
     });
     expect(plannerDayTrees(matched, NOW, LA).map((i) => i.day)).toEqual([TUESDAY]);
+  });
+});
+
+describe("plannerDayTrees over splitTrees (todo-links-2)", () => {
+  const TUESDAY = "2026-11-24";
+  const FRIDAY = "2026-11-27";
+  const node = (id: string, dueOn: string | null, parentId: string | null = null, done = false) => ({
+    ...todo(id, dueOn, null, done ? { doneAt: "2026-11-17T12:00:00.000Z" } : {}),
+    parentId,
+    deletedAt: null,
+  });
+  const split = (todos: ReturnType<typeof node>[]) =>
+    plannerDayTrees(splitTrees(todos, { now: NOW, timeZone: LA }), NOW, LA);
+
+  it("a step due on another day than its parent is its own item on its day, led by itself; the parent alone on its own", () => {
+    const todos = [
+      node("trip", FRIDAY),
+      node("sitter", TUESDAY, "trip"),
+      node("pack", null, "trip"),
+      node("passport", TUESDAY, "trip", true),
+    ];
+    const items = split(todos);
+    expect(items.map((i) => [i.day, i.key, i.todo.id, i.tree.todo.id, i.tree.children.length])).toEqual([
+      [TUESDAY, `tree:sitter:${TUESDAY}`, "sitter", "sitter", 0],
+      [FRIDAY, `tree:trip:${FRIDAY}`, "trip", "trip", 0],
+    ]);
+    for (const item of items) {
+      expect(item.tree.lead).toBe(item.todo);
+      expect(item.tree.context).toBe(false);
+    }
+  });
+
+  it("an overdue step goes first under today, its parent on its own day", () => {
+    const items = split([node("trip", FRIDAY), node("forms", "2026-11-16", "trip")]);
+    const sections = withDueTodos(upcomingSections([], NOW, LA), items, NOW, LA, LA);
+    expect(shape(sections)).toEqual([
+      ["Today", ["tree:forms:overdue"]],
+      ["Friday, Nov 27", [`tree:trip:${FRIDAY}`]],
+    ]);
   });
 });
