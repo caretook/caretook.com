@@ -263,10 +263,15 @@ describe("closed by navigating", () => {
     await reduceMotion();
     const { location } = await openRouteSheet();
     expect(longest(await found(() => overlay()))).toBe(0);
+    const exit = watchExit();
     pressBack();
+    // Nothing holds it, but the router still lands in a React transition, a
+    // task of its own: after a long task (a busy runner) the overdue frame
+    // runs first, so wait for the landing (B-949), then that no exit played.
+    await expect.poll(location).toBe("/");
     await nextFrame();
-    expect(location()).toBe("/");
     expect(overlay()).toBeNull();
+    expect(exit.exitAt).toBeUndefined();
   });
 });
 

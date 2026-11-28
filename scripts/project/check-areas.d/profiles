@@ -35,5 +35,18 @@ packages/data/src/db/schema/profiles/medicationCondition.ts roundtrip
 # provider/providerConditions .browser.test.tsx); a link reaching a second
 # device is roundtrip's sync matrix (6b).
 packages/data/src/db/schema/profiles/conditionManager.ts roundtrip
+# The writers the sync matrix calls for those rows (sync-writers.mjs): roundtrip's 6b.
+apps/web/app/lib/profiles/conditions.sync.ts roundtrip
+apps/web/app/lib/profiles/medicationConditions.sync.ts roundtrip
 # Directory defaults: a new file here needs no rule.
 apps/web/app/lib/profiles/               -
+# The services and models the upload switch writes these tables through
+# (packages/api/src/syncRegistry.ts): roundtrip's sync matrix (6b) uploads each.
+# (care_recipient's "No known" flags go through the allergy and condition services.)
+packages/data/src/services/recipientAllergyService.ts roundtrip
+packages/data/src/services/recipientConditionService.ts roundtrip
+packages/data/src/services/medicationConditionService.ts roundtrip
+packages/data/src/models/recipientAllergy/ roundtrip
+packages/data/src/models/recipientCondition/ roundtrip
+packages/data/src/models/medicationCondition/ roundtrip
+packages/data/src/models/conditionManager/ roundtrip

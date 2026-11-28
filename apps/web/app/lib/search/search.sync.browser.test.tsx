@@ -194,8 +194,24 @@ describe("the index follows the device", () => {
   });
 });
 
+// Timing on a shared runner (B-619): wall-clock milliseconds measure the
+// machine as much as the code. "the" matches about 1,900 items and takes
+// ~20 ms on a laptop but 50-85 ms on a loaded CI runner, every run, while a
+// GC pause or a cold first run only ever slows one. So each time is the best
+// of several runs (noise only adds), and a query is held to a multiple of a
+// baseline measured beside it on the same device: one plain read of the
+// group's items joined to their entries and sorted, the same rows a broad
+// search returns, without the index. A search that loses the index or does
+// per-row work is many times that; a slower runner slows both alike.
+/** How long `run` takes, in ms. */
+const timed = async (run: () => Promise<unknown>) => {
+  const t = performance.now();
+  await run();
+  return performance.now() - t;
+};
+
 describe("about 2,000 entries", () => {
-  test("the rebuild takes under 2 s, and a query (ids and the page's sections, tag names matched) under 50 ms", async () => {
+  test("the rebuild takes under 2 s, and a query (ids and the page's sections, tag names matched) within 5 times a plain read of the group's items", async () => {
     const sentences = [
       "Slept through the night and ate a good breakfast",
       "Walked to the end of the street with the cane",
@@ -217,22 +233,33 @@ describe("about 2,000 entries", () => {
       i % 10 ? [] : [recordTag(tags[(i / 10) % tags.length]!.id, entry.id)],
     );
     const device = await open([...filler, ...tags, ...links]);
-    const rebuild = await rebuildSearchIndex();
-    expect(rebuild.items).toBeGreaterThanOrEqual(2000);
-    expect(rebuild.ms).toBeLessThan(2000);
+    // Best of two: a rebuild that read per entry would take seconds at 2,000 entries every time.
+    const rebuilds = [await rebuildSearchIndex(), await rebuildSearchIndex()];
+    expect(Math.min(...rebuilds.map((r) => r.items))).toBeGreaterThanOrEqual(2000);
+    expect(Math.min(...rebuilds.map((r) => r.ms)), JSON.stringify(rebuilds)).toBeLessThan(2000);
     const groupTags = tags.map((t) => ({ id: t.id, name: String(t.row.name) }));
-    const times: Record<string, number> = {};
-    for (const q of ["knee", "short of breath", '"short of breath"', "walk -cane", "pres", "the"]) {
-      const parsed = parseSearch(q);
-      const runs: number[] = [];
-      for (let i = 0; i < 5; i++) {
-        const t = performance.now();
-        await searchEntryIds(device.db, G, parsed);
-        await searchGroup(device.db, G, parsed, {}, null, null, matchingTagIds(groupTags, parsed));
-        runs.push(performance.now() - t);
+    const plainRead = () =>
+      device.db.powersync.getAll(
+        `SELECT i.item_id, i.item_type, e.occurred_at FROM search_item i
+          LEFT JOIN timeline_entry e ON i.item_type = 'entry' AND e.id = i.item_id
+          WHERE i.group_id = ? ORDER BY e.occurred_at DESC`,
+        [G],
+      );
+    const queries = ["knee", "short of breath", '"short of breath"', "walk -cane", "pres", "the"];
+    const best: Record<string, number> = { baseline: Infinity };
+    // Rounds interleave the baseline with the queries, so a busy moment slows both.
+    for (let round = 0; round < 7; round++) {
+      best.baseline = Math.min(best.baseline!, await timed(plainRead));
+      for (const q of queries) {
+        const parsed = parseSearch(q);
+        const time = await timed(async () => {
+          await searchEntryIds(device.db, G, parsed);
+          await searchGroup(device.db, G, parsed, {}, null, null, matchingTagIds(groupTags, parsed));
+        });
+        best[q] = Math.min(best[q] ?? Infinity, time);
       }
-      times[q] = runs.sort((a, b) => a - b)[2]!;
     }
-    expect(Math.max(...Object.values(times)), JSON.stringify(times)).toBeLessThan(50);
+    const slowest = Math.max(...queries.map((q) => best[q]!));
+    expect(slowest, JSON.stringify(best)).toBeLessThan(5 * best.baseline!);
   });
 });

@@ -55,6 +55,9 @@ export const DB_ERRORS = {
   "db:reset:notStaging": {
     message: "Refusing to reset: only staging (APP_ENV=staging) can be wiped and reseeded",
   },
+  "db:reset:onboarding": {
+    message: "Failed to reset the onboarding test account",
+  },
   "db:reset:cycle": {
     message: "Refusing to reset: tables reference each other in a cycle, so there is no safe delete order",
   },

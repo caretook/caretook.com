@@ -474,7 +474,9 @@ test("3. reset a password by email", async ({ device }) => {
 
   await test.step("the new password signs in", async () => {
     await signIn(p, resetUser, newPassword, { home: true });
-    expect(await isOnApp(p)).toBe(true);
+    // signIn returns once the URL reaches /app, which the router pushes before /app renders
+    // (a transition), so the sign-in form can still be up: wait for it to go, never read once (B-802).
+    await expectOnApp(p);
   });
 
   const { page: again } = await device("reset-again");
