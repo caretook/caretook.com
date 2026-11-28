@@ -13,6 +13,7 @@ For planning agents: what the user has already decided, so nobody asks again. Re
 
 ## Planning and slices
 
+- **No data migration for rows that don't exist:** production has no data and staging is reset after a change, so plan the schema change alone; a migration carries only what the schema change needs to apply (no backfills, conversions or relinks for hypothetical rows). (contract-migrations, 2026-11-28; "until production has data" is the planner's reading)
 - **A PRD stays small** (about six slices): cut a bigger one into follow-on topics rather than ask. (orchestration-2, 2026-11-21)
 - **Small fixes land by category**, never mixed; the order between categories is the user's and isn't set yet. (orchestration-2, 2026-11-21)
 - **A question must reach the user's phone** (a PushNotification from the asking session); a desktop notification isn't enough. (orchestration-2, 2026-11-21)

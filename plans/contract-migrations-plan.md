@@ -1,10 +1,10 @@
 # Plan: Contract migrations
 
-> Source PRD: [`plans/contract-migrations-prd.md`](contract-migrations-prd.md). User-story numbers (US) refer to it. Backlog items B-455 (step one), B-456, B-457, B-625 (step one). Topic `contract-migrations`. Cut at planning: the column drops to the follow-on topics `contract-migrations-2` and `contract-migrations-3` (new items), each held until the step before it is on `origin/staging`.
+> Source PRD: [`plans/contract-migrations-prd.md`](contract-migrations-prd.md). User-story numbers (US) refer to it. Backlog items B-455 (step one), B-456, B-625 (step one). B-457 dropped at planning (a427: no data migration for rows that don't exist). Topic `contract-migrations`. Cut at planning: the column drops to the follow-on topics `contract-migrations-2` and `contract-migrations-3` (new items), each held until the step before it is on `origin/staging`.
 
 ## Status
 
-**From the user:** a426 (2026-11-28): delete the note series; their notes may go too, whichever makes the simpler migration (the series-only delete, as planned); the user resets staging afterwards. a427 (B-457's relink) pending at writing.
+**From the user:** a426 (2026-11-28): delete the note series; their notes may go too, whichever makes the simpler migration (the series-only delete, as planned); the user resets staging afterwards. a427 (2026-11-28): no backfill or conversion for rows that don't exist (production has no data; the user resets staging after): plan the schema change alone, keeping data handling to what it needs to apply. B-457 dropped.
 
 | Slice | Wave | State   | Merge into `prd/contract-migrations` (slice commits) |
 | ----- | ---- | ------- | ---------------------------------------------------- |
@@ -13,16 +13,14 @@
 | 3     | 1    | planned |                                                      |
 | 4     | 3    | planned |                                                      |
 | 5     | 2    | planned |                                                      |
-| 6     | 3    | planned |                                                      |
 
 **Backlog:** claim each item when its first slice starts; `risa backlog done` when its last slice merges.
 
-| Item                                  | Slices  |
-| ------------------------------------- | ------- |
-| B-625 `todo.event_id`, step one       | 1, 2, 4 |
-| B-456 note kind of series             | 3       |
-| B-457 default med times, older groups | 5       |
-| B-455 simple-mode columns, step one   | 6       |
+| Item                                | Slices  |
+| ----------------------------------- | ------- |
+| B-625 `todo.event_id`, step one     | 1, 2, 4 |
+| B-456 note kind of series           | 3       |
+| B-455 simple-mode columns, step one | 6       |
 
 ## Architectural decisions
 
@@ -39,11 +37,11 @@ Durable decisions every slice follows:
 
 ## How to run this plan
 
-- **Waves:** (1, 3) → (2, 5) → (4, 6). 2 follows 1 (the tests 1 moves); 4 follows 2 (both touch `syncEventTodos.int.test.ts`); 5 follows 3 and 6 follows 5 (one migration per wave).
+- **Waves:** (1, 3) → (2, 5) → (4). 2 follows 1 (the tests 1 moves); 4 follows 2 (both touch `syncEventTodos.int.test.ts`); 5 follows 3 (one migration per wave).
 - **Gates:** integration tier; no browser checks (no screen changes); the roles guards cover the stream change.
-- **Shared files inside a wave:** none. Wave 1: slice 1 four test files' setups, slice 3 the series schema, service and migration. Wave 2: slice 2 the three todo services and `todo.int.test.ts`, slice 5 its migration and test. Wave 3: slice 4 `syncRegistry.ts`, `sync-config.yaml`, `rolesSql.ts`, `syncEventTodos.int.test.ts`; slice 6 the care-group schema, permissions, its migration and the easy-mode tests (not `rolesSql.ts`'s list).
-- **Slices 3 and 5 follow the answers to a426 and a427.** As planned: delete note series, keep their notes (a426); relink exact 08:00 and 20:00 slots in backfilled groups (a427). If an answer differs, the orchestrator rewrites that slice's _What to build_ before starting it.
-- **Docs at landing (the orchestrator):** `care-groups.md` and `data-layer.md` (the simple-mode columns: out of the Drizzle schema, dropped by `contract-migrations-2`), `appointments.md` (`kind`: events only, no stored note series), `todos.md` (`todo.event_id`: no service writes it, unsynced, leaves Drizzle in `-2`, dropped in `-3`), `medications.md` (older groups backfilled), `ops/runbook.md` _Migrations_ (a column leaves the Drizzle schema a deploy before its drop, through a generated migration whose drops are replaced by a comment).
+- **Shared files inside a wave:** none. Wave 1: slice 1 four test files' setups, slice 3 the series schema, service and migration. Wave 2: slice 2 the three todo services and `todo.int.test.ts`; slice 5 the care-group schema, permissions, its migration and the easy-mode tests. Wave 3: slice 4 `syncRegistry.ts`, `sync-config.yaml`, `rolesSql.ts`, `syncEventTodos.int.test.ts`.
+- **No data migration for rows that don't exist** (a426, a427): production has no data and the user resets staging after. A migration carries only what its schema change needs to apply.
+- **Docs at landing (the orchestrator):** `care-groups.md` and `data-layer.md` (the simple-mode columns: out of the Drizzle schema, dropped by `contract-migrations-2`), `appointments.md` (`kind`: events only, no stored note series), `todos.md` (`todo.event_id`: no service writes it, unsynced, leaves Drizzle in `-2`, dropped in `-3`), `ops/runbook.md` _Migrations_ (a column leaves the Drizzle schema a deploy before its drop, through a generated migration whose drops are replaced by a comment).
 - **When it's done:** set `contract-migrations` done. `contract-migrations-2` stays on `hold` until `origin/staging` contains this topic (the user's promotion); its hold reason says so.
 
 ---
@@ -94,7 +92,7 @@ Stack: no · Reads: docs/domain/todos.md, docs/domain/data-layer.md · Tests: in
 
 ## Slice 3: No note series
 
-Stack: no · Reads: docs/domain/appointments.md, docs/domain/data-layer.md · Tests: integration · Check: packages/data/src/db/noteSeriesMigration.int.test.ts (new)
+Stack: no · Reads: docs/domain/appointments.md, docs/domain/data-layer.md · Tests: integration · Check: packages/data/src/services/appointmentSeries.int.test.ts
 
 **Backlog:** B-456. **User stories:** 2, 3.
 
@@ -103,15 +101,14 @@ Stack: no · Reads: docs/domain/appointments.md, docs/domain/data-layer.md · Te
 - `packages/data/src/db/schema/appointments/appointmentSeries.ts`: `SERIES_KINDS = ["event"]`; the comment says series are events only.
 - Adds a migration: hand-written first, `DELETE FROM "appointment_series" WHERE "kind" = 'note';` (soft-deleted ones too; visits keep their rows, `series_id` set null by the FK); then the generated check change (`kind IN ('event')`). If another table referencing a series refuses the delete (`seriesEdit`), delete its rows for those series first, in the same migration.
 - `packages/data/src/services/appointmentSeriesService.ts` `topUp`: remove the note skip.
-- `packages/data/src/db/noteSeriesMigration.int.test.ts` (new), on the `easyRolesMigration.int.test.ts` pattern (deleted later, in slice 6) (replay the statements): an event series and a note series (inserted before the check is re-created), each with a past and a future visit.
+- `appointmentSeries.int.test.ts`: a `kind = 'note'` insert (written as the system, past the Zod schema) is refused by the check.
 
 ### Acceptance criteria
 
-- [ ] The new migration test: the note series is gone, its visits remain as notes with `series_id` null, the event series and its visits are untouched, and a `kind = 'note'` insert is refused.
-- [ ] `appointmentSeries.int.test.ts` passes.
+- [ ] `appointmentSeries.int.test.ts` passes, with the refused note insert.
 - [ ] `risa check` green.
 
-**Blocks:** 5.
+**Blocks:** 5 (one migration per wave).
 
 ---
 
@@ -137,30 +134,9 @@ Stack: no · Reads: docs/domain/sync.md, docs/domain/todos.md · Tests: integrat
 
 ---
 
-## Slice 5: Older groups get Morning and Evening
+## Slice 5: The simple-mode columns leave the Drizzle schema
 
-Stack: no · Reads: docs/domain/medications.md, docs/domain/data-layer.md · Tests: integration · Check: packages/data/src/db/passBackfillMigration.int.test.ts (new) · Blocked by: 3
-
-**Backlog:** B-457. **User stories:** 6, 7.
-
-### What to build
-
-- Adds a migration (`--custom`): for each `care_group` with no `medication_pass` row (live or deleted), insert Morning 08:00 (sort order 0) and Evening 20:00 (sort order 1) with the group's recipient (skip a group with none) and the group's `created_by` as author; values match `DEFAULT_PASSES`. Then, in those groups only, each live medication's scheduled slot `{ time: "08:00" }` or `{ time: "20:00" }` becomes `{ passId, amount }` of the matching new pass (other slots unchanged; `amount` kept). A second run changes nothing.
-- `packages/data/src/db/passBackfillMigration.int.test.ts` (new), replaying the statements.
-
-### Acceptance criteria
-
-- [ ] The new migration test: a group with no pass rows gets both, and its 08:00 slot joins Morning while a 09:00 slot stays; a group with its defaults, and one with only deleted passes, are untouched; two runs equal one.
-- [ ] `medicationPass.int.test.ts` passes.
-- [ ] `risa check` green.
-
-**Blocks:** 6.
-
----
-
-## Slice 6: The simple-mode columns leave the Drizzle schema
-
-Stack: no · Reads: docs/domain/care-groups.md, docs/domain/data-layer.md · Tests: integration · Check: packages/data/src/services/easyMode.int.test.ts · Blocked by: 5
+Stack: no · Reads: docs/domain/care-groups.md, docs/domain/data-layer.md · Tests: integration · Check: packages/data/src/services/easyMode.int.test.ts · Blocked by: 3
 
 **Backlog:** B-455. **User stories:** 1.
 
