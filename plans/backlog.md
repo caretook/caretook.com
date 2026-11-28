@@ -12,7 +12,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 | PRD | Flags | After | Hot files | Doc and notes |
 | --- | ----- | ----- | --------- | ------------- |
-| `fixes-ui` | standing | — | — | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
+| `fixes-ui` | standing | — | `apps/web/app/components/entry/`, `apps/web/app/routes/app/groups/timeline/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/lib/todos/`, `apps/web/app/components/tags/` | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
 | `marketing-3` | — | — | — | to write: marketing copy and site refresh (B-887, B-888, B-855, B-836, B-563, B-829); split from the held marketing topic 2026-11-28 by the user |
 | `account-security` | — | — | `packages/auth/`, `packages/api/src/rateLimit.ts`, `packages/api/src/procedures.ts`, `packages/api/src/connectors/http.ts`, `packages/api/src/calendars/feed.ts`, `packages/api/src/marketing/publicForms.ts`, `packages/data/src/services/careGroupMemberService.ts`, `packages/data/src/services/careGroupInviteService.ts`, `packages/data/src/services/joinRequestService.ts`, `packages/data/src/services/connectorGrantService.ts`, `packages/data/src/services/groupAdminService.ts`, `packages/data/src/services/accountAdminService.ts`, `packages/data/src/services/adminAuditService.ts`, `packages/data/src/db/roles/`, `packages/notifications/`, `scripts/browser-checks/session-end.spec.mjs`, `scripts/browser-checks/roundtrip.spec.mjs` | to write (B-85: two-factor required for owners, admins and staff; breached-password check) · Depends on: `invites` (done); B-80 (the Devices page) first (soft) · Hot files: `packages/auth`, account settings, group settings Members, `careGroupService` and the access-code and invite flows (owners must enrol) |
 | `free-limits` | — | — | `packages/data/src/services/careGroupService.ts`, `packages/data/src/services/groupLimitService.ts`, `packages/data/src/db/schema/admin/appSettings.ts`, `packages/data/src/db/schema/admin/staffRules.ts`, `packages/data/src/db/schema/admin/adminAudit.ts`, `packages/data/src/db/schema/auth/user.ts`, `packages/data/src/db/migrations/`, `packages/data/src/permissions/auth.ts`, `packages/api/src/admin/usersAdmin.ts`, `apps/web/app/routes/admin/user/` | — |
@@ -154,17 +154,17 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-325 | change | triaged | hosting |  | Native readiness: no top safe-area inset on the header or sticky day headers (viewport-fit=cover), and /app is a blank page on cold start for up to about 4 s (HydrateFallback returns null) |
 | B-327 | bug | landed | account-security | prd/account-security | A removed or demoted manager's pending invites still work: a removed owner can accept their own owner invite within 7 days and be an owner again |
 | B-328 | bug | landed | account-security | prd/account-security | The emailed sign-in code has no per-address limit (per IP only): a distributed attacker gets unlimited guesses at any account's 6-digit code |
-| B-329 | bug | ready | account-security | prd/account-security | Ending sessions never ends a connected assistant: password reset, 'sign out everywhere' and staff 'sign out all' leave the grant and its 30-day rolling refresh token alive |
-| B-330 | bug | ready | account-security | prd/account-security | Session tokens are stored in plain text and the bearer plugin accepts them unsigned; ops/data-copies.md says they are hashed |
+| B-329 | bug | landed | account-security | prd/account-security | Ending sessions never ends a connected assistant: password reset, 'sign out everywhere' and staff 'sign out all' leave the grant and its 30-day rolling refresh token alive |
+| B-330 | bug | landed | account-security | prd/account-security | Session tokens are stored in plain text and the bearer plugin accepts them unsigned; ops/data-copies.md says they are hashed |
 | B-331 | bug | landed | account-security | prd/account-security | Staff admin can invite any address as owner of any group: not limited to ownerless groups, existing owners aren't told |
-| B-332 | bug | ready | account-security | prd/account-security | Staff page-view audit rows are fired without waiting and can be lost on Vercel; user search isn't audited |
+| B-332 | bug | landed | account-security | prd/account-security | Staff page-view audit rows are fired without waiting and can be lost on Vercel; user search isn't audited |
 | B-333 | bug | landed | account-security | prd/account-security | Link sign-up leaks whether an address has an account (timing), has no rate limit, and one link creates unlimited unverified accounts |
-| B-334 | bug | ready | account-security | prd/account-security | A declined or withdrawn join requester can ask again forever, emailing every owner and admin each time; no signed-in oRPC procedure is rate limited (sync.upload, invite.resend) |
+| B-334 | bug | landed | account-security | prd/account-security | A declined or withdrawn join requester can ask again forever, emailing every owner and admin each time; no signed-in oRPC procedure is rate limited (sync.upload, invite.resend) |
 | B-335 | bug | landed | account-security | prd/account-security | Better Auth's /update-user is live and unvalidated: a name or image of any length syncs to co-members and into owner emails |
 | B-336 | bug | landed | account-security | prd/account-security | A role change reads its target unlocked: an admin's demote racing an owner's promotion of the same member can skip the owner-only and last-owner checks |
-| B-337 | bug | triaged | account-security |  | /mcp verifies a token (several database reads) before any rate limit, and rate-limit keys fall back to one shared 'unknown' bucket when the IP header is missing |
+| B-337 | bug | in-progress | account-security | prd/account-security | /mcp verifies a token (several database reads) before any rate limit, and rate-limit keys fall back to one shared 'unknown' bucket when the IP header is missing |
 | B-338 | feature | triaged | account-security-2 |  | Account settings: change name, email and password (today the page is read-only; password only via reset) |
-| B-339 | question | ready | account-security | prd/account-security | Decide the session cookie cache before launch: ordinary /rpc calls keep working for up to 3 minutes after a session is revoked |
+| B-339 | question | landed | account-security | prd/account-security | Decide the session cookie cache before launch: ordinary /rpc calls keep working for up to 3 minutes after a session is revoked |
 | B-340 | change | triaged | account-security-2 |  | A member in two groups can connect a given assistant to only one (one grant per user and client) |
 | B-343 | bug | triaged | hosting |  | The break-glass database grant (pnpm db:access grant) very likely fails on Neon: it sends a SCRAM verifier, which the runbook records Neon rejecting |
 | B-344 | bug | triaged | hosting |  | The migrator can silently skip a migration whose journal timestamp is older than the last applied one; nothing guards it |
@@ -264,13 +264,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1012 | feature | triaged | free-limits |  | Free plan: cap how many care groups one user can create (owner of), with a clear message at the… |
 | B-1013 | feature | triaged | free-limits-2 |  | Free plan: limit account creation per address, so one person can't make many free accounts to get… |
 | B-1014 | feature | triaged | documents |  | Per-user storage quota for document uploads: total bytes per user (and per group) on free, checked… |
-| B-1015 | change | triaged | fixes-ui |  | Timeline entries: merge TimelineEntryRow and TimelineEntryCard into one shared entry display with a… |
-| B-1016 | change | triaged | fixes-ui |  | Todos page: show the Done section as todo trees (the open list's TodoTree) instead of a flat list… |
+| B-1015 | change | in-progress | fixes-ui | prd/fixes-ui | Timeline entries: merge TimelineEntryRow and TimelineEntryCard into one shared entry display with a… |
+| B-1016 | change | in-progress | fixes-ui | prd/fixes-ui | Todos page: show the Done section as todo trees (the open list's TodoTree) instead of a flat list… |
 | B-1017 | bug | triaged | account-security |  | A join request waiting from a link that is later revoked (its maker removed or demoted) can still be approved: joinRequestService.approve doesn't recheck the link or its maker |
 | B-1018 | bug | triaged | account-security |  | Within the 7-day re-ask cooldown a join request answers 'requested' with the old declined or withdrawn request's id: joinRequest.mine doesn't list it and withdrawing it gives notFound |
 | B-1019 | bug | triaged | account-security |  | Staff Change role and Remove read the member's role before the membership lock, so a racing owner change makes the staffGroupChange email skip a demoted owner and name the wrong previous role |
 | B-1020 | bug | triaged | account-security |  | Membership locks use two orders (lockForChange by id, lockGroupMembers by createdAt), so a role change racing an emergency-contact save can deadlock and abort one |
-| B-1021 | bug | triaged | fixes-ui |  | The add-tag icon button doesn't line up vertically with the tag chips beside it |
+| B-1021 | bug | in-progress | fixes-ui | prd/fixes-ui | The add-tag icon button doesn't line up vertically with the tag chips beside it |
+| B-1022 | change | triaged | fixes-ui |  | Todo rows get a ⋯ menu (Edit, Delete) right of the add-subtask button; the todo page moves Edit into its ⋯ menu |
 
 ## Items
 
@@ -463,7 +464,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-329 · bug · Ending sessions never ends a connected assistant: password reset, 'sign out everywhere' and staff 'sign out all' leave the grant and its 30-day rolling refresh token alive
 
-- status: ready
+- status: landed
 - prd: account-security
 - owner: prd/account-security
 - commit: e75ed6950
@@ -473,7 +474,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-330 · bug · Session tokens are stored in plain text and the bearer plugin accepts them unsigned; ops/data-copies.md says they are hashed
 
-- status: ready
+- status: landed
 - prd: account-security
 - owner: prd/account-security
 - commit: e75ed6950
@@ -493,7 +494,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-332 · bug · Staff page-view audit rows are fired without waiting and can be lost on Vercel; user search isn't audited
 
-- status: ready
+- status: landed
 - prd: account-security
 - owner: prd/account-security
 - commit: e75ed6950
@@ -513,7 +514,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-334 · bug · A declined or withdrawn join requester can ask again forever, emailing every owner and admin each time; no signed-in oRPC procedure is rate limited (sync.upload, invite.resend)
 
-- status: ready
+- status: landed
 - prd: account-security
 - owner: prd/account-security
 - commit: e75ed6950
@@ -544,9 +545,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-337 · bug · /mcp verifies a token (several database reads) before any rate limit, and rate-limit keys fall back to one shared 'unknown' bucket when the IP header is missing
 
-- status: triaged
+- status: in-progress
 - prd: account-security
-- owner:
+- owner: prd/account-security
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. packages/api/src/connectors http.ts:100-108. /oauth2/register is open with per-IP limits only, and oauth_client rows are never purged.
@@ -565,7 +566,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-339 · question · Decide the session cookie cache before launch: ordinary /rpc calls keep working for up to 3 minutes after a session is revoked
 
-- status: ready
+- status: landed
 - prd: account-security
 - owner: prd/account-security
 - commit: e75ed6950
@@ -1576,9 +1577,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1015 · change · Timeline entries: merge TimelineEntryRow and TimelineEntryCard into one shared entry display with a…
 
-- status: triaged
+- status: in-progress
 - prd: fixes-ui
-- owner:
+- owner: prd/fixes-ui
 - commit:
 
 - 2026-11-28 (Robert Bo Davis): From the inbox: Timeline entries: merge TimelineEntryRow and TimelineEntryCard into one shared entry display with a Full and a Condensed look / The user's words (2026-11-28): 'I'd like for them to merge and just have a full/condensed view. Full SHOULD have more spacing between items whereas condensed has less. I like the way time is laid out on current full screen more (it leaves more column width for content). Both should use user avatar for user information the same way as the current condensed view.' Today routes/app/groups/timeline/TimelineEntryList.tsx:194 picks TimelineEntryCard (Full, still in routes/app/groups/timeline/) or components/entry/TimelineEntryRow (Condensed); both take EntryViewProps. Model it on ProviderCard's look: "full" | "condensed" (shared-displays, B-961). One component in components/entry with a look prop: both looks use the current Full view's time layout (more column width for content) and the current Condensed view's author avatar; Full spaces items further apart, Condensed closer. Other callers of TimelineEntryRow (search, provider links, todo links) keep working.
@@ -1586,9 +1587,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1016 · change · Todos page: show the Done section as todo trees (the open list's TodoTree) instead of a flat list…
 
-- status: triaged
+- status: in-progress
 - prd: fixes-ui
-- owner:
+- owner: prd/fixes-ui
 - commit:
 
 - 2026-11-28 (Robert Bo Davis): From the inbox: Todos page: show the Done section as todo trees (the open list's TodoTree) instead of a flat list of rows / The user's words (2026-11-28): 'We should use the tree view for complete todos instead of a weird flat view. It breaks the "unified ux" rule and is confusing.' Today routes/app/groups/todos/DoneTodos.tsx lists each done todo as a flat TodoRow (newest first, paged with More), so a done parent and its done subtasks show as unrelated rows, while the open list uses TodoTree. Use the same tree display for Done (one shared display, the user's rule). To settle in the slice: page by tree (a whole done tree per item, newest completion first), and where a done subtask whose parent is still open appears (in the open tree, as today's tree does).
@@ -1632,10 +1633,20 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1021 · bug · The add-tag icon button doesn't line up vertically with the tag chips beside it
 
+- status: in-progress
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): From the user 2026-11-28: 'add tag icon button doesn't align vertically with the tags next to it like it should'. Screen not named; the add-tag control is shared (components/tags/QuickTags.tsx, used on TimelineEntryRow, TodoRow, ProviderCard), so fix it once in the shared control and check every place it appears. fixes-ui: look and layout.
+- 2026-11-28 (Robert Bo Davis): QuickTags appears on: timeline row, entry page header, timeline edit; todo row, todo links, todo page header, todo edit; medication list row, MedicationTags, medication header; provider card, directory row, provider medications, provider header and actions, provider edit; search results. Check alignment on each.
+
+### B-1022 · change · Todo rows get a ⋯ menu (Edit, Delete) right of the add-subtask button; the todo page moves Edit into its ⋯ menu
+
 - status: triaged
 - prd: fixes-ui
 - owner:
 - commit:
 
-- 2026-11-28 (Robert Bo Davis): From the user 2026-11-28: 'add tag icon button doesn't align vertically with the tags next to it like it should'. Screen not named; the add-tag control is shared (components/tags/QuickTags.tsx, used on TimelineEntryRow, TodoRow, ProviderCard), so fix it once in the shared control and check every place it appears. fixes-ui: look and layout.
-- 2026-11-28 (Robert Bo Davis): QuickTags appears on: timeline row, entry page header, timeline edit; todo row, todo links, todo page header, todo edit; medication list row, MedicationTags, medication header; provider card, directory row, provider medications, provider header and actions, provider edit; search results. Check alignment on each.
+- 2026-11-28 (Robert Bo Davis): From the user 2026-11-28: 'The todo items in the planner todos tab should have a hamburger menu to the right of the add subtask icon button that allows direct edit and delete. Edit should move into the hamburger on the todo display page.' Reuse the existing ⋯ menu look (components/ui/Menu, as EntryMenu on timeline rows and TodoActions on the todo page) rather than a new hamburger icon: one menu everywhere. Row Edit opens the same edit sheet; row Delete uses TodoActions's delete (the confirm naming subtasks, skip-or-stop for a repeating todo), with Reopen in the row menu too for a done todo. Writers only. TodoRow is shared, so the menu shows wherever todo rows appear (planner Todos tab, Todos page). Todo page: TodoHeader actions become ⋯ only (Edit, Reopen, Delete).
+- 2026-11-28 (Robert Bo Davis): From the user 2026-11-28: 'shared components that go back to the right place for all of that if possible'. One shared todo menu (and one edit sheet and delete flow) used by rows and the todo page alike, each returning to where it was opened: Edit from a row closes back to that row's list (planner Todos tab or Todos page, scroll kept), not the todo page; Delete from a row stays on the list (the row leaves); from the todo page, Edit comes back to the page and Delete goes back to the list the page was opened from.
