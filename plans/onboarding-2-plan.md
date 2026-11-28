@@ -6,8 +6,8 @@
 
 | Slice | Wave | State         | Merge into `prd/onboarding-2` (slice commits) |
 | ----- | ---- | ------------- | --------------------------------------------- |
-| 1     | 1    | merged (opus) | e6594062c (7844ff2e0)                         |
-| 2     | 2    | planned       |                                               |
+| 1     | 1    | landed (opus) | e6594062c (7844ff2e0)                         |
+| 2     | 2    | merged (opus) | ab0722574 (f26ce5101)                         |     |
 | 3     | 3    | planned       |                                               |
 | 4     | 3    | planned       |                                               |
 | 5     | 4    | planned       |                                               |
@@ -15,7 +15,11 @@
 
 **Landing mode:** run everything through (dispatcher run-through start): start every ready slice, land each green wave, ask only real questions via `risa ask`.
 
-**Wave 1 (2026-11-27):** slice 1 worktree `.loops/onboarding-2-1`, agent spawned on opus. B-670 claimed. No new backlog items for this topic. Slice 1 handed off (quick check green on 7844ff2e0) and merged; Wave 1 CI (full, run 46108983895): brake; blame puts `avatarCard.browser.test.tsx` "back online the queued choice is sent on reconnect" on the branch (fixed 0df95e142, merged again cd75ec69f; rerunning full), static was the plan's format (fixed ec9654302), linkToBox a flake. Note for slice 2+: settings are _known_ only once `me.get` answered on this device (`settingsKnown`/`useSettingsKnown` in `lib/app-shell/me.ts`, marker key `caretook:settings:<id>:known`); `me.update` is the existing `me.updatePreferences`; test device option `noSetupRecord: true`.
+**Wave 1 landed (2026-11-28)** in dev through PR #310 (tier full; Codex clean on 305451e; components recheck green, run 46110996724; landed unsynced over 1 dev commit sharing no file). Slice 1 on opus; merged e6594062c, fix cd75ec69f (test device read a test's api handlers live). Worktree removed. B-670 stays in progress (claimed). CI flake filed as B-1005 (fixes-tooling, linkToBox). Docs: setup record folded into docs/domain/app-shell.md.
+
+**Wave 2 started (2026-11-28, after a takeover):** dev synced (up to date), backlog ingested (nothing new for onboarding-2). Slice 2 worktree onboarding-2-2 made from d4d4aee7b, agent spawned on opus. Hints given: `settingsKnown`/`useSettingsKnown` in `lib/app-shell/me.ts`; `me.update` is `me.updatePreferences`; test device `noSetupRecord: true`.
+
+**Wave 2:** slice 2 handed off (check green on f26ce5101), merged ab0722574. CI components green (run 46112831998, on 34d73d844). Sync: no merge needed. Worktree onboarding-2-2 removed. PR #312 open, Codex review requested. **Overlap:** slice 2 moved ProviderForm/ProviderListItem/ProviderRowContact into `components/providers/` (shared-displays hot files); asked the backlog session (caretook-com-cb) and shared-displays-6b before landing. Both said land first (backlog: keep the move; shared-displays waits, wants a message at landing and no more edits to ProviderListItem/ProviderRowContact/ProviderForm). `components/providers/` added to onboarding-2's hot files. For slice 3: `MedicationForm` must move to a shared folder like ProviderForm; add steps to `setup/routes.ts` and `SETUP_PAGES`. For slice 5: `readSetupFacts` + `setupRedirectStep` + `settingsKnown`. Note for planning: slice 2 touched 24 files (over 12).
 
 **Backlog:** `done` B-670 when slice 6 merges (B-670 replaces the setup card, which is slice 6's work).
 

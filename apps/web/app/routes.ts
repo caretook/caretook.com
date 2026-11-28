@@ -9,6 +9,7 @@ import { periodRoutes } from "./routes/app/groups/periods/routes";
 import { profileRoutes } from "./routes/app/groups/profile/routes";
 import { providerRoutes } from "./routes/app/groups/providers/routes";
 import { searchRoutes } from "./routes/app/groups/search/routes";
+import { setupRoutes } from "./routes/app/groups/setup/routes";
 import { groupSettingsRoutes } from "./routes/app/groups/settings/routes";
 import { todoRoutes } from "./routes/app/groups/todos/routes";
 import { timelineRoutes } from "./routes/app/groups/timeline/routes";
@@ -45,6 +46,7 @@ const appRoutes = [
         ...searchRoutes,
         ...periodRoutes,
         ...todoRoutes,
+        ...setupRoutes,
       ]),
       ...newGroupRoutes,
     ]),

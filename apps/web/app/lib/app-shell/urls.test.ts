@@ -9,3 +9,13 @@ describe("appUrls.settings", () => {
     expect(appUrls.settings("bogus")).toBe("/app/settings");
   });
 });
+
+describe("appUrls.setup", () => {
+  const groupId = "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f1b01";
+  it("opens a step, the first by default or for an unknown one", () => {
+    expect(appUrls.setup(groupId, "medications")).toBe(`/app/groups/${groupId}/setup/medications`);
+    expect(appUrls.setup(groupId)).toBe(`/app/groups/${groupId}/setup/providers`);
+    // @ts-expect-error: only the setup steps exist.
+    expect(appUrls.setup(groupId, "bogus")).toBe(`/app/groups/${groupId}/setup/providers`);
+  });
+});
