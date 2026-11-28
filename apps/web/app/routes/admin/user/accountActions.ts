@@ -4,11 +4,12 @@ import type { ActionCopy } from "./helpActions";
 import { ASSIGNABLE_ROLE_NAMES } from "@caretook/data/schema";
 import { staffRoleLabel } from "../accountDisplay";
 
-// The admin-only actions on an account's page (admin PRD, slice 3): disable,
-// re-enable, and the staff role. Each takes a reason, like the help actions,
-// and needs its own capability. Pure, tested.
+// The account actions beyond the help ones (admin PRD, slice 3): disable,
+// re-enable and the staff role (admins only), and the care group limit
+// (free-limits PRD; admin and support). Each takes a reason, like the help
+// actions, and needs its own capability. Pure, tested.
 
-export const ACCOUNT_ACTION_INTENTS = ["disable", "enable", "setRole"] as const;
+export const ACCOUNT_ACTION_INTENTS = ["disable", "enable", "setRole", "setGroupLimit"] as const;
 export type AccountActionIntent = (typeof ACCOUNT_ACTION_INTENTS)[number];
 
 export const isAccountActionIntent = (value: unknown): value is AccountActionIntent =>
@@ -19,9 +20,19 @@ export const ACCOUNT_ACTION_CAPABILITY: Record<AccountActionIntent, StaffCapabil
   disable: "users.disable",
   enable: "users.disable",
   setRole: "users.setRole",
+  setGroupLimit: "users.limits",
 };
 
-export type AccountActionRequest = { intent: AccountActionIntent; reason: string; role?: string };
+export type AccountActionRequest = {
+  intent: AccountActionIntent;
+  reason: string;
+  role?: string;
+  /** The care group limit: null for the default (a blank field); NaN when it isn't a number, which the API refuses. */
+  limit?: number | null;
+};
+
+/** A typed care group limit as the API takes it: blank is null (the default). */
+export const parseGroupLimit = (text: string): number | null => (text.trim() === "" ? null : Number(text));
 
 /** The posted form as an admin action, or null when its intent isn't one. */
 export const parseAccountActionForm = (form: FormData): AccountActionRequest | null => {
@@ -31,7 +42,12 @@ export const parseAccountActionForm = (form: FormData): AccountActionRequest | n
   };
   const intent = text("intent");
   if (!isAccountActionIntent(intent)) return null;
-  return { intent, reason: text("reason"), ...(intent === "setRole" ? { role: text("role") } : {}) };
+  return {
+    intent,
+    reason: text("reason"),
+    ...(intent === "setRole" ? { role: text("role") } : {}),
+    ...(intent === "setGroupLimit" ? { limit: parseGroupLimit(text("limit")) } : {}),
+  };
 };
 
 /** A role's name in a sentence: "an admin", "support", "a member". */
@@ -41,7 +57,7 @@ const roleInSentence = (role: string) =>
 /** What the page says after `intent` went through. */
 export const accountActionDoneMessage = (
   intent: AccountActionIntent,
-  result: { revoked?: number; role?: string } = {},
+  result: { revoked?: number; role?: string; limit?: number; override?: number | null } = {},
 ) => {
   switch (intent) {
     case "disable": {
@@ -52,6 +68,11 @@ export const accountActionDoneMessage = (
       return "Re-enabled. They can sign in again.";
     case "setRole":
       return `They're ${roleInSentence(result.role ?? "member")} now.`;
+    case "setGroupLimit": {
+      const n = result.limit ?? 0;
+      const groups = `${n.toLocaleString("en-US")} care ${n === 1 ? "group" : "groups"}`;
+      return result.override === null ? `Back to the default: ${groups}.` : `They can start ${groups} now.`;
+    }
   }
 };
 
@@ -94,3 +115,15 @@ export const setRoleCopy = (role: string): ActionCopy => {
     confirm: known === "member" ? "Remove role" : `Make ${staffRoleLabel(known)}`,
   };
 };
+
+/** The confirm for setting an account's care group limit to `limit` (null: the default). */
+export const setGroupLimitCopy = (limit: number | null): ActionCopy => ({
+  button: "Change limit",
+  title:
+    limit === null
+      ? "Use the default limit?"
+      : `Let them start ${limit.toLocaleString("en-US")} care ${limit === 1 ? "group" : "groups"}?`,
+  message:
+    "It counts the groups they started and still own; groups they were invited to or that staff started don't count. Groups they already have stay.",
+  confirm: limit === null ? "Use default" : "Change limit",
+});
