@@ -5,7 +5,7 @@ import type { GroupContext } from "~/lib/app-shell/groupContext";
 import { isRouteErrorResponse, Link, Outlet, useLocation, useParams, useRouteLoaderData } from "react-router";
 import { MessageSquarePlus, Search } from "lucide-react";
 import { FullLogo } from "~/components/brand";
-import { openQuickEntry } from "~/components/quick-entry";
+import { openQuickEntry, useOfferQuickEntry } from "~/components/quick-entry";
 import { FirstSyncPending } from "~/components/shell";
 import { Button, IconButton, ToastRegion } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -50,7 +50,8 @@ export function clientLoader({ context }: Route.ClientLoaderArgs) {
  * - header `sections` (wide screens): `SectionNav` on group routes;
  * - header `search`: the magnifier that opens the group's search, on group routes,
  *   and before it the quick entry button (`openQuickEntry`: the group layout's
- *   sheet), on group routes but not in the easy frame;
+ *   sheet), on group routes but not in the easy frame, where its shortcut
+ *   works too (`useOfferQuickEntry`);
  * - header `status`: `SyncIndicator`;
  * - header `user`: `UserMenu`;
  * - `announcement`: staff's banner (`Announcement`), when there is one;
@@ -74,6 +75,8 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
   const severalGroups = useSeveralGroups(user.id);
   // Quick entry's sheet lives in the group layout: only a group that loaded has one.
   const quickEntry = !!useRouteLoaderData<GroupContext>("group") && !!groupFrame;
+  // Its shortcut (`/`, Cmd/Ctrl+K) works where the button shows.
+  useOfferQuickEntry(quickEntry);
   return (
     <>
       <header className="navbar h-16 min-h-16 gap-2 border-b border-base-300 bg-base-100/95 px-4 backdrop-blur sm:px-6 print:hidden">
