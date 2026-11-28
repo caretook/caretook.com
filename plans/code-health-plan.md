@@ -10,6 +10,8 @@
 
 **Models:** slices 1, 2, 5 on opus.
 
+**Other PRDs:** hot files narrowed to wave 1's real paths (2026-11-27) so fixes-nit's B-950 (moves `TimelineEntryRow.tsx` and `useOpenTodoCounts` into `components/entry/`) runs alongside; slice 6 rewrites import lines on whatever `dev` holds when it starts.
+
 | Slice | Wave | State       | Merge into `prd/code-health` (slice commits) |
 | ----- | ---- | ----------- | -------------------------------------------- |
 | 1     | 1    | running (worktree code-health-1, opus agent spawned 2026-11-27) |                                              |
