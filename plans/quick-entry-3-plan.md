@@ -4,7 +4,11 @@
 
 ## Status
 
-Not started.
+**From the user:** none yet in this topic.
+
+**Landing mode:** run everything through (dispatcher start, 2026-11-28): start every ready slice, land each green wave, ask only real questions.
+
+**Now (2026-11-28):** wave 1 (slices 1, 3, 4) starting; all on opus. Backlog at the boundary: nothing new for this topic.
 
 | Slice | Wave | State   | Merge into `prd/quick-entry-3` (slice commits) |
 | ----- | ---- | ------- | ---------------------------------------------- |
