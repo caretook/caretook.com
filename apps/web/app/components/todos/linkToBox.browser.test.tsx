@@ -75,7 +75,16 @@ const show = (
   cameFrom: LinkPick | null = null,
 ) =>
   renderWithDevice({
-    element: <LinkToBox groupId={TEST_GROUP.id} linked={linked} onPick={onPick} cameFrom={cameFrom} />,
+    // Inside the page gutter, as on its sheets. Edge to edge, React Aria's
+    // list (kept 12px from the viewport's edge, as wide as the field) ran
+    // 12px past the right edge, so an arrow key's scroll to the focused
+    // option scrolled the page, and the scroll closed the list a frame
+    // later: an Enter that came after that frame picked nothing (B-1004, B-1005).
+    element: (
+      <div className="px-4">
+        <LinkToBox groupId={TEST_GROUP.id} linked={linked} onPick={onPick} cameFrom={cameFrom} />
+      </div>
+    ),
     url: `/app/groups/${TEST_GROUP.id}/todos`,
     fixtures,
     search: true,
@@ -146,6 +155,8 @@ describe("the Link to box", () => {
     await userEvent.keyboard("lark");
     await expect.poll(() => optionText().length).toBe(2);
     expect(optionText().join(" ")).not.toContain("Dr. Mira Lark");
+    // The list fits the page, so the arrow key scrolls nothing (see `show`).
+    expect(document.documentElement.scrollWidth).toBe(window.innerWidth);
     // The event is the one title match left, so it's first.
     await userEvent.keyboard("{ArrowDown}{Enter}");
     await expect.poll(() => onPick.mock.calls).toEqual([[{ type: "event", id: VISIT.id }]]);
@@ -396,6 +407,8 @@ describe("the empty Link to box's suggestions (B-947)", () => {
     await fromLark([LARK.id, VISIT.id], onPick);
     await userEvent.click(BOX());
     await expect.poll(firstWords).toEqual(["Physio session", "Dentist", "Hearing test", "Metformin"]);
+    // The list fits the page, so the arrow key scrolls nothing (see `show`).
+    expect(document.documentElement.scrollWidth).toBe(window.innerWidth);
     await userEvent.keyboard("{ArrowDown}{Enter}");
     await expect.poll(() => onPick.mock.calls).toEqual([[{ type: "event", id: SECOND.id }]]);
     await expect.element(BOX()).toHaveValue("");
