@@ -126,6 +126,9 @@ export const MODEL_ERRORS = {
   "careGroupMemberModel:lockOwners": {
     message: "Failed to lock group owners",
   },
+  "careGroupMemberModel:lockForChange": {
+    message: "Failed to lock the membership",
+  },
   "careGroupMemberModel:lockGroupMembers": {
     message: "Failed to lock group members",
   },
