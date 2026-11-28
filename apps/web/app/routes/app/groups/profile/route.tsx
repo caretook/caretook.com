@@ -20,10 +20,9 @@ import { loadRecipientDetailsRows, useRecipientDetails } from "~/lib/profiles/re
 import { loadRecentReadingRows, useVitalAverages } from "~/lib/profiles/vitalAverages.sync";
 import { loadConditions, setNoKnownConditions, useConditions } from "~/lib/profiles/conditions.sync";
 import { loadAllergies, setNoKnownAllergies, useAllergies } from "~/lib/medications/allergies.sync";
-import { allergyActionFromForm } from "./allergies/allergyActions";
-import { AllergiesSection } from "./AllergiesSection";
-import { conditionActionFromForm } from "./conditions/conditionActions";
-import { ConditionsSection } from "./ConditionsSection";
+import { allergyActionFromForm } from "~/lib/medications/allergyActions";
+import { conditionActionFromForm } from "~/lib/profiles/conditionActions";
+import { AllergiesSection, ConditionsSection } from "~/components/profiles";
 import { ContactSection, InsuranceSection } from "./DetailsSections";
 import { EmergencySection } from "./EmergencySection";
 import { BasicsSection, NoteSection } from "./ProfileSections";

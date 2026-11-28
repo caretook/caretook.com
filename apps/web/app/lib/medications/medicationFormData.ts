@@ -1,6 +1,6 @@
 import type { MedicationForm, MedicationSchedule, MedicationType, ScheduleSlot } from "@caretook/data/schema";
-import type { FieldIssue } from "../../../../lib/core/api";
-import type { NewMedicationProviders } from "../../../../lib/medications/medications.sync";
+import type { FieldIssue } from "../core/api";
+import type { NewMedicationProviders } from "./medications.sync";
 
 import { MEDICATION_FORMS } from "@caretook/data/schema";
 import { MEDICATION_TYPES } from "@caretook/data/domain";

@@ -6,8 +6,8 @@ import { useFetcher } from "react-router";
 import { Button, ICON, List, ListRow, Message, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { ALLERGIES_NOT_RECORDED, allergyText, NO_KNOWN_ALLERGIES } from "~/lib/medications/allergies";
-import { ALLERGY_FIELD } from "./allergies/allergyActions";
-import { PROFILE_SHEET_STATE } from "./profileSheet";
+import { ALLERGY_FIELD } from "~/lib/medications/allergyActions";
+import { PROFILE_SHEET_STATE } from "~/lib/profiles/profileSheetLink";
 
 /**
  * The recipient's allergies, after Basics and before Conditions, for every
