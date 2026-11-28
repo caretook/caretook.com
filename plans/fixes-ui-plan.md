@@ -22,9 +22,9 @@ Notes for every wave:
 
 **Restarted 2026-11-27 (next session), run-through:** landing mode run everything through. Anchors ok, ingest empty, prd/fixes-ui = dev (fae76d70c). Wave 22: B-999 (day headers abbreviate the weekday on phones) slice 110 on opus. Hot: `routes/app/groups/timeline/`, `lib/timeline/`.
 
-| Slice | Item  | State          | Merge |
-| ----- | ----- | -------------- | ----- |
-| 110   | B-999 | started (opus) |       |
+| Slice | Item  | State                                | Merge     |
+| ----- | ----- | ------------------------------------ | --------- |
+| 110   | B-999 | merged (opus), CI components running | 4b24c08e0 |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
