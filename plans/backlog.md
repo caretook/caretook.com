@@ -265,7 +265,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-996 | bug | landed | fixes-bug |  | CI: scripts/project/project-data.test.mjs: this checkout's project data passes the tool's project-data check fails on d… |
 | B-997 | bug | landed | fixes-bug |  | CI: scripts/project/project-data.test.mjs: this checkout's role docs the sections the prompts and docs name are in the … |
 | B-998 | bug | triaged | fixes-tooling |  | search.sync.browser.test.tsx's 50 ms query budget flakes on CI runners (51.8 ms for 'the' on run 46097107440) |
-| B-999 | change | ready | fixes-ui | prd/fixes-ui | Timeline day headers: on mobile, abbreviate the weekday (Mon, Tue, …) where a header shows day and date, so rows fit small screens without wrapping; full name on wider screens |
+| B-999 | change | landed | fixes-ui | prd/fixes-ui | Timeline day headers: on mobile, abbreviate the weekday (Mon, Tue, …) where a header shows day and date, so rows fit small screens without wrapping; full name on wider screens |
 | B-1000 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/lib/search/search.sync.browser.test.tsx: about 2,000 entries the rebuild takes under 2 s, and a … |
 | B-1001 | chore | triaged | fixes-nit |  | todoPage.ts's header comment names the deleted apps/web/app/lib/todos/todoDisplay.ts (now @caretook/data/domain's domain/todos/todoDisplay.ts) |
 
@@ -1615,7 +1615,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-999 · change · Timeline day headers: on mobile, abbreviate the weekday (Mon, Tue, …) where a header shows day and date, so rows fit small screens without wrapping; full name on wider screens
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 4b24c08e0
