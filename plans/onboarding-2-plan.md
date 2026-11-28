@@ -4,14 +4,14 @@
 
 ## Status
 
-| Slice | Wave | State          | Merge into `prd/onboarding-2` (slice commits) |
-| ----- | ---- | -------------- | --------------------------------------------- |
-| 1     | 1    | landed (opus)  | e6594062c (7844ff2e0)                         |
-| 2     | 2    | landed (opus)  | ab0722574 (f26ce5101)                         |
-| 3     | 3    | started (opus) |                                               |
-| 4     | 3    | started (opus) |                                               |
-| 5     | 4    | planned        |                                               |
-| 6     | 5    | planned        |                                               |
+| Slice | Wave | State             | Merge into `prd/onboarding-2` (slice commits) |
+| ----- | ---- | ----------------- | --------------------------------------------- |
+| 1     | 1    | landed (opus)     | e6594062c (7844ff2e0)                         |
+| 2     | 2    | landed (opus)     | ab0722574 (f26ce5101)                         |
+| 3     | 3    | started (opus)    |                                               |
+| 4     | 3    | handed off (opus) | (748f3b4c8)                                   |
+| 5     | 4    | planned           |                                               |
+| 6     | 5    | planned           |                                               |
 
 **Landing mode:** run everything through (dispatcher run-through start): start every ready slice, land each green wave, ask only real questions via `risa ask`.
 
@@ -19,7 +19,7 @@
 
 **Overlap with shared-displays (settled):** slice 2 moved ProviderForm, ProviderListItem, ProviderRowContact to `components/providers/` (providerFormData to `lib/providers/`); `components/providers/` is now an onboarding-2 hot file. Backlog session advised keeping it; shared-displays (session shared-displays-6b) was told it landed and builds its ProviderCard (its slice 4) on the moved files. **Promise: onboarding-2 edits none of those three files again.** If slice 3 moves `MedicationForm` into `components/medications/` (its index.ts is a shared-displays hot file), tell shared-displays-6b before landing.
 
-**Wave 3 started (2026-11-28):** dev sync was a no-op; worktrees onboarding-2-3 and onboarding-2-4 made, one opus agent each spawned with the orchestrator notes below. B-1007 claimed by slice/onboarding-2/3. Wave 3 notes: For slice 3: `MedicationForm` lives in the medications route folder and must move to a shared folder the way ProviderForm did; add each step as a static child in `setup/routes.ts` and append it to `SETUP_PAGES` (`setup/layout/setupPages.ts`; `SETUP_STEP_META` already has headings). Also give slice 3 **B-1007** (setup providers rows show no tags: pass live tags as DirectoryResults does, in `setup/providers/route.tsx` only) and claim it. For slice 4: the setup pages render inside the group layout (the tab bar shows). For slice 5 later: `readSetupFacts` + `setupRedirectStep` + `settingsKnown`. Planning note: slice 2 touched 24 files (over 12).
+**Wave 3 started (2026-11-28):** dev sync was a no-op; worktrees onboarding-2-3 and onboarding-2-4 made, one opus agent each spawned with the orchestrator notes below. B-1007 claimed by slice/onboarding-2/3. Slice 4 handed off 748f3b4c8 (quick check green); waits for slice 3 to merge first (plan order). At landing fold in: ui-kit toast `secondAction`, app-shell nudges (entry's Open goes to the new-note page `appUrls.newEntry(g, "note")`, not the PRD's nonexistent `timeline/new/note`). Wave 3 notes: For slice 3: `MedicationForm` lives in the medications route folder and must move to a shared folder the way ProviderForm did; add each step as a static child in `setup/routes.ts` and append it to `SETUP_PAGES` (`setup/layout/setupPages.ts`; `SETUP_STEP_META` already has headings). Also give slice 3 **B-1007** (setup providers rows show no tags: pass live tags as DirectoryResults does, in `setup/providers/route.tsx` only) and claim it. For slice 4: the setup pages render inside the group layout (the tab bar shows). For slice 5 later: `readSetupFacts` + `setupRedirectStep` + `settingsKnown`. Planning note: slice 2 touched 24 files (over 12).
 
 **Backlog:** `done` B-670 when slice 6 merges (B-670 replaces the setup card, which is slice 6's work).
 
