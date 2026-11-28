@@ -39,7 +39,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
   The user's 'household' limit means accounts per address. Normalize email aliases (plus-addressing, dots for Gmail). Overlaps B-333 (link sign-up unlimited unverified accounts) in account-security.
 - Per-user storage quota for document uploads: total bytes per user (and per group) on free, checked before upload, with usage shown in settings (B-1014)
   For B-56 (document uploads, not built yet). Also a per-file size cap. Deletions free their bytes.
-- Pull down to refresh in the installed PWA (no browser reload control there; a tester had to close and reopen the app to recover a stuck screen, B-1046)
+- Pull down to refresh in the installed PWA (no browser reload control there; a tester had to close and reopen the app to recover a stuck screen, B-1046) (B-1047)
 
 ## Big plans
 
