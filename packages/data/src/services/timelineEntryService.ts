@@ -16,6 +16,7 @@ import { SYSTEM_USER, isOwnRowLogger } from "../constants";
 import { dbMayFail, withTransaction } from "../db";
 import {
   canHaveNoteDocument,
+  changeTimes,
   doseDuplicateUploadSchema,
   isDoseDetails,
   isSymptomDetails,
@@ -874,9 +875,10 @@ export const anotherMembersDose = (ctx: ServiceContext, id: string) =>
  *   Two first uploads of one id take turns, so the second is that duplicate.
  * - An id that exists but the actor can't see is refused, without saying
  *   whether it exists.
- * - A medication change is never created or edited here: one that exists
- *   (written by `medicationService` with the medication) is left as it is,
- *   and one that doesn't is refused.
+ * - A system change entry (medication or condition change) is never edited
+ *   here: one that exists (written by its service with the save) is left as
+ *   it is; one that doesn't is refused for members (`create`). One that does
+ *   create here is dated no later than now, as its service dates it (B-295).
  */
 export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
   withTransaction(async (tx) => {
@@ -916,7 +918,12 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
     });
     if (isError(existing)) return existing;
     if (!existing) {
-      const created = await create({ ...ctx, tx }, parsed.data);
+      // A device's copy of a change entry that arrived before its save: dated
+      // no later than now, as the save's own entry would be (B-295).
+      const data = isSystemWrittenKind(kind)
+        ? { ...parsed.data, occurredAt: changeTimes(occurredAt).date }
+        : parsed.data;
+      const created = await create({ ...ctx, tx }, data);
       if (isError(created) || kind !== "dose") return asCreated(created);
       const noted = await recordOwnDoseUpload(ctx, tx, id, groupId, scheduling, occurredAt);
       return noted ?? asCreated(created);

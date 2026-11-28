@@ -682,6 +682,23 @@ export const toChangeTime = (value: string | Date): string | null => {
 };
 
 /**
+ * A change's two times, from the device's `changedAt` (B-295):
+ * - `key`: the device's time, unchanged (`toChangeTime`), for the entry's
+ *   derived id, so a replay and the device's own copy land on one row;
+ * - `date`: the earlier of that and `now`, for the entry's `occurredAt`, so a
+ *   clock running ahead never puts it in the future.
+ * With no `changedAt`, or one that isn't a time, both are now.
+ */
+export type ChangeTimes = { key: string; date: string };
+
+export const changeTimes = (changedAt?: string | Date | null, now: Date = new Date()): ChangeTimes => {
+  const nowTime = now.toISOString();
+  const key = changedAt ? toChangeTime(changedAt) : null;
+  if (!key) return { key: nowTime, date: nowTime };
+  return { key, date: key > nowTime ? nowTime : key };
+};
+
+/**
  * A change entry's id: the version 5 UUID of the medication's id and the
  * time of the change (the medication's `updated_at` as the writer set it).
  * The device and the server derive the same id for the same save, so the
