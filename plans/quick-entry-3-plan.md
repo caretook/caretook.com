@@ -8,14 +8,14 @@
 
 **Landing mode:** run everything through (dispatcher start, 2026-11-28): start every ready slice, land each green wave, ask only real questions.
 
-**Now (2026-11-28):** wave 1 (slices 1, 3, 4) starting; all on opus. Backlog at the boundary: nothing new for this topic.
+**Now (2026-11-28):** wave 1 running: slices 1, 3, 4 worktrees made, agents spawned (opus); watch running. Backlog at the boundary: nothing new for this topic.
 
 | Slice | Wave | State   | Merge into `prd/quick-entry-3` (slice commits) |
 | ----- | ---- | ------- | ---------------------------------------------- |
-| 1     | 1    | planned |                                                |
+| 1     | 1    | started |                                                |
 | 2     | 2    | planned |                                                |
-| 3     | 1    | planned |                                                |
-| 4     | 1    | planned |                                                |
+| 3     | 1    | started |                                                |
+| 4     | 1    | started |                                                |
 | 5     | 2    | planned |                                                |
 
 **Backlog:** claim a slice's item when it starts; `risa backlog done` an item when its last slice merges.
