@@ -10,11 +10,10 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item  | State  | Merge     |
-| ----- | ----- | ------ | --------- |
-| 88    | B-993 | merged | 91d6467b7 |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
-**Wave 24 (2026-11-27): slice 88 merged, CI components green (run 46086204846); sync skipped (no shared files); PR #293 open, Codex review out; no browser checks needed (`--changed`); slice worktree removed**; slice 88 (B-993, opus): link suggestions' `upcomingEvents` limits before dropping ended all-day events. Hot: `apps/web/app/lib/todos/linkSearch`. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Last landed: wave 23 (PR #285). Gotcha: run prettier on the plan after editing the Status table.
+**Idle after wave 24** (idle hand-over; landed through PR #293, 2026-11-27, 18720a3d2, Codex clean on 6b136d3, CI components green run 46086204846; to-test `to-test/2026-11-27-1938-fixes-bug.md`; landed unsynced, dev had 3 unrelated commits). Slice 88 (B-993, opus, 91d6467b7): link suggestions page past ended all-day events. No doc fold (implementation detail; todos.md at budget). **Next session:** ingest, `risa backlog list`; write wave 25 from `risa status-trim fixes-bug --next`: B-992 (symptom edit vs owner's replace race) is waiting, check its notes and running topics' hot files. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table.
 
 ## Wave 1
 
