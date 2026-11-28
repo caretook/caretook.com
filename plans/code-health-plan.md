@@ -4,24 +4,24 @@
 
 ## Status
 
-**Where it stands:** wave 1 (slices 1, 2, 5) running since 2026-11-27; items B-366, B-365, B-361 claimed. Slices 3 and 4 dropped: B-367 moved to Risa. Slice 6 (wave 2) also waits for `simple-mode` to land in `dev`.
+**Where it stands:** wave 1 (slices 1, 2, 5) all merged 2026-11-27; B-366, B-365 done (B-361 waits for slice 6). Next: the wave's CI run (`full`: package.json changes), then sync, PR, Codex, land. Slices 3 and 4 dropped: B-367 moved to Risa. Slice 6 (wave 2) also waits for `simple-mode` to land in `dev`.
 
 **Landing mode:** run everything through (dispatcher start): start every ready slice, land each green wave, ask only real questions through `risa ask`.
 
 **Models:** slices 1, 2, 5 on opus.
 
-**Notes for the fold:** `initClient` kept (read by `packages/api/src/sync.ts`); the pins test also accepts a git dependency at a full commit hash (the root's `risa`).
+**Notes for the fold:** `initClient` kept (read by `packages/api/src/sync.ts`); the pins test also accepts a git dependency at a full commit hash (the root's `risa`). Slice 5 moved 29 modules, not 48: the quick entry parser, due doses, medication display and series edits stay (they need schema values; splitting them is a follow-up). `symptomCatalog` and `connectorRules` stay (read by path from `scripts/`).
 
 **Other PRDs:** hot files narrowed to wave 1's real paths (2026-11-27) so fixes-nit's B-950 (moves `TimelineEntryRow.tsx` and `useOpenTodoCounts` into `components/entry/`) runs alongside; slice 6 rewrites import lines on whatever `dev` holds when it starts.
 
-| Slice | Wave | State                                                           | Merge into `prd/code-health` (slice commits) |
-| ----- | ---- | --------------------------------------------------------------- | -------------------------------------------- |
-| 1     | 1    | merged                                                          | 5455db60d (ac351880f, 8122eed84)             |
-| 2     | 1    | merged                                                          | be48a4aec (cd7d51ba4, af4b147b0)             |
-| 3     | —    | dropped (B-367 moved to Risa)                                   |                                              |
-| 4     | —    | dropped (B-367 moved to Risa)                                   |                                              |
-| 5     | 1    | running (worktree code-health-5, opus agent spawned 2026-11-27) |                                              |
-| 6     | 2    | not started                                                     |                                              |
+| Slice | Wave | State                         | Merge into `prd/code-health` (slice commits) |
+| ----- | ---- | ----------------------------- | -------------------------------------------- |
+| 1     | 1    | merged                        | 5455db60d (ac351880f, 8122eed84)             |
+| 2     | 1    | merged                        | be48a4aec (cd7d51ba4, af4b147b0)             |
+| 3     | —    | dropped (B-367 moved to Risa) |                                              |
+| 4     | —    | dropped (B-367 moved to Risa) |                                              |
+| 5     | 1    | merged                        | 777dd8279 (dcf97ac7b, 2c1d87fe9, 1b0a7c14c)  |
+| 6     | 2    | not started                   |                                              |
 
 **Backlog:** claim a slice's item when it starts; run `risa backlog done` on an item when its last slice merges.
 
