@@ -445,7 +445,7 @@ describe("the migration's backfill and the live triggers", () => {
       const [fn] = await query("SELECT pg_get_functiondef($1::regproc) AS def", [`scrub_${table}`]);
       const def = String(fn?.def);
       const assigned = Object.fromEntries(
-        [...def.matchAll(/NEW\.(\w+) := ([^;]+);/g)].map((m) => [m[1], m[2]]),
+        [...def.matchAll(/NEW\.(\w+) := ([^;]+);/g)].map((m): [string, string] => [m[1]!, m[2]!]),
       );
       const cleared = Object.fromEntries(
         Object.entries(spec.columns as Record<string, ScrubRule>).flatMap(([c, rule]) =>
