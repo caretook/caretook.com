@@ -5,6 +5,7 @@ import { defineTool, READ_ANNOTATIONS } from "../registry";
 import { zonedIso } from "../time";
 import { SEARCH_LIMIT_MAX } from "./readSupport";
 import { asMember, loadGroup } from "./shared";
+import { tagsByRecord, tagsOf, tagsSuffix } from "./tagSupport";
 
 const instant = z.iso.datetime({ offset: true });
 const SEARCH_DEFAULT_LIMIT = 10;
@@ -41,7 +42,7 @@ const input = z.object({
 export const search = defineTool({
   name: "search",
   title: "Search the care group",
-  description: `Search the care group's timeline entries (including the text of notes and events), providers and medications with the app's query language: words each match as a prefix, "quoted phrases" match in order, -word leaves one out. Best match first, at most ${SEARCH_LIMIT_MAX} of each kind; pass nextCursor back for more entries. Todos aren't searched: use list_todos.`,
+  description: `Search the care group's timeline entries (including the text of notes and events), providers and medications with the app's query language: words each match as a prefix, "quoted phrases" match in order, -word leaves one out. Each hit has its tags. Best match first, at most ${SEARCH_LIMIT_MAX} of each kind; pass nextCursor back for more entries. Todos aren't searched: use list_todos.`,
   scope: "read",
   input,
   annotations: READ_ANNOTATIONS,
@@ -60,6 +61,8 @@ export const search = defineTool({
       limit: args.limit ?? SEARCH_DEFAULT_LIMIT,
     });
     if (isError(result)) return result;
+    const byRecord = await tagsByRecord(ctx);
+    if (isError(byRecord)) return byRecord;
 
     const zone = loaded.timeZone;
     const hit = (h: (typeof result.entries)[number]) => ({
@@ -70,15 +73,23 @@ export const search = defineTool({
       snippet: h.snippet,
       occurredAt: h.occurredAt ? zonedIso(iso(h.occurredAt), zone) : null,
       status: h.status,
+      tags: tagsOf(byRecord, h.id),
     });
     const entries = result.entries.map(hit);
     const providers = result.providers.map(hit);
     const medications = result.medications.map(hit);
 
     const lines = [
-      ...medications.map((h) => `- Medication: ${h.title}${h.status ? ` (${h.status})` : ""}`),
-      ...providers.map((h) => `- Provider: ${h.title}${h.status ? ` (${h.status})` : ""}`),
-      ...entries.map((h) => `- ${h.occurredAt} ${h.kind}: ${h.title}${h.snippet ? ` — ${h.snippet}` : ""}`),
+      ...medications.map(
+        (h) => `- Medication: ${h.title}${h.status ? ` (${h.status})` : ""}${tagsSuffix(h.tags)}`,
+      ),
+      ...providers.map(
+        (h) => `- Provider: ${h.title}${h.status ? ` (${h.status})` : ""}${tagsSuffix(h.tags)}`,
+      ),
+      ...entries.map(
+        (h) =>
+          `- ${h.occurredAt} ${h.kind}: ${h.title}${h.snippet ? ` — ${h.snippet}` : ""}${tagsSuffix(h.tags)}`,
+      ),
     ];
     const text = lines.length
       ? [
