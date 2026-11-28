@@ -258,7 +258,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-950 | change | triaged | fixes-nit |  | Move TimelineEntryRow (and useOpenTodoCounts) out of routes/app/groups/timeline into components/entry, so the provider page's LinkedEntries and QuickEntryCard stop importing another route's folder |
 | B-954 | bug | triaged | fixes-tooling |  | Browser checks and prd serve run on a stack whose applied migrations are behind the repo's, so a missing column fails a check far from its cause |
 | B-961 | change | triaged | shared-displays |  | Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down |
-| B-964 | feature | triaged | todo-links-2 |  | View option to split todo trees into individual due todos (trees stay the default) |
+| B-964 | feature | in-progress | todo-links-2 | prd/todo-links-2 | View option to split todo trees into individual due todos (trees stay the default) |
 | B-965 | change | triaged | fixes-perf |  | Group the tiny shared app helper chunks on the first /app load |
 | B-966 | change | triaged | fixes-perf |  | Marketing and sign-in pages load the whole shared icons chunk (~5-10.5 KB gz) since slice 11 grouped lucide icons |
 | B-967 | bug | triaged | fixes-tooling |  | Browser check layout-offline fails at 'offline: a row's edit link opens its edit sheet': the row's tag chips cover the Edit link's centre |
@@ -1558,9 +1558,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-964 · feature · View option to split todo trees into individual due todos (trees stay the default)
 
-- status: triaged
+- status: in-progress
 - prd: todo-links-2
-- owner:
+- owner: prd/todo-links-2
 - commit:
 
 - 2026-11-27 (Robert Bo Davis): From the todo-subtasks-3 approval (2026-11-27): the user wants trees everywhere for now; this toggle comes later, after todo-subtasks-3.
