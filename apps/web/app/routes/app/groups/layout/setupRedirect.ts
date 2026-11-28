@@ -16,9 +16,9 @@ import { onSetupPage } from "~/lib/app-shell/setupNudges";
 //
 // Cheap for everyone else: only an owner who hasn't opened or dismissed the
 // group's setup reads the facts, and only the person who sets it up, with
-// the flow unfinished, waits for settings this device doesn't know yet (a
-// new device's first answer, at most `NETWORK_ANSWER_MS`; offline it gives
-// up at once and opens the page as asked).
+// the flow unfinished, loads the settings (`loadSettings`: the cache at once,
+// else the server's first answer, at most `NETWORK_ANSWER_MS`; offline it
+// gives up at once and opens the page as asked).
 
 /**
  * The groups this page has already sent to setup, per user: when storage
@@ -49,7 +49,10 @@ export const setupRedirect = async ({
 
   const { setup: facts } = await readSetupFacts(db, groupId, userId);
   if (!setsUpGroup({ userId, role, facts }) || firstUnfinishedStep(facts) === null) return null;
-  const settings = settingsKnown(userId) ? cached : await loadSettings(request, userId);
+  // Through the loaders' path, not the bare cache: with no cached copy (storage
+  // cleared or refusing writes while this page knows the settings), it waits
+  // for the server's, which may say the group was opened elsewhere.
+  const settings = await loadSettings(request, userId);
   const step = setupRedirectStep({
     groupId,
     userId,
