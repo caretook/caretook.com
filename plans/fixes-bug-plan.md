@@ -12,7 +12,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 | Slice | Item  | State          | Merge |
 | ----- | ----- | -------------- | ----- |
-| 88    | B-993 | started (opus) | —     |
+| 88    | B-993 | working (opus) | —     |
 
 **Wave 24 running (2026-11-27):** slice 88 (B-993, opus): link suggestions' `upcomingEvents` limits before dropping ended all-day events. Hot: `apps/web/app/lib/todos/linkSearch`. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Last landed: wave 23 (PR #285). Gotcha: run prettier on the plan after editing the Status table.
 
