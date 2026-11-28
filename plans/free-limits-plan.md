@@ -12,14 +12,14 @@
 
 **Models:** slices 1 to 4 on opus (real logic: locking, a migration, RBAC, a form).
 
-**Now (2026-11-28):** wave 3 landed in dev through PR #337 (CI green, integration, run 46164961111 on the synced tip e42816e; Codex clean on 8b16cfb). Slice 3 added `groupLimitService.forUser`/`setForUser`, `admin.users.groupLimit`/`setGroupLimit`, `users.limits` (both roles), `user.setGroupLimit` audit, and client-safe `setGroupLimitZSchema`/`GROUP_LIMIT_MAX` in `db/schema/admin/accountAdmin.ts` for slice 4's form. admin.md took the decisions. A datastore reset was needed locally (the dev DB lacked migration 0050). **Next: wave 4 (slice 4, the limit on the admin account page), in a fresh session; last wave: then mark B-1012 done and `risa rm free-limits`.**
+**Now (2026-11-28):** wave 3 landed in dev through PR #337. Wave 4 started in a fresh session: prd/free-limits was already up to date with dev; slice 4's worktree `free-limits-4` made and its agent spawned on opus; watch running. No new backlog items for free-limits at this boundary. **Next: merge slice 4, CI gate, PR + Codex, land; last wave: then mark B-1012 done and `risa rm free-limits`.**
 
 | Slice | Wave | State   | Merge into `prd/free-limits` (slice commits) |
 | ----- | ---- | ------- | -------------------------------------------- |
 | 1     | 1    | landed  | e66e2fecf (f04414fb5)                        |
 | 2     | 2    | landed  | 5e65f672a (68577a4fd)                        |
 | 3     | 3    | landed  | 194d554f9 (db891e817, 6c6f7341f)             |
-| 4     | 4    | planned | —                                            |
+| 4     | 4    | started | —                                            |
 
 ## Architectural decisions
 
