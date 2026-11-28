@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 
 import { FullLogo } from "~/components/brand";
+import { BAND_ALT, CONTAINER } from "../sections/look";
 import { MARKETING_LINKS, MARKETING_PAGES } from "../site/pages";
 import { layoutContent } from "./content";
 
@@ -12,8 +13,8 @@ const linkClass = "link link-hover text-base-content/80";
 
 export function MarketingFooter() {
   return (
-    <footer className="border-t border-base-300 bg-base-200">
-      <div className="mx-auto grid w-full max-w-5xl gap-8 px-4 py-10 sm:grid-cols-3 sm:px-6">
+    <footer className={`border-t border-base-300 ${BAND_ALT}`}>
+      <div className={`${CONTAINER} grid gap-8 py-10 sm:grid-cols-3`}>
         <div>
           <FullLogo />
           <p className="mt-3 text-base text-base-content/80">{words.blurb}</p>
@@ -49,10 +50,7 @@ export function MarketingFooter() {
         </nav>
       </div>
       {/* The year is set at prerender, so a page built last year can differ on hydration. */}
-      <p
-        className="mx-auto w-full max-w-5xl px-4 pb-8 text-sm text-base-content/70 sm:px-6"
-        suppressHydrationWarning
-      >
+      <p className={`${CONTAINER} pb-8 text-sm text-base-content/70`} suppressHydrationWarning>
         © {new Date().getFullYear()} {words.owner}
       </p>
     </footer>
