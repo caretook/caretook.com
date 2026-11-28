@@ -4,6 +4,7 @@ import type { ProviderType } from "../providers/provider";
 import type { NewItemDraft } from "./quickEntryNewItem";
 import type { ResolvedTime, TimeDirection, TimeSpec } from "../../../domain/assistant/quickEntryTime";
 import type { VocabularyMatch, VocabularyRole } from "../../../domain/assistant/quickEntryVocabulary";
+import type { QuickEntryPageContext } from "../../../domain/assistant/quickEntryPage";
 import type { UnitChoices, UnitFor, VitalFieldSpec, VitalReading, VitalType } from "../timeline/vitals";
 
 import { DEVICE_FUTURE_SKEW_MS, FUTURE_DATE_MESSAGE, localDate } from "../../../domain/core/entryTiming";
@@ -100,6 +101,8 @@ export type QuickEntryContext = {
   members?: readonly QuickEntryMember[];
   /** The group's symptom catalog: a symptom named like one of them takes its spelling. */
   symptoms?: readonly { name: string }[];
+  /** The record whose page the box opened on (`pageContextFor`): what a line that names none is about. */
+  page?: QuickEntryPageContext;
 };
 
 /** A member of the group, as a todo's assignee. */
@@ -1089,6 +1092,8 @@ type PartState = {
   providers: NameMatch<QuickEntryProvider>[];
   /** Those named clearly enough to make the part about them (an event, or a note with a contact verb). */
   naming: NameMatch<QuickEntryProvider>[];
+  /** The provider whose page the box is on, when the words name none: a note or event links it. */
+  pageProvider?: NameMatch<QuickEntryProvider>;
   /** The repeat the line says ("every monday"), as RRULE text: its todo repeats. Its words aren't free. */
   repeatRule?: string;
 };
@@ -1097,6 +1102,11 @@ const roleIdx = (s: PartState, ...roles: VocabularyRole[]) =>
   s.vocab.filter((m) => roles.includes(m.entry.role)).flatMap((m) => m.used);
 const hasRole = (s: Pick<PartState, "vocab">, ...roles: VocabularyRole[]) =>
   s.vocab.some((m) => roles.includes(m.entry.role));
+/** The providers a note links: those named clearly, else the page's. */
+const linkedProviders = (s: PartState) =>
+  s.naming.length ? s.naming : s.pageProvider ? [s.pageProvider] : [];
+/** Whether the part is about a provider: one named clearly, or the page's. */
+const aboutProvider = (s: PartState) => s.naming.length > 0 || !!s.pageProvider;
 
 /**
  * Whether a match names its provider clearly: a clinician's last name or a
@@ -1415,6 +1425,35 @@ const symptomPhrase = (
 
 const PRONOUNS = new Set(["her", "his", "him", "them", "their", "the", "a", "an", "my", "she", "he"]);
 
+/** Words a dose line on a medication's page can have besides its verb and a count: "gave it", "gave her 1". */
+const PAGE_DOSE_WORDS = new Set([...PRONOUNS, "it", "its", "this", "that", "one's"]);
+
+/**
+ * On a medication's page, a dose line that names no medication ("gave 1",
+ * "gave it", "skipped", "refused") is a dose of that medication: its verb
+ * said (or the line forced to a dose), and nothing else left but a count and
+ * pronouns. Null anywhere else, or when other words are left ("gave a bath").
+ */
+const pageDose = (
+  s: PartState,
+  nameIdx: readonly number[],
+  { said, amountUsed }: { said: boolean; amountUsed: readonly number[] },
+) => {
+  const med = s.context.medications.find((m) => m.id === s.context.page?.medicationId);
+  if (!med || !said) return null;
+  let count: { used: number[]; amount: string } | null = null;
+  const used: number[] = [];
+  for (const i of nameIdx) {
+    const w = s.tokens[i]!.w;
+    const value = countValue(w);
+    if (!count && !amountUsed.length && isCount(value))
+      count = { used: [i], amount: countedAmount(w, value, med.dose) };
+    else if (PAGE_DOSE_WORDS.has(w)) used.push(i);
+    else return null;
+  }
+  return { match: { item: med, score: 1, used } as NameMatch<QuickEntryMedication>, count };
+};
+
 const doseReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
   let status: DoseStatus | null = null;
   let negated = false;
@@ -1473,11 +1512,14 @@ const doseReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
   const nameIdx = rest.filter(
     (i) => !amountUsed.includes(i) && !DOSE_FILLER.has(s.tokens[i]!.w) && !otherPhrase.includes(i),
   );
-  const matches = matchMedications(s.context, s.tokens, nameIdx);
+  const named = matchMedications(s.context, s.tokens, nameIdx);
+  const page = named.length ? null : pageDose(s, nameIdx, { said: !!status || forced, amountUsed });
+  const matches = page ? [page.match] : named;
   if (!matches.length) return [];
-  const typed = matches.map((m) =>
-    typedBeside(s, rest, m, { wantCount: !amountUsed.length, verb: !!status || forced }),
-  );
+  const typed = matches.map((m) => ({
+    ...typedBeside(s, rest, m, { wantCount: !amountUsed.length, verb: !!status || forced }),
+    ...(page?.count ? { count: page.count } : {}),
+  }));
   const typedUsed = (rank: number) => [...(typed[rank]!.count?.used ?? []), ...typed[rank]!.strength];
   // A count or strength beside a brand word in the directions names the medication; a carried negation doesn't.
   const sureName =
@@ -1810,6 +1852,8 @@ const eventReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
   const naming = s.naming.length > 0;
   const ahead = !!s.time.spec && saysFuture(s.time.spec);
   if (!keyword && !ahead && !naming && !forced) return [];
+  // On a provider's page an event naming none is with that one, ranked as if named.
+  const withProvider = aboutProvider(s);
 
   let rest = s.free.filter((i) => !keywordIdx.includes(i) && !verbIdx.includes(i));
 
@@ -1825,7 +1869,7 @@ const eventReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
       placeIdx.push(rest[k]!);
     if (placeIdx.length) rest = rest.filter((i) => i !== rest[atPos] && !placeIdx.includes(i));
   }
-  const providers = s.providers;
+  const providers = s.providers.length ? s.providers : linkedProviders(s);
   const providerUsed = new Set(providers.flatMap((p) => p.used));
   const placeProvider = providers.find((p) => p.used.some((i) => placeIdx.includes(i)));
   const placeText = placeIdx.length ? rawOf(s.tokens, placeIdx) : null;
@@ -1867,7 +1911,7 @@ const eventReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
     ? 1
     : keyword
       ? 0.9
-      : naming
+      : withProvider
         ? noteFirst
           ? 0.5
           : visit
@@ -1967,7 +2011,7 @@ const ASKED_FOR_CONFIDENCE = 0.3;
 const noteReading = (s: PartState, confidence: number, { now = false } = {}): QuickEntryReading => {
   const at = now ? s.context.now : s.time.past.at;
   // The providers it names clearly are mentioned in it, and linked.
-  const providerIds = [...new Set(s.naming.map((m) => m.item.id))];
+  const providerIds = [...new Set(linkedProviders(s).map((m) => m.item.id))];
   return reading(
     "note",
     {
@@ -2370,6 +2414,10 @@ const parsePart = (
   };
   const stateOf = (spec: TimeSpec | null, { free, vocab }: ReturnType<typeof wordsLeft>): PartState => {
     const providers = matchProviders(context, tokens, free);
+    // On a provider's page, a note or event naming no provider is about that one.
+    const onPage = providers.length
+      ? undefined
+      : context.providers.find((p) => p.id === context.page?.providerId);
     const verb = vocab.some((m) => ["visitVerb", "contactVerb", "noteIncident"].includes(m.entry.role));
     return {
       text: body,
@@ -2382,6 +2430,7 @@ const parsePart = (
       vocab,
       providers,
       naming: providers.filter((m) => namesClearly(m, tokens, verb)),
+      ...(onPage ? { pageProvider: { item: onPage, score: 1, used: [] } } : {}),
     };
   };
   const time = partTime(timeWords);
@@ -2421,7 +2470,7 @@ const parsePart = (
   const s = forced === "todo" && repeated ? repeated : plain;
   // A note incident ("911", "the ER"), or a contact verb with a provider
   // ("called Dr. Lee"), makes a note first.
-  const noteFirst = hasRole(s, "noteIncident") || (hasRole(s, "contactVerb") && s.naming.length > 0);
+  const noteFirst = hasRole(s, "noteIncident") || (hasRole(s, "contactVerb") && aboutProvider(s));
 
   // A note can't be ahead: a line that says a time ahead offers a todo where
   // its note would be, and the note (dated now, the whole line) after it.

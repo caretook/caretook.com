@@ -2,7 +2,7 @@ import type { QuickEntryReading, UnitChoices, DuePass } from "@caretook/data/sch
 import type { QuickEntryCard, SymptomChoice } from "./quickEntryCards";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { useLocation, useNavigate, useParams } from "react-router";
 import { parseQuickEntry, symptomKey } from "@caretook/data/schema";
 import { usePassLog } from "~/components/medications";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -36,10 +36,10 @@ import {
   savedText,
   withSymptomGates,
 } from "./quickEntryCards";
-import { GO_TO_AHEAD } from "./quickEntryCopy";
+import { GO_TO_AHEAD, READER_REFUSAL } from "./quickEntryCopy";
 import { useQuickEntryData } from "./useQuickEntryData";
 import { useQuickEntryPasses } from "./useQuickEntryPasses";
-import { readGoTo } from "@caretook/data/domain";
+import { pageContextFor, readGoTo } from "@caretook/data/domain";
 import { actionPreview } from "@caretook/data/schema";
 
 /** Where quick entry's Undo is shown (`PassUndoStatus`'s `place`): in the box, under what was saved. */
@@ -77,6 +77,9 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
   const [announcement, setAnnouncement] = useState("");
 
   const timeZone = group.recipient?.timeZone ?? deviceZone();
+  // The provider's or medication's page the box is on (none on the timeline): what a line naming none is about.
+  const params = useParams();
+  const page = useMemo(() => pageContextFor(params), [params]);
   const parts = useMemo(
     () =>
       partsForRole(
@@ -89,10 +92,11 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
           passes,
           members,
           symptoms,
+          page,
         }).parts,
         group.canWrite,
       ),
-    [text, timeZone, units, medications, providers, passes, members, symptoms, group.canWrite],
+    [text, timeZone, units, medications, providers, passes, members, symptoms, page, group.canWrite],
   );
 
   // A whole line asking for a day is a Go to: it has no save cards, so nothing can reach the runner.
@@ -124,20 +128,25 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
   }, [units, medications, providers, passes, members, group.userId, timeZone]);
   const titleOf = useCallback((r: QuickEntryReading) => preview(r).title, [preview]);
 
+  // A reader (a viewer, an Easy viewer) gets the box for what writes nothing: their line shows no cards.
+  const reader = !group.canLog;
   const cards = useMemo(
     () =>
-      isGoTo
+      isGoTo || reader
         ? []
         : markDraft(
             withSymptomGates(buildCards(parts, { chosen, removed }, titleOf), symptoms, symptomChoices),
           ),
-    [isGoTo, parts, chosen, removed, titleOf, symptoms, symptomChoices],
+    [isGoTo, reader, parts, chosen, removed, titleOf, symptoms, symptomChoices],
   );
+
+  /** Why a reader's line has no Save. */
+  const refusal = reader && !isGoTo && parts.length > 0 ? READER_REFUSAL : "";
 
   // Announce the cards once typing settles, not on every keystroke.
   const spoken = goTo
     ? `Go to ${jumpDayText(goTo.day)}${goTo.ahead ? `. ${GO_TO_AHEAD}` : ""}`
-    : cardsAnnouncement(cards, titleOf);
+    : refusal || cardsAnnouncement(cards, titleOf);
   useEffect(() => {
     const timer = setTimeout(() => setAnnouncement(spoken), ANNOUNCE_DELAY_MS);
     return () => clearTimeout(timer);
@@ -312,6 +321,7 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
     draftLine,
     errors,
     status,
+    refusal,
     busy,
     announcement,
     canSave: canSaveCards(cards) && !busy,
@@ -324,7 +334,7 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
     medications,
     providers,
     passes,
-    dueNow,
+    dueNow: reader ? [] : dueNow,
     givePass,
     passError: passLog.error,
     passBusy: passLog.busy,

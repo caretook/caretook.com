@@ -38,3 +38,6 @@ export const quickEntryRules = (examples: readonly string[]) =>
 
 /** A Go to line for a day after today. */
 export const GO_TO_AHEAD = "The timeline ends today.";
+
+/** What a reader's line says instead of cards: they can view the group but not add to it. */
+export const READER_REFUSAL = "You can view this care group, so nothing you type here is saved.";

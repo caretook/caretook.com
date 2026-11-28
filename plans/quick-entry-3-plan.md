@@ -4,15 +4,21 @@
 
 ## Status
 
-Not started.
+**From the user:** none yet in this topic.
 
-| Slice | Wave | State   | Merge into `prd/quick-entry-3` (slice commits) |
-| ----- | ---- | ------- | ---------------------------------------------- |
-| 1     | 1    | planned |                                                |
-| 2     | 2    | planned |                                                |
-| 3     | 1    | planned |                                                |
-| 4     | 1    | planned |                                                |
-| 5     | 2    | planned |                                                |
+**Landing mode:** run everything through (dispatcher start, 2026-11-28): start every ready slice, land each green wave, ask only real questions.
+
+**Now (2026-11-28):** wave 1 (1, 3, 4 + fixes) green on the synced tip 0578f2ae6 (run 46177579925); docs folded (assistant, app-shell); browser checks: app-shell, sign-in, first-sync pass; session-end fails 3/3 on a missing symptom row, not ours (no green anywhere since 2026-11-27; filed B-1054, backlog session agrees). PR #344 open, Codex clean on 8a0c7ab (two findings: B-1056 filed; the sheet-not-closing-after-Go one is fixed by slice 5). Land refused (dev touched domain.test.ts): re-synced aa76a65e, components CI rerun out; then `risa pr`, land wave 1, merge 2 then 5, rotate (past soft limit). Slices 2 (190bb66e4) and 5 (3af4ddbfd) handed off, held unmerged. Wave 1's fixes: slice 3 renamed its type `QuickEntryPageContext`; slice 1 kept header `px-4` up to `lg` for headerFit at 640.
+
+**Notes from hand-offs:** slice 1 added a reader refusal in the box (`!canLog` → no cards, `READER_REFUSAL` message), since `partsForRole` didn't refuse a reader's vital; fold into assistant.md at landing. Check `headerFit.browser.test.tsx` at the gate (new header button, ~36px). Slice 4's page keys and suggested URL map are in its hand-off for slice 5 (planner, medicationSchedule, profileAllergies, groupSettings for members/tags, account settings, periods). Slice 3: `useQuickEntrySuggestions` gets no page context (left alone). Backlog at the boundary: nothing new for this topic.
+
+| Slice | Wave | State      | Merge into `prd/quick-entry-3` (slice commits) |
+| ----- | ---- | ---------- | ---------------------------------------------- |
+| 1     | 1    | merged     | 918598d63 (ac658e785)                          |
+| 2     | 2    | handed off |                                                |
+| 3     | 1    | merged     | 5dd34f0d8 (d81c8c54e, 6e4c09790, 19c9d74ae)    |
+| 4     | 1    | merged     | 4a31039bc (f9cd16008)                          |
+| 5     | 2    | handed off |                                                |
 
 **Backlog:** claim a slice's item when it starts; `risa backlog done` an item when its last slice merges.
 
