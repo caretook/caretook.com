@@ -263,7 +263,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1009 | bug | staging | fixes-bug | prd/fixes-bug | A medication opened from the setup medications step goes Back to the Medications list, not the setup step: medicationOrigin's labelFor doesn't know the setup route |
 | B-1010 | bug | staging | fixes-bug | prd/fixes-bug | The setup redirect can send a creator back to setup on a new device: settings that arrive during readSetupFacts are known but the decision uses the defaults captured before the await |
 | B-1011 | change | triaged | account-security-2 |  | Rate-limit audit: list every public, signed-in, sync, connector and email-sending call with its… |
-| B-1012 | feature | triaged | free-limits |  | Free plan: cap how many care groups one user can create (owner of), with a clear message at the… |
+| B-1012 | feature | in-progress | free-limits | prd/free-limits | Free plan: cap how many care groups one user can create (owner of), with a clear message at the… |
 | B-1013 | feature | triaged | free-limits-2 |  | Free plan: limit account creation per address, so one person can't make many free accounts to get… |
 | B-1014 | feature | triaged | documents |  | Per-user storage quota for document uploads: total bytes per user (and per group) on free, checked… |
 | B-1015 | change | landed | fixes-ui | prd/fixes-ui | Timeline entries: merge TimelineEntryRow and TimelineEntryCard into one shared entry display with a… |
@@ -273,8 +273,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1019 | bug | triaged | account-security-2 |  | Staff Change role and Remove read the member's role before the membership lock, so a racing owner change makes the staffGroupChange email skip a demoted owner and name the wrong previous role |
 | B-1020 | bug | triaged | account-security-2 |  | Membership locks use two orders (lockForChange by id, lockGroupMembers by createdAt), so a role change racing an emergency-contact save can deadlock and abort one |
 | B-1021 | bug | landed | fixes-ui | prd/fixes-ui | The add-tag icon button doesn't line up vertically with the tag chips beside it |
-| B-1022 | change | in-progress | fixes-ui | prd/fixes-ui | Todo rows get a ⋯ menu (Edit, Delete) right of the add-subtask button; the todo page moves Edit into its ⋯ menu |
-| B-1023 | bug | in-progress | fixes-ui | prd/fixes-ui | When the add-tag button wraps to its own line in a narrow row it starts 6px in from the left |
+| B-1022 | change | ready | fixes-ui | prd/fixes-ui | Todo rows get a ⋯ menu (Edit, Delete) right of the add-subtask button; the todo page moves Edit into its ⋯ menu |
+| B-1023 | bug | ready | fixes-ui | prd/fixes-ui | When the add-tag button wraps to its own line in a narrow row it starts 6px in from the left |
 | B-1024 | feature | triaged | care-booklet |  | Printed todo sheet, hand-fillable (check off, write in new todos), as a care booklet page |
 | B-1025 | feature | triaged | care-booklet |  | Printed schedule sheet (upcoming Events and med times), as a care booklet page |
 | B-1026 | feature | triaged | care-booklet-2 |  | Connector: a member's AI reads a photo of a hand-filled printed todo sheet and applies it (ticks done, adds new todos), adding only what isn't already there |
@@ -1568,9 +1568,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1012 · feature · Free plan: cap how many care groups one user can create (owner of), with a clear message at the…
 
-- status: triaged
+- status: in-progress
 - prd: free-limits
-- owner:
+- owner: prd/free-limits
 - commit:
 
 - 2026-11-28 (Robert Bo Davis): From the inbox: Free plan: cap how many care groups one user can create (owner of), with a clear message at the cap; staff can lift it per user / Part of 'reasonable limits on free'. Count groups the user created or owns, not ones they were invited to. Pick a default (e.g. 3) in the plan.
@@ -1663,20 +1663,20 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1022 · change · Todo rows get a ⋯ menu (Edit, Delete) right of the add-subtask button; the todo page moves Edit into its ⋯ menu
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: fb20719d5
 
 - 2026-11-28 (Robert Bo Davis): From the user 2026-11-28: 'The todo items in the planner todos tab should have a hamburger menu to the right of the add subtask icon button that allows direct edit and delete. Edit should move into the hamburger on the todo display page.' Reuse the existing ⋯ menu look (components/ui/Menu, as EntryMenu on timeline rows and TodoActions on the todo page) rather than a new hamburger icon: one menu everywhere. Row Edit opens the same edit sheet; row Delete uses TodoActions's delete (the confirm naming subtasks, skip-or-stop for a repeating todo), with Reopen in the row menu too for a done todo. Writers only. TodoRow is shared, so the menu shows wherever todo rows appear (planner Todos tab, Todos page). Todo page: TodoHeader actions become ⋯ only (Edit, Reopen, Delete).
 - 2026-11-28 (Robert Bo Davis): From the user 2026-11-28: 'shared components that go back to the right place for all of that if possible'. One shared todo menu (and one edit sheet and delete flow) used by rows and the todo page alike, each returning to where it was opened: Edit from a row closes back to that row's list (planner Todos tab or Todos page, scroll kept), not the todo page; Delete from a row stays on the list (the row leaves); from the todo page, Edit comes back to the page and Delete goes back to the list the page was opened from.
 
 ### B-1023 · bug · When the add-tag button wraps to its own line in a narrow row it starts 6px in from the left
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: fb20719d5
 
 - 2026-11-28 (prd/fixes-ui): Found by slice 113 (B-1021): the button is the tags list's last item with ml-1.5; in narrow columns (medication list row ~238px, provider page header ~246px) two chips plus +N fill the line, so the button wraps and starts 6px in. Fix in components/tags/ (e.g. a gap instead of the margin) or the callers' columns.
 
