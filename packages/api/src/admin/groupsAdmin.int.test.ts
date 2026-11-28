@@ -245,10 +245,8 @@ describe("admin.groups reads", () => {
     );
     expect(keysOf(res).filter((key) => contentColumns.has(key))).toEqual([]);
 
-    // Opening it records a view (in the background).
-    await expect
-      .poll(async () => (await auditFor(group.id, "group.view")).map((e) => e.actor?.id))
-      .toEqual([supportUser.id]);
+    // Opening it records a view before it answers.
+    expect((await auditFor(group.id, "group.view")).map((e) => e.actor?.id)).toEqual([supportUser.id]);
   });
 
   it("answers a 404 for an unknown group", async () => {

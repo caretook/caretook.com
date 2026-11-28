@@ -3,8 +3,7 @@ import type { AuditAction, AuditChanges, AuditFilter } from "../db/schema";
 import type { ServiceContext } from "./types";
 
 import { auditFilterZSchema, isAuditAction, STAFF_REASON_MAX } from "../db/schema";
-import { isError, newError } from "../errors";
-import { logError } from "../logging";
+import { newError } from "../errors";
 import { adminAuditLogModel } from "../models";
 import { staffRefusal } from "./staffAccess";
 
@@ -12,8 +11,12 @@ export const schemaName = adminAuditLogModel.schemaName;
 
 // The staff audit log (admin PRD). `record` runs inside the action's own
 // transaction, so a change and its entry commit together and a refused or
-// failed action leaves none. Entries are never updated or deleted: there's
-// no function for it here, and PERMISSIONS refuses it to everyone.
+// failed action leaves none. Page views (`user.view`, `group.view`) and
+// account searches (`user.search`) call it awaited with no transaction, so
+// the entry exists before staff see the answer, and a failed write fails the
+// read. Entries are never updated or deleted: there's no function for it
+// here, PERMISSIONS refuses it to everyone, and the roles SQL revokes UPDATE
+// and DELETE on the table from the app role.
 
 export type AuditEntryInput = {
   /** The staff member, or null for the system (the `admin:grant` command). */
@@ -40,19 +43,6 @@ export const record = async (tx: Tx | undefined, entry: AuditEntryInput) => {
     reason,
     changes: entry.changes ?? {},
   });
-};
-
-/**
- * Record an entry without holding up the caller (page views: `user.view`,
- * `group.view`). A failure is logged, never thrown.
- */
-export const recordSoon = (entry: AuditEntryInput) => {
-  void record(undefined, entry).then(
-    (res) => {
-      if (isError(res)) logError("adminAudit: record failed", res, { actorId: entry.actorId ?? undefined });
-    },
-    (error: unknown) => logError("adminAudit: record failed", error, { actorId: entry.actorId ?? undefined }),
-  );
 };
 
 /** Staff (`audit.read`): one page of the entries matching `filter`, newest first, and the total. */

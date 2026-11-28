@@ -47,7 +47,8 @@ import { auditActorId, staffRefusal } from "./staffAccess";
 // data: a group appears by its name and its recipient's name, never more.
 // Mail shows the template, status and times, never its data or body.
 // Every help action needs `users.help`, a reason, and records an audit
-// entry in its own transaction; opening an account records `user.view`.
+// entry in its own transaction; opening an account records `user.view` and a
+// search records `user.search` with its text.
 // Better Auth's tables are the system's (PERMISSIONS): this service reads
 // and writes them directly, after the capability check.
 //
@@ -99,6 +100,7 @@ const accountRow = async (userId: string, tx?: Tx) => {
 /**
  * Staff (`users.read`): accounts whose name or email contains `q` (all of
  * them without one), newest first, a page at a time, with how many match.
+ * A search with `q` records `user.search` with its text (awaited).
  */
 export const search = async (ctx: ServiceContext, input: AccountSearchInput) => {
   const refused = staffRefusal(ctx, "users.read");
@@ -127,6 +129,16 @@ export const search = async (ctx: ServiceContext, input: AccountSearchInput) => 
     "accountAdmin:query",
   );
   if (isError(total)) return total;
+  // A search with text is audited, awaited, before staff see the accounts it found.
+  const actorId = auditActorId(ctx);
+  if (q && actorId) {
+    const audited = await adminAuditService.record(undefined, {
+      actorId,
+      action: "user.search",
+      changes: { query: [q, q] },
+    });
+    if (isError(audited)) return audited;
+  }
   return { count: total[0]?.count ?? 0, page, pageSize: ACCOUNT_PAGE_SIZE, data: rows };
 };
 
@@ -135,7 +147,8 @@ const disabler = alias(userSchema, "account_admin_disabler");
 
 /**
  * Staff (`users.read`): everything an account's page shows, and the
- * `user.view` audit entry (in the background). `accountAdmin:notFound` for
+ * `user.view` audit entry (awaited, so it exists before the answer; a failed
+ * write fails the read). `accountAdmin:notFound` for
  * an unknown id.
  */
 export const get = async (ctx: ServiceContext, userId: string) => {
@@ -211,7 +224,14 @@ export const get = async (ctx: ServiceContext, userId: string) => {
   const [password, sessions, groups, mail, disabledBy] = read;
 
   const actorId = auditActorId(ctx);
-  if (actorId) adminAuditService.recordSoon({ actorId, action: "user.view", targetUserId: userId });
+  if (actorId) {
+    const audited = await adminAuditService.record(undefined, {
+      actorId,
+      action: "user.view",
+      targetUserId: userId,
+    });
+    if (isError(audited)) return audited;
+  }
 
   return {
     account: { ...account, disabledBy: disabledBy[0] ?? null },
