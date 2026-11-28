@@ -12,13 +12,13 @@
 
 **Models:** slices 1 to 4 on opus (real logic: locking, a migration, RBAC, a form).
 
-**Now (2026-11-28):** wave 2 landed in dev through PR #335 (CI green, full, run 46162204873; Codex clean on 58c933b; landed on an unsynced tip, dev's 2 commits shared no file). Slice 2 added `user.group_limit` (migration 0050, system only) and B-1036 (the setting read before `create`'s transaction; `refusal(tx, userId, fallback)`). care-groups.md took the override. free-limits-2 removed. **Next: wave 3 (slice 3, staff read and change the limit), in a fresh session.** B-1012 is the umbrella item: done only after slice 4.
+**Now (2026-11-28):** wave 3 running: slice 3 started (worktree free-limits-3, agent on opus, spawned after a takeover). Waves 1 and 2 landed (wave 2 via PR #335; history in plans/free-limits-history.md). B-1012 is the umbrella item: done only after slice 4.
 
 | Slice | Wave | State   | Merge into `prd/free-limits` (slice commits) |
 | ----- | ---- | ------- | -------------------------------------------- |
 | 1     | 1    | landed  | e66e2fecf (f04414fb5)                        |
 | 2     | 2    | landed  | 5e65f672a (68577a4fd)                        |
-| 3     | 3    | planned | —                                            |
+| 3     | 3    | running | —                                            |
 | 4     | 4    | planned | —                                            |
 
 ## Architectural decisions
