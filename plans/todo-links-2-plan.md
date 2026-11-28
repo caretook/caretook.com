@@ -10,12 +10,12 @@
 
 **Wave 1 landed 2026-11-27** in dev as 3ca78f4d7 through PR #294 (tier components, green run 46088122493 on cd47f4b32; landed on an unsynced tip, dev's one newer commit shared no file). Slice 1 on opus. One CI miss was slice 1's (`todos.browser.test.tsx` expected one menu section; fixed e3a89259a). Codex: one P2 (a split row at the depth limit offers Add subtask that fails), filed as B-994 (claimed) and folded into slice 2; thread replied and resolved. `docs/domain/todos.md` _Lists_ folded (view option), trimmed under dev's size. Browser: `--changed` needs none; `--suite` not run (user asks first). Report filed.
 
-**Wave 2 (session 2), in flight:** backlog ingest found nothing new; `risa sync` skipped (dev's changes share no file; none in slice 2's files). Slice 2's worktree `.loops/todo-links-2-2` made, agent on opus spawned 2026-11-27, watch running. Next: merge, CI (components), sync, PR, Codex, land; then mark B-964 and B-994 done and `risa rm todo-links-2`.
+**Wave 2 (session 2), in flight:** backlog ingest found nothing new; `risa sync` skipped (dev's changes share no file; none in slice 2's files). Slice 2's worktree `.loops/todo-links-2-2` made, agent on opus; handed off c0ec9797b (slice check green), merged as 39dbadcda (13 files, over the 12 warning). Agent notes: the Todos split view's B-994 fix is tested only via Upcoming's component test and the `ancestorChain` unit test; the Subtasks section shows on Upcoming under Show: Events too. Next: CI (components), sync, PR, Codex, land; then mark B-964 and B-994 done and `risa rm todo-links-2`.
 
-| Slice | Wave | Model | State   | Merge into `prd/todo-links-2` (slice commits)   |
-| ----- | ---- | ----- | ------- | ----------------------------------------------- |
-| 1     | 1    | opus  | landed  | 7d93c761d, fix 6158c3121 (33290c34f, e3a89259a) |
-| 2     | 2    | opus  | working |                                                 |
+| Slice | Wave | Model | State  | Merge into `prd/todo-links-2` (slice commits)   |
+| ----- | ---- | ----- | ------ | ----------------------------------------------- |
+| 1     | 1    | opus  | landed | 7d93c761d, fix 6158c3121 (33290c34f, e3a89259a) |
+| 2     | 2    | opus  | merged | 39dbadcda (c0ec9797b)                           |
 
 ## Architectural decisions
 
