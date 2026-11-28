@@ -8,12 +8,12 @@
 
 **Landing mode:** run everything through (started run-through by the dispatcher, 2026-11-28).
 
-**Where it stands:** wave 1 running since 2026-11-28: slices 1 and 2 worktrees made, agents spawned (both opus); watch running.
+**Where it stands:** wave 1 merged 2026-11-28 (slices 1, 2; both opus); wave gate `risa ci run integration` out. Slice worktrees kept until green. Follow-up idea from slice 2: the three email templates still each write out the role labels ("an owner"…).
 
 | Slice | Wave | State   | Merge into `prd/code-health-4` (slice commits) |
 | ----- | ---- | ------- | ---------------------------------------------- |
-| 1     | 1    | running |                                                |
-| 2     | 1    | handed off (0a14230d1), reviewed; merges after 1 |
+| 1     | 1    | merged  | df3ba0af8 (c4c7c0275)                          |
+| 2     | 1    | merged  | 7dadcc354 (0a14230d1)                          |
 | 3     | 2    | planned |                                                |
 | 4     | 2    | planned |                                                |
 | 5     | 2    | planned |                                                |
