@@ -134,7 +134,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `tags-4` | — | `tags-3` | — | — |
 | `todo-links-2` | done | `todo-links` | `apps/web/app/lib/todos/todoView`, `apps/web/app/lib/todos/todoTreeView`, `apps/web/app/lib/todos/todoSheets`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/planner/` | — |
 | `free-limits-2` | — | `account-security`, `free-limits` | — | — |
-| `quick-entry-3` | — | — | `apps/web/app/routes/app/layout/`, `apps/web/app/routes/app/groups/layout/`, `apps/web/app/components/quick-entry/`, `apps/web/app/lib/assistant/runCommand`, `packages/data/src/domain/assistant/`, `packages/data/src/db/schema/assistant/quickEntry.ts` | — |
+| `quick-entry-3` | done | — | `apps/web/app/routes/app/layout/`, `apps/web/app/routes/app/groups/layout/`, `apps/web/app/components/quick-entry/`, `apps/web/app/lib/assistant/runCommand`, `packages/data/src/domain/assistant/`, `packages/data/src/db/schema/assistant/quickEntry.ts` | — |
 | `quick-entry-find` | — | `quick-entry-3` | — | — |
 | `undo-first` | — | `quick-entry-find` | — | — |
 | `quick-entry-4` | — | `undo-first` | — | — |
@@ -286,9 +286,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1053 | bug | triaged | data-rights |  | A note upload that overlaps a delete can append a note_update after the scrub cleared the document, so the deleted note keeps new content |
 | B-1054 | bug | ready | fixes-tooling | prd/fixes-tooling | Browser check session-end fails at line 120: no symptom row in the caretaker's first timeline page, so main a[href*=kind=symptom] is never visible (assumes seed data in view) |
 | B-1055 | change | triaged | code-health-3 |  | The device side of the one-helper cleanup and the services' one invalid: refuse, invalid and canWrite repeated in the *.sync.ts writers, FormData reads that skip core/form.ts formString, the identical shouldRevalidate in the group routes, the 24 local invalid definitions in services, and todoService's upsert onto createIfAbsent (empties code-health-2's upsert guard's todoService exception) |
-| B-1056 | bug | triaged | quick-entry-3 |  | Quick entry on a provider's page: a visit line naming no provider ("saw her yesterday") reads as a note, not the event "saw Dr. Lee yesterday" gives; the fallback event card has no providerIds |
+| B-1056 | bug | triaged | fixes-bug |  | Quick entry on a provider's page: a visit line naming no provider ("saw her yesterday") reads as a note, not the event "saw Dr. Lee yesterday" gives; the fallback event card has no providerIds |
 | B-1057 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/settings/tagsSettings.browser.test.tsx: the Tags page an owner merges Urgent i… |
-| B-1058 | bug | triaged | quick-entry-3 |  | Quick entry shortcut: / and Cmd/Ctrl+K open the sheet while a native <dialog> confirm is open (the layer guard matches only [role=dialog], not dialog elements) |
+| B-1058 | bug | triaged | fixes-bug |  | Quick entry shortcut: / and Cmd/Ctrl+K open the sheet while a native <dialog> confirm is open (the layer guard matches only [role=dialog], not dialog elements) |
 | B-1059 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/layout/frame.browser.test.tsx: the group menu and the last group names the current gr… |
 
 ## Items
@@ -1721,11 +1721,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-1056 · bug · Quick entry on a provider's page: a visit line naming no provider ("saw her yesterday") reads as a note, not the event "saw Dr. Lee yesterday" gives; the fallback event card has no providerIds
 
 - status: triaged
-- prd: quick-entry-3
+- prd: fixes-bug
 - owner:
 - commit:
 
 - 2026-11-28 (prd/quick-entry-3): Codex on PR #344 (thread PRRT_kwDOVx-WLM69HDyw, quickEntry.ts:1856): the event eligibility check runs before aboutProvider, so the page provider doesn't count as named. Care needed: slice 3 kept the page provider out of naming on purpose (else every line on a provider's page, e.g. 'refill sent', becomes an event); fix only the visit-verb case and give the fallback event the page provider.
+- 2026-11-28 (prd/quick-entry-3): quick-entry-3 finished (PR #344, #345); follow-up moved to fixes-bug for the user's review
 
 ### B-1057 · bug · CI flake: apps/web/app/routes/app/groups/settings/tagsSettings.browser.test.tsx: the Tags page an owner merges Urgent i…
 
@@ -1741,11 +1742,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-1058 · bug · Quick entry shortcut: / and Cmd/Ctrl+K open the sheet while a native <dialog> confirm is open (the layer guard matches only [role=dialog], not dialog elements)
 
 - status: triaged
-- prd: quick-entry-3
+- prd: fixes-bug
 - owner:
 - commit:
 
 - 2026-11-28 (prd/quick-entry-3): Codex P2 on PR #345 (thread PRRT_kwDOVx-WLM69HOQZ): add 'dialog' to inOtherLayer's selector in useQuickEntryShortcut.ts, with a row in quickEntryShortcut.browser.test.tsx
+- 2026-11-28 (prd/quick-entry-3): Codex P2 on PR #345; quick-entry-3 finished, so moved to fixes-bug
 
 ### B-1059 · bug · CI flake: apps/web/app/routes/app/layout/frame.browser.test.tsx: the group menu and the last group names the current gr…
 
