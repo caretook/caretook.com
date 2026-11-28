@@ -13,3 +13,4 @@ apps/web/app/routes/app/groups/profile/emergency.browser.test.tsx	the owner's sh
 apps/web/app/routes/app/groups/timeline/timelineTags.browser.test.tsx	quick tags on rows a writer adds, removes and adds new tags on a note, a symptom and a dose from the row; nothing opens; ⋯ has no Tags	B-921
 apps/web/app/components/ui/sheetExit.browser.test.tsx	closed by navigating with reduced motion Back completes in the next frame	B-949
 apps/web/app/components/todos/linkToBox.browser.test.tsx	the Link to box leaves out what's linked, and a pick says what it is and clears the text	B-1004
+apps/web/app/components/todos/linkToBox.browser.test.tsx	the empty Link to box's suggestions (B-947) what's linked is left out, and a pick closes the list until an arrow key or typing opens it	B-1005
