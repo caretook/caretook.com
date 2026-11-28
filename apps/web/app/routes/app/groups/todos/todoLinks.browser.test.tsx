@@ -202,7 +202,8 @@ describe("the todo sheet's links", () => {
     await open(`${LIST}/new?eventId=${OLD.id}&providerId=${GONE.id}`);
     const dialog = page.getByRole("dialog", { name: "Add a todo" });
     await expect.element(chips(dialog).getByText(/^Old visit · /)).toBeInTheDocument();
-    await expect.element(chips(dialog).getByText("Dr. Gone (removed)")).toBeInTheDocument();
+    await expect.element(chips(dialog).getByText("Removed item", { exact: true })).toBeInTheDocument();
+    expect(chips(dialog).element().textContent).not.toContain("Dr. Gone");
     await userEvent.fill(dialog.getByRole("textbox", { name: "Todo" }), "Follow up");
     await userEvent.click(dialog.getByRole("button", { name: "Add todo" }));
     await expect.element(dialog.getByText("Choose a provider in this care group")).toBeInTheDocument();
@@ -235,7 +236,7 @@ describe("the edit sheet's links", () => {
   test("shows its links, removed ones greyed; adds a note and removes an event on Save, uploading no `event_id`", async () => {
     const device = await edit();
     const dialog = page.getByRole("dialog", { name: "Edit todo" });
-    await expect.element(chips(dialog).getByText("Dr. Gone (removed)")).toBeInTheDocument();
+    await expect.element(chips(dialog).getByText("Removed item", { exact: true })).toBeInTheDocument();
     // A stopped medication stays on its chip.
     await expect.element(chips(dialog).getByText("Amoxicillin", { exact: true })).toBeInTheDocument();
     await expect.element(chips(dialog).getByText(/^Dental cleaning · .* \(cancelled\)$/)).toBeInTheDocument();

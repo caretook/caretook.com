@@ -21,6 +21,7 @@ import { liveDotLabel } from "~/lib/live-notes/liveNow";
 import { withMedication } from "~/lib/medications/medicationEntries";
 import { getSync, useLiveQuery } from "~/lib/sync";
 import { useLiveDocuments } from "~/lib/live-notes/editors.sync";
+import { passLabel } from "@caretook/data/schema";
 import { useSchedulePasses } from "~/lib/medications/medicationPasses.sync";
 import { useTimelineMedications } from "~/lib/medications/medicationTimeline.sync";
 import { cachedRichText, toPreviews, windowDocumentsQuery } from "~/lib/live-notes/notes.sync";
@@ -382,7 +383,10 @@ export function useTimelineData({
       return row ? cachedRichText(row) : null;
     },
     providersOf: (id) => providersByEntry.get(id),
-    passNameOf: (id) => (id ? (passes.find((p) => p.id === id)?.name ?? null) : null),
+    passNameOf: (id) => {
+      const pass = id ? passes.find((p) => p.id === id) : undefined;
+      return pass ? passLabel(pass) : null;
+    },
     now,
     next: nextUp(toTimelineEntries(nextRows), now),
     periods,

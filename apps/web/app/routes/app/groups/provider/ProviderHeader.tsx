@@ -5,6 +5,7 @@ import { Link } from "react-router";
 import { PROVIDER_TYPE_ICONS } from "~/components/providers";
 import { Badge, DetailHeader, LINK, STATUS_TONE } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
+import { REMOVED_PROVIDER } from "~/lib/providers/entryProviders";
 import { PROVIDER_TYPE_META } from "~/lib/providers/providerDirectory";
 import { useLiveQuery } from "~/lib/sync";
 import { providerQuery, toProvider } from "~/lib/providers/providers.sync";
@@ -62,7 +63,7 @@ export function ProviderHeader({
   );
 }
 
-/** The clinician's practice, linking to its page; greyed and unlinked once it's deleted. */
+/** The clinician's practice, linking to its page; greyed "Removed provider", unlinked, once it's deleted. */
 function PracticeLink({ groupId, practiceId }: { groupId: string; practiceId: string }) {
   const query = providerQuery(practiceId);
   const rows = useLiveQuery<ProviderRow>(query.sql, query.params, NO_ROWS);
@@ -71,7 +72,7 @@ function PracticeLink({ groupId, practiceId }: { groupId: string; practiceId: st
   if (practice.deletedAt) {
     return (
       <span className="text-faint whitespace-nowrap" data-practice>
-        {practice.name} (removed)
+        {REMOVED_PROVIDER}
       </span>
     );
   }

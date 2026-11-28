@@ -20,6 +20,13 @@ describe("medicationLabel", () => {
     expect(medicationLabel({ name: "Acetaminophen", strength: "  " })).toBe("Acetaminophen");
   });
 
+  it("says Removed medication once it's deleted, scrubbed or not", () => {
+    expect(medicationLabel({ name: "", strength: null, deletedAt: "2026-11-01 10:00:00" })).toBe(
+      "Removed medication",
+    );
+    expect(medicationLabel({ ...LISINOPRIL, deletedAt: "2026-11-01 10:00:00" })).toBe("Removed medication");
+  });
+
   it("says Medication when it isn't on the device", () => {
     expect(medicationLabel(null)).toBe("Medication");
     expect(medicationLabel(undefined)).toBe("Medication");
@@ -146,6 +153,25 @@ describe("medicationEntryText", () => {
       standalone: true,
     });
     expect(medicationIdOf({ kind: "medicationChange", details })).toBeNull();
+  });
+
+  it("gives a deleted medication's change as one removed line, its summary gone", () => {
+    const gone = { id: M, name: "", strength: null, deletedAt: "2026-11-01 10:00:00" };
+    expect(
+      medicationEntryText({
+        kind: "medicationChange",
+        details: { medicationId: M, change: "changed" },
+        medication: gone,
+      } as never),
+    ).toEqual({ what: "Removed medication changed", note: null, removed: true });
+    // A dose of it keeps what happened; its heading names it Removed medication.
+    expect(
+      medicationEntryText({
+        kind: "dose",
+        details: { medicationId: M, status: "given", amount: "1 tablet" },
+        medication: gone,
+      } as never),
+    ).toEqual({ what: "Given 1 tablet", note: null });
   });
 
   it("is null for other kinds", () => {

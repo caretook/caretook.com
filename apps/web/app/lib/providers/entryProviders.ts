@@ -4,9 +4,16 @@
 /** A linked provider as an entry shows it. */
 export type LinkedProviderName = { id: string; name: string; deletedAt: string | null };
 
-/** A linked provider's label: the name, with "(removed)" once they're deleted. */
+/**
+ * What a deleted provider or practice reads as, everywhere it's named: never
+ * its name, which a delete scrubs (and which a row deleted before the scrub
+ * reached this device still has).
+ */
+export const REMOVED_PROVIDER = "Removed provider";
+
+/** A linked provider's label: the name, or "Removed provider" once they're deleted. */
 export const chipLabel = (provider: { name: string; deletedAt: string | null }) =>
-  provider.deletedAt ? `${provider.name} (removed)` : provider.name;
+  provider.deletedAt ? REMOVED_PROVIDER : provider.name;
 
 /** How many names the timeline's "with …" line shows before "+N". */
 export const WITH_NAMES_SHOWN = 2;
@@ -39,8 +46,9 @@ export type EntryProviderLinkRow = {
 };
 
 /**
- * Link rows (already in link order) grouped by entry. Rows without a name (a
- * half-synced provider) are skipped. `toTimestamp` normalises `deleted_at`.
+ * Link rows (already in link order) grouped by entry. A live row without a
+ * name (a half-synced provider) is skipped; a deleted one is kept, since a
+ * delete scrubs the name. `toTimestamp` normalises `deleted_at`.
  */
 export const groupLinksByEntry = (
   rows: readonly EntryProviderLinkRow[],
@@ -48,11 +56,11 @@ export const groupLinksByEntry = (
 ): Map<string, LinkedProviderName[]> => {
   const byEntry = new Map<string, LinkedProviderName[]>();
   for (const row of rows) {
-    if (!row.name) continue;
+    if (!row.name && !row.deleted_at) continue;
     const list = byEntry.get(row.entry_id) ?? [];
     list.push({
       id: row.provider_id,
-      name: row.name,
+      name: row.name ?? "",
       deletedAt: row.deleted_at ? toTimestamp(row.deleted_at) : null,
     });
     byEntry.set(row.entry_id, list);

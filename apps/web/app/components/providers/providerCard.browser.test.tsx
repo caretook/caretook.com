@@ -18,7 +18,7 @@ import * as search from "../../routes/app/groups/search/route";
 // directory, in search and on a medication's page is one `ProviderCard`,
 // with its name linking to its page, its type icon, the Primary and Past
 // badges, its tag chips and a Call link; a deleted prescriber reads
-// "(removed)" with no link or actions; an easy role's search result opens
+// "Removed provider", greyed, with no link or actions (scrubbed or not); an easy role's search result opens
 // its read-only sheet. The device is offline throughout. Each screen's own
 // rules stay in its own tests (providers, search, medication).
 
@@ -117,7 +117,7 @@ describe("one provider display", () => {
     expect(pharmacy.textContent).toContain("Pharmacy");
   });
 
-  test('a deleted prescriber reads "(removed)", with no link, badges, tags or actions', async () => {
+  test('a deleted prescriber reads "Removed provider", greyed, with no link, badges, tags or actions, scrubbed or not', async () => {
     const device = await renderWithDevice({
       route: MEDICATION_ROUTES,
       url: medicationUrl(DROPS.id),
@@ -130,7 +130,7 @@ describe("one provider display", () => {
       .poll(async () => shows(await rowIn('[data-medication-provider="prescriber"]')))
       .toEqual({
         ...HALVORSEN_SHOWS,
-        name: "Dr. Wren Halvorsen (removed)",
+        name: "Removed provider",
         href: null,
         badges: [],
         tags: [],
@@ -138,6 +138,16 @@ describe("one provider display", () => {
       });
     const row = await rowIn('[data-medication-provider="prescriber"]');
     expect(row.querySelector("a, button")).toBeNull();
+    expect(row.querySelector("[data-provider-name]")?.classList.contains("text-faint")).toBe(true);
+    expect(row.textContent).not.toContain("Halvorsen");
+    // Scrubbed by the delete: no name, specialty or phones left.
+    await device.sync([
+      fx.provider({ id: HALVORSEN.id, name: "", specialty: null, phones: [], deletedAt: at() }),
+    ]);
+    await device.settle();
+    await expect
+      .poll(async () => shows(await rowIn('[data-medication-provider="prescriber"]')).name)
+      .toBe("Removed provider");
   });
 
   test("an easy role's search result opens its read-only sheet", async () => {

@@ -89,7 +89,7 @@ describe("canAddProvider", () => {
 describe("chosenLabel", () => {
   it("marks a removed or a new provider", () => {
     expect(chosenLabel("Dr. A")).toBe("Dr. A");
-    expect(chosenLabel("Dr. A", { deleted: true })).toBe("Dr. A (removed)");
+    expect(chosenLabel("Dr. A", { deleted: true })).toBe("Removed provider");
     expect(chosenLabel("Dr. A", { isNew: true })).toBe("Dr. A (new)");
   });
 });

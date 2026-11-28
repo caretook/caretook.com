@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canAddPlace, placeChipLabel, placeOptions } from "./periodPlaces";
+import { canAddPlace, placeChipLabel, placeName, placeOptions } from "./periodPlaces";
 
 const provider = (
   id: string,
@@ -58,7 +58,17 @@ describe("canAddPlace and placeChipLabel", () => {
 
   it("marks a removed or not-yet-saved place", () => {
     expect(placeChipLabel("Mercy")).toBe("Mercy");
-    expect(placeChipLabel("Mercy", { deleted: true })).toBe("Mercy (removed)");
+    expect(placeChipLabel("Mercy", { deleted: true })).toBe("Removed place");
+    // A scrubbed row has no name left: still the removed wording.
+    expect(placeChipLabel("", { deleted: true })).toBe("Removed place");
     expect(placeChipLabel("Oak Hills", { isNew: true })).toBe("Oak Hills (new)");
+  });
+});
+
+describe("placeName", () => {
+  it("names a live place, and a deleted one (scrubbed or not) Removed place", () => {
+    expect(placeName({ name: "Mercy", deletedAt: null })).toBe("Mercy");
+    expect(placeName({ name: "Mercy", deletedAt: "2026-11-01T00:00:00.000Z" })).toBe("Removed place");
+    expect(placeName({ name: "", deletedAt: "2026-11-01T00:00:00.000Z" })).toBe("Removed place");
   });
 });

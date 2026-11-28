@@ -8,6 +8,7 @@ import { QuickTags } from "~/components/tags";
 import { Badge, ListRow, STATUS_TONE } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { quickActions } from "~/lib/providers/contactActions";
+import { REMOVED_PROVIDER } from "~/lib/providers/entryProviders";
 import { PROVIDER_TYPE_META } from "~/lib/providers/providerDirectory";
 import { ROW_CHIPS } from "~/lib/tags/tagPicker";
 
@@ -30,7 +31,7 @@ export type ProviderCardProps = {
   title?: ReactNode;
   /** Left out, the name links to their page; a callback, it's a button (an easy role's sheet); null, plain text. */
   open?: (() => void) | null;
-  /** Deleted since: greyed "<name> (removed)", with no link, badges, tags, contact or actions. */
+  /** Deleted since: greyed "Removed provider" (never its name or `title`), with no link, badges, tags, contact or actions. */
   removed?: boolean;
   /** A quiet line above the name ("Prescriber", "Pharmacy"). */
   label?: ReactNode;
@@ -147,7 +148,9 @@ export function ProviderCard({
           {name}
           {badges}
         </p>
-        <p className="text-muted truncate text-sm">{details ?? detailText}</p>
+        <p className="text-muted truncate text-sm">
+          {removed ? PROVIDER_TYPE_META[provider.type].label : (details ?? detailText)}
+        </p>
         {!removed && contact}
         {children}
         {rowTags}
@@ -175,7 +178,7 @@ function Name({
   if (removed)
     return (
       <span className="text-faint min-w-0 shrink truncate" data-provider-name>
-        {text} (removed)
+        {REMOVED_PROVIDER}
       </span>
     );
   if (open === null)

@@ -31,13 +31,16 @@ export const eventWhen = (event: PickableEvent, now: Date, where: Where = {}) =>
 
 // --- Chips -------------------------------------------------------------------
 
-/** A chosen link's chip: its name, greyed "(removed)" once deleted; "Cancelled" kept on an appointment. */
+/** What a link to a deleted provider or medication reads: a delete scrubs its name (data-rights). */
+export const REMOVED_ITEM = "Removed item";
+
+/** A chosen link's chip: its name, greyed "Removed item" once deleted; "Cancelled" kept on an appointment. */
 export const chosenLinkChip = (
   chosen: { label: string; deleted?: boolean; cancelled?: boolean } | null,
   fallback: string,
 ): { label: string; muted: boolean } => {
   if (!chosen) return { label: fallback, muted: true };
-  if (chosen.deleted) return { label: `${chosen.label} (removed)`, muted: true };
+  if (chosen.deleted) return { label: REMOVED_ITEM, muted: true };
   if (chosen.cancelled) return { label: `${chosen.label} (cancelled)`, muted: true };
   return { label: chosen.label, muted: false };
 };

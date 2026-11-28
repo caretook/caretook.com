@@ -614,7 +614,8 @@ describe("upsert (the PowerSync upload path)", () => {
     ok(await timelineEntryService.remove(s.u.caretaker.ctx, input.id));
 
     const late = ok(await timelineEntryService.upsert(s.u.caretaker.ctx, { ...input, title: "Late edit" }));
-    expect(late.row).toMatchObject({ title: "Ate lunch" });
+    // Scrubbed by the delete (`SCRUB_SPECS`), and the late edit isn't written.
+    expect(late.row).toMatchObject({ title: null });
     expect(late.row?.deletedAt).not.toBeNull();
   });
 
@@ -723,7 +724,9 @@ describe("upsert: a dose's shared slot id", () => {
 
     const row = await stored(id);
     expect(row.deletedAt).not.toBeNull();
-    expect(row.details).toMatchObject({ note: "first" });
+    // Scrubbed to its slot (the carve-out), and the upload's note isn't written.
+    expect(row.details).toMatchObject({ status: "given", scheduledFor: "08:00" });
+    expect(row.details).not.toHaveProperty("note");
   });
 
   it("tells the author's replay from their other device's tap after another's delete", async () => {
@@ -763,7 +766,11 @@ describe("upsert: a dose's shared slot id", () => {
 
       const row = await stored(id);
       expect(row.deletedAt).not.toBeNull();
-      expect(row).toMatchObject({ createdBy: u.caretaker.user.id, details: { note: "A" } });
+      expect(row).toMatchObject({
+        createdBy: u.caretaker.user.id,
+        details: { status: "given", scheduledFor: "08:00" },
+      });
+      expect(row.details).not.toHaveProperty("note");
     });
 
     it("restores it for a new log by B at another time", async () => {
@@ -872,7 +879,11 @@ describe("upsert: a dose's shared slot id", () => {
 
       const row = await stored(id);
       expect(row.deletedAt).not.toBeNull();
-      expect(row).toMatchObject({ createdBy: u.admin.user.id, details: { note: "B" } });
+      expect(row).toMatchObject({
+        createdBy: u.admin.user.id,
+        details: { status: "given", scheduledFor: "08:00" },
+      });
+      expect(row.details).not.toHaveProperty("note");
     });
 
     it("leaves the dose deleted when B retries the restoring upload after a time edit", async () => {
@@ -997,7 +1008,8 @@ describe("upsert: a dose's shared slot id", () => {
     await timelineEntryService.upsert(u.viewer.ctx, dose("viewer", id));
     const row = await stored(id);
     expect(row.deletedAt).not.toBeNull();
-    expect(row.details).toMatchObject({ note: "first" });
+    expect(row.details).toMatchObject({ status: "given", scheduledFor: "08:00" });
+    expect(row.details).not.toHaveProperty("note");
   });
 
   it("doesn't let another group's member touch the id, live or deleted", async () => {
@@ -1028,7 +1040,7 @@ describe("upsert: a dose's shared slot id", () => {
 
     ok(await timelineEntryService.remove(s.u.caretaker.ctx, id));
     const late = ok(await timelineEntryService.upsert(s.u.admin.ctx, { ...input, title: "Late" }));
-    expect(late.row).toMatchObject({ title: "Ate lunch" });
+    expect(late.row).toMatchObject({ title: null });
     expect(late.row?.deletedAt).not.toBeNull();
   });
 });

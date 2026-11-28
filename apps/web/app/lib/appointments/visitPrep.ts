@@ -30,6 +30,8 @@ import {
 } from "@caretook/data/schema";
 import { dateText, periodTitle } from "../care-periods/periodDisplay";
 import { entryTiming } from "./upcoming";
+import { REMOVED_MEDICATION } from "../medications/medicationEntries";
+import { removedChangeText } from "../timeline/entryDisplay";
 import type { NoteSectionLine, PeriodSpan, TrackPeriod } from "@caretook/data/domain";
 import type { DueDose, SchedulePass } from "@caretook/data/schema";
 
@@ -297,6 +299,8 @@ const medicationChangeLines = (now: readonly PrepEntry[], data: VisitPrepData) =
     if (isPassMovedDetails(e.details)) return [`${passMovedText(e.details)} (${day})`];
     if (!isMedicationChangeDetails(e.details)) return [];
     const medication = byId.get(e.details.medicationId);
+    // A deleted medication took its name and this change's summary with it.
+    if (medication?.deletedAt) return [`${removedChangeText(REMOVED_MEDICATION)} (${day})`];
     const name = medication ? medicationTitle(medication) : "A medication";
     return [`${name}: ${changeText(e.details, data.passes)} (${day})`];
   });
