@@ -198,6 +198,9 @@ const insertNext = async (tx: Tx, todo: Todo, today: string) => {
     ? await todoModel.restore(id, content, tx)
     : await todoModel.create({ ...system(tx), data: next });
   if (isError(written)) return written;
+  // Made after `todo`, even in the transaction that made `todo` (`laterInChain`).
+  const stamped = await todoModel.stampMadeAfter(id, todo.id, tx);
+  if (stamped) return stamped;
   // Its tags come along (tags PRD), with the ids the device's twin writes.
   const tagged = await copyLinks(tx, "todo", todo.id, id);
   if (tagged) return tagged;

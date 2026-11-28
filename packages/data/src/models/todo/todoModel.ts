@@ -132,3 +132,24 @@ export const remove = async (args: QuerySelectArgs<K>) => {
 
   return { ids: res.map((r) => r.id) };
 };
+
+/**
+ * Stamp todo `id` (a repeating todo's next) as made after `predecessorId`:
+ * its `created_at` at least 1 ms past the predecessor's. A todo made and
+ * ticked in one transaction (an offline one's PUT carrying `done_at`) would
+ * otherwise share `now()` with its next, and reopen's successor rule wants
+ * the next made strictly after it. As the device's `planNext`.
+ */
+export const stampMadeAfter = async (id: string, predecessorId: string, tx: Tx) => {
+  const t = todoSchema;
+  const res = await dbMayFail(
+    () =>
+      tx.execute(
+        sql`UPDATE ${t} SET created_at = greatest(${t.createdAt},
+              (SELECT p.created_at FROM ${t} p WHERE p.id = ${predecessorId}) + interval '1 millisecond')
+            WHERE ${t.id} = ${id}`,
+      ),
+    "todoModel:stampMadeAfter",
+  );
+  return isError(res) ? res : null;
+};
