@@ -43,9 +43,12 @@ describe("the tool's command names, from risa.json", () => {
     expect(toolCommand(join(tmp, "nowhere"), "backlog")).toBe("backlog");
   });
 
-  it("refuses anything but `tool prd` or `tool backlog`", () => {
-    expect(cli("tool", "other").status).toBe(2);
-    expect(cli().status).toBe(2);
+  it("refuses anything but `tool prd` or `tool backlog`, saying how to call it", () => {
+    for (const r of [cli("tool", "other"), cli()]) {
+      expect(r.status).toBe(2);
+      expect(r.stdout).toBe("");
+      expect(r.stderr).toMatch(/^usage: risa\.mjs tool <prd\|backlog> \[root\]\n$/);
+    }
   });
 
   it("no Caretook script's printed hint spells the names out: each reads them through risa.mjs", () => {
