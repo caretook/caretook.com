@@ -300,6 +300,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1042 | feature | triaged | quick-entry-4 |  | Quick entry acts on existing things: 'done <todo>', 'skip <pass>', 'tag that <tag>', 'move <event> to <time>' |
 | B-1043 | feature | triaged | quick-entry-find |  | Quick entry find, switch and contact: 'find <text>' opens search, 'switch to <group>', 'call <provider>' opens the dialer |
 | B-1044 | feature | triaged | quick-entry-find |  | Quick entry 'go to <provider or medication>' by name (after moving the parser's name matchers into the assistant domain) |
+| B-1045 | bug | inbox |  |  | Inbox handoff (risa rotate --self) didn't work |
 
 ## Items
 
@@ -1906,3 +1907,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (plan/quick-entry-3): Split from B-1039 on 2026-11-28 (user chose to split quick-entry-3 in two after two skeptic send-backs). Scope and the matchers' move list: quick-entry-3 PRD, The whole plan.
+
+### B-1045 · bug · Inbox handoff (risa rotate --self) didn't work
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): From the inbox: risa rotate --self reported 'Opened inbox in a new background iTerm2 tab' but the handoff did not take effect, per the user.
