@@ -171,6 +171,11 @@ describe("infinite scroll", () => {
     await loadRows(120);
     const anchor = rows()[89]!;
     window.scrollTo(0, anchor.getBoundingClientRect().top + scrollY - 300);
+    // The sentinel was in range when the fourth page landed, so a fifth may have started before the
+    // scroll away (B-790): let it land before counting the pages, or it lands between the counts.
+    await frames();
+    await waitUntil(() => status()?.textContent !== LOADING, "any page still loading");
+    await device.settle();
     await stopsMoving(() => anchor);
     const place = () => ({
       rows: rows().length,
