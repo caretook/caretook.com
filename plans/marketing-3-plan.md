@@ -12,7 +12,7 @@
 
 **For wave 1's landing report** (slice 3's ideas, B-829): claim a todo ("I'll take it", a "needs someone" filter); dose reminder emails from Med times; routines as repeating todos with a weekly done count; starter checklists as todo templates; photos on entries; documents beside the profile (insurance cards, POLST, power of attorney); a site line: free for the whole family, plus no tracking; a catch-up digest email. Also B-1070 (meta "care notebook" vs hero "care journal") for the user's wording call.
 
-**Now (2026-11-28):** wave 1 merged (B-836 stays open for wave 2); wave 1 CI (run 46190535266) failed only static: Prettier on this plan's table (fixed); every component test passed. Both waves merged; one components run gates both (running).
+**Now (2026-11-28):** all 7 slices merged; components CI green on 2f5ee15a (run 46191450677); `risa sync` needed no merge; docs folded into marketing.md. Next: browser checks (layout-offline, first-sync, marketing) running, then `risa pr`, `risa review`, land (last wave: then `risa rm marketing-3`).
 
 | Slice | Wave | State  | Merge into `prd/marketing-3` (slice commits) |
 | ----- | ---- | ------ | -------------------------------------------- |
