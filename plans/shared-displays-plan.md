@@ -4,15 +4,15 @@
 
 ## Status
 
-| Slice | Wave | State           | Merge into `prd/shared-displays` (slice commits) |
-| ----- | ---- | --------------- | ------------------------------------------------ |
-| 1     | 1    | merged (sonnet) | 8be180eb6 (4e7f6360e)                            |
-| 2 | 2 | handed off (opus), merge held until wave 1 lands | (2925d1922) |
-| 3     | 3    | planned         |                                                  |
-| 4     | 3    | planned         |                                                  |
-| 5     | 3    | planned         |                                                  |
-| 6     | 4    | planned         |                                                  |
-| 7     | 1    | merged (opus)   | efcf7177b (c67da6147)                            |
+| Slice | Wave | State                                            | Merge into `prd/shared-displays` (slice commits) |
+| ----- | ---- | ------------------------------------------------ | ------------------------------------------------ |
+| 1     | 1    | merged (sonnet)                                  | 8be180eb6 (4e7f6360e)                            |
+| 2     | 2    | handed off (opus), merge held until wave 1 lands | (2925d1922)                                      |
+| 3     | 3    | planned                                          |                                                  |
+| 4     | 3    | planned                                          |                                                  |
+| 5     | 3    | planned                                          |                                                  |
+| 6     | 4    | planned                                          |                                                  |
+| 7     | 1    | merged (opus)                                    | efcf7177b (c67da6147)                            |
 
 - **Landing mode: run everything through** (dispatcher start, 2026-11-28): start every ready slice, land each green wave, ask only real questions via `risa ask`.
 - **Waiting on onboarding-2 (B-670):** its slice 2 moves `ProviderForm`, `ProviderListItem`, `ProviderRowContact` to `components/providers/` (and `providerFormData.ts` to `lib/providers/`). Agreed 2026-11-28: it lands first; slice 4 starts only after it's in `dev` and `risa sync` (onboarding-2-c2 will message; also check `pnpm log dev`). After it, onboarding-2 won't edit those three; its slice 3 may add `MedicationForm` to `components/medications/index.ts` (they'll warn first; an additive export, merge both).
