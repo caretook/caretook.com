@@ -7,8 +7,8 @@ import { Link, useFetcher } from "react-router";
 import { Button, EmptyState, ICON, List, Message, Section, TITLE_SUB } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { CONDITIONS_NOT_RECORDED, NO_KNOWN_CONDITIONS, sinceText } from "~/lib/profiles/conditions";
-import { CONDITION_FIELD } from "./conditions/conditionActions";
-import { PROFILE_SHEET_STATE } from "./profileSheet";
+import { CONDITION_FIELD } from "~/lib/profiles/conditionActions";
+import { PROFILE_SHEET_STATE } from "~/lib/profiles/profileSheetLink";
 
 /**
  * The recipient's conditions, after Basics, for every member: the active

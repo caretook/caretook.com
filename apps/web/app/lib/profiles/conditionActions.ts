@@ -1,7 +1,7 @@
 import type { ConditionStatus } from "@caretook/data/schema";
 
 import { CONDITION_STATUSES } from "@caretook/data/schema";
-import { formString } from "../../../../../lib/core/form";
+import { formString } from "../core/form";
 
 // The condition sheets' posts, read from the form: add, edit, resolve,
 // reactivate, delete, and the profile card's "No known conditions" on or

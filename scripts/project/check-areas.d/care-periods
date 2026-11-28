@@ -6,6 +6,8 @@
 # has a care_period row. The period's notes document is the live-notes pattern.
 apps/web/app/routes/app/groups/periods/  -
 apps/web/app/routes/app/groups/period/   -
+# The form, place picker and list, shared with the setup pages (component tests in periods/).
+apps/web/app/components/care-periods/    -
 apps/web/app/routes/app/groups/period/useCarePeriodNotes.ts live-notes
 apps/web/app/lib/care-periods/carePeriods.sync.ts roundtrip
 # Validated by seeds/carePeriods.test.ts; no screen check reads them.

@@ -1,15 +1,8 @@
-import type { SyncDb } from "~/lib/sync";
-import type { LocalProvider, ProviderRow } from "~/lib/providers/providers.sync";
-
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { openedFromApp } from "~/lib/care-periods/periodSheets";
-import { useLiveQuery } from "~/lib/sync";
-import { placeChoicesQuery } from "~/lib/care-periods/carePeriods.sync";
-import { toProviders } from "~/lib/providers/providers.sync";
-import { readRows } from "~/lib/timeline/timeline.sync";
 
 // Sheets over the periods page are child routes (`periods/new`): the page
 // stays mounted underneath. Like the medication list's sheets.
@@ -36,15 +29,4 @@ export function useClosePeriodSheet() {
     },
     [navigate, state, id],
   );
-}
-
-/** The place picker's providers as a sheet's loader reads them, so the first render has them. */
-export const loadPlaceRows = (db: SyncDb, groupId: string) =>
-  readRows<ProviderRow>(db, placeChoicesQuery(groupId));
-
-/** The group's providers, live (deleted ones too, so a removed place still has a name). */
-export function usePlaceChoices(groupId: string, initial: ProviderRow[]): LocalProvider[] {
-  const query = placeChoicesQuery(groupId);
-  const rows = useLiveQuery<ProviderRow>(query.sql, query.params, initial);
-  return useMemo(() => toProviders(rows), [rows]);
 }

@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { FieldIssue } from "~/lib/core/api";
 import type { LocalPass } from "~/lib/medications/medicationPasses.sync";
-import type { TimeRow } from "./scheduleSlots";
+import type { TimeRow } from "~/lib/medications/scheduleSlots";
 
 import { Plus, X } from "lucide-react";
 import { useId } from "react";
@@ -9,7 +9,7 @@ import { Link } from "react-router";
 import { MEDICATION_LIMITS, clockTime } from "@caretook/data/schema";
 import { Button, CheckField, EmptyState, Field, IconButton, LINK, TimeSelect } from "~/components/ui";
 import { currentHourTime } from "~/lib/core/timeOfDay";
-import { FIELD, passAmountField } from "./medicationFormData";
+import { FIELD, passAmountField } from "~/lib/medications/medicationFormData";
 
 const issueFor = (issues: FieldIssue[], path: string) => issues.find((i) => i.path === path)?.message;
 

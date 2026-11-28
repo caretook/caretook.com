@@ -3,7 +3,7 @@ import type { LocalCondition } from "~/lib/profiles/conditions.sync";
 import { useId, useMemo, useState } from "react";
 import { ChipList, ComboBox, Message } from "~/components/ui";
 import { conditionChoices, hasConditionChoices } from "~/lib/profiles/medicationConditionChoices";
-import { FIELD } from "./medicationFormData";
+import { FIELD } from "~/lib/medications/medicationFormData";
 
 /**
  * The medication form's "For" field (conditions slice 4): any number of the

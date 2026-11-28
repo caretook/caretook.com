@@ -5,7 +5,12 @@ import type { GroupSetupStep } from "../../../../../lib/app-shell/groupSetup";
 // first (`step/route.tsx`), and the last page's Next finishes on the Timeline.
 
 /** The steps with a page. Each is a static child in `../routes.ts`. */
-export const SETUP_PAGES = ["providers"] as const satisfies readonly GroupSetupStep[];
+export const SETUP_PAGES = [
+  "providers",
+  "profile",
+  "medications",
+  "period",
+] as const satisfies readonly GroupSetupStep[];
 export type SetupPage = (typeof SETUP_PAGES)[number];
 
 const isSetupPage = (value: unknown): value is SetupPage =>

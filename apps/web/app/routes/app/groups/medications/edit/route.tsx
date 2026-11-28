@@ -27,10 +27,11 @@ import {
   setMedicationConditions,
 } from "~/lib/profiles/medicationConditions.sync";
 import { readRows } from "~/lib/timeline/timeline.sync";
-import { MedicationForm } from "../MedicationForm";
+import { MedicationForm } from "~/components/medications";
 import { MedicationTags } from "../MedicationTags";
-import { issuesForSlotRows, medicationFromForm } from "../medicationFormData";
-import { loadFormSources, useCloseMedicationSheet, useMedicationFormSources } from "../medicationSheet";
+import { issuesForSlotRows, medicationFromForm } from "~/lib/medications/medicationFormData";
+import { loadFormSources, useMedicationFormSources } from "~/lib/medications/medicationFormSources";
+import { useCloseMedicationSheet } from "../medicationSheet";
 import { medicationTitle, scheduleZoneNote } from "@caretook/data/schema";
 
 // Shared by web + native. `medications/<tab>/:medicationId/edit`: the edit
