@@ -16,13 +16,13 @@
 
 | Slice | Wave | State   | Merge into `prd/marketing-3` (slice commits) |
 | ----- | ---- | ------- | -------------------------------------------- |
-| 1     | 1    | merged  | ece376081 (1a8ca0000)                         |
-| 2     | 1    | merged  | 249bfb719 (d54231d81) |
-| 3     | 1    | merged  | cb7b17dba (1233d1544) |
-| 4     | 1    | merged  | c4ec80abb (b54c99c0e) |
+| 1     | 1    | merged  | ece376081 (1a8ca0000)                        |
+| 2     | 1    | merged  | 249bfb719 (d54231d81)                        |
+| 3     | 1    | merged  | cb7b17dba (1233d1544)                        |
+| 4     | 1    | merged  | c4ec80abb (b54c99c0e)                        |
 | 5     | 2    | planned |                                              |
 | 6     | 2    | planned |                                              |
-| 7     | 1    | merged  | 651f2b48b (044c01061) |
+| 7     | 1    | merged  | 651f2b48b (044c01061)                        |
 
 ## Architectural decisions
 
