@@ -1,17 +1,19 @@
 import type { LucideIcon } from "lucide-react";
 import type { LinkOption, LinkPick, LinkType } from "~/lib/todos/linkOptions";
 
-import { CalendarClock, NotebookPen, Pill } from "lucide-react";
 import { useMemo, useState } from "react";
+import { MEDICATION_GLYPH } from "~/components/medications";
 import { PROVIDER_TYPE_ICONS } from "~/components/providers";
 import { ChipGroup, ComboBox } from "~/components/ui";
+import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { LINK_TYPE_CHIPS, linkTypeWord } from "~/lib/todos/linkOptions";
 import { useLinkSearch } from "./useLinkSearch";
 
+/** Each type's icon, the same as its display's: the timeline's kinds, the medication's pill. */
 const ICONS: Record<Exclude<LinkOption["type"], "provider">, LucideIcon> = {
-  medication: Pill,
-  event: CalendarClock,
-  note: NotebookPen,
+  medication: MEDICATION_GLYPH,
+  event: KIND_META.event.Icon,
+  note: KIND_META.note.Icon,
 };
 
 const iconOf = (option: LinkOption) =>
