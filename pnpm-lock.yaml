@@ -209,8 +209,8 @@ importers:
         specifier: 3.10.1
         version: 3.10.1
       risa:
-        specifier: github:interrobangc/risa#4271285b5c92d66a0effbca878ac3bddea09454c
-        version: https://codeload.github.com/interrobangc/risa/tar.gz/4271285b5c92d66a0effbca878ac3bddea09454c
+        specifier: github:interrobangc/risa#5904612d019e760b98bc3a6152364bc345711958
+        version: https://codeload.github.com/interrobangc/risa/tar.gz/5904612d019e760b98bc3a6152364bc345711958
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -4043,9 +4043,9 @@ packages:
     resolution: {integrity: sha512-g6QUff04oZpHs0eG5p83rFLhHeV00ug/Yf9nZM6fLeUrPguBTkTQOdpAWWspMh55TZfVQDPaN3NQJfbVRAxdIw==}
     engines: {iojs: '>=1.0.0', node: '>=0.10.0'}
 
-  risa@https://codeload.github.com/interrobangc/risa/tar.gz/4271285b5c92d66a0effbca878ac3bddea09454c:
-    resolution: {gitHosted: true, integrity: sha512-RIBtq3sEB1yR82Qb0ZUe/EUD2oaKt6CXoOHv+0EajNl4Opph1buzL9MMKt31yOK/VYqCTaDKjaXFzL8BAZvz2A==, tarball: https://codeload.github.com/interrobangc/risa/tar.gz/4271285b5c92d66a0effbca878ac3bddea09454c}
-    version: 0.2.0
+  risa@https://codeload.github.com/interrobangc/risa/tar.gz/5904612d019e760b98bc3a6152364bc345711958:
+    resolution: {gitHosted: true, integrity: sha512-aU1/MxCQnvPLE2xXSavJesJqPSqVnPRCyL6SuGzXPDKOV/mLDzjaC46AQkVnAcHeGEvLKUdk1OWqE0Z/h63ZPQ==, tarball: https://codeload.github.com/interrobangc/risa/tar.gz/5904612d019e760b98bc3a6152364bc345711958}
+    version: 0.2.1
     engines: {node: '>=24'}
     hasBin: true
 
@@ -8037,7 +8037,7 @@ snapshots:
 
   reusify@1.1.0: {}
 
-  risa@https://codeload.github.com/interrobangc/risa/tar.gz/4271285b5c92d66a0effbca878ac3bddea09454c: {}
+  risa@https://codeload.github.com/interrobangc/risa/tar.gz/5904612d019e760b98bc3a6152364bc345711958: {}
 
   rolldown@1.2.19:
     dependencies:
