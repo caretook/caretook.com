@@ -114,13 +114,13 @@ describe("applyRoles", () => {
       INSUFFICIENT_PRIVILEGE,
     );
 
-    // Deleting the audited account still works: the foreign key's SET NULL
-    // runs as the table's owner, and the entry stays.
+    // Deleting the audited account still works, and the entry stays with
+    // the bare id (no foreign key: data-rights PRD).
     await app.query(`DELETE FROM "user" WHERE id = $1`, [userId]);
     const kept = await app.query(`SELECT actor_id, target_user_id FROM admin_audit_log WHERE id = $1`, [
       entryId,
     ]);
-    expect(kept.rows).toEqual([{ actor_id: userId, target_user_id: null }]);
+    expect(kept.rows).toEqual([{ actor_id: userId, target_user_id: userId }]);
   });
 
   it("gives the app role tables the migrations role creates later", async () => {
