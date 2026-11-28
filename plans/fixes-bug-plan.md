@@ -10,13 +10,10 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item   | State         | Merge     |
-| ----- | ------ | ------------- | --------- |
-| 93    | B-1008 | merged (opus) | a7ea28d9d |
-| 94    | B-1009 | merged (opus) | 548aa3f37 |
-| 95    | B-1010 | merged (opus) | 14c5dd7ed |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
-**Wave 27: merged, CI green, paused for a reboot** (2026-11-28). Slices 93-95 merged (all opus); CI components green, run 46129305490, on dda2392 (per the backlog session; my `--wait` output was lost to a full disk, ENOSPC). Not yet synced: a `risa sync` hung (Docker hung machine-wide) and was stopped with the tree clean, no merge started. **Next, after the reboot:** `risa recover`, `risa sync`, the synced tip's CI recheck if sync merged, `risa serve --restart`, browser checks, `risa pr fixes-bug`, `risa review fixes-bug --wait`, then land (run-through). Then `risa rm fixes-bug-93/94/95`. Landed wave 26: PR #321 (dev 56424f1), report a385. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table.
+**Wave 27 landed** (2026-11-28): PR #323 (dev 5dd73fd), Codex clean, CI components green (run 46129305490), browser checks app-shell, first-sync, invites passed; to-test `2026-11-28-0801-fixes-bug.md`. Slices 93-95 (B-1008, B-1009, B-1010) removed. **Next:** `risa sync` at the next wave's start, then plan wave 28 from the triaged `fixes-bug` items. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table.
 
 ## Wave 1
 
