@@ -297,8 +297,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1035 | feature | triaged | marketing-4 |  | Marketing: the printed care booklet where it fits (features page, home, how-it-works): Caretook is designed for non-technical caregivers who prefer pen and paper, with two-way communication when a connector is used |
 | B-1036 | bug | landed | free-limits | prd/free-limits | Group limit: read limits.groupsStarted before careGroupService.create opens its transaction, so a cold settings cache doesn't take a second pool connection while the user row is locked |
 | B-1037 | change | triaged | fixes-perf |  | Bring the components tier's first shard under 275 s so the components time gate can be armed |
-| B-1038 | feature | in-progress | quick-entry-3 | prd/quick-entry-3 | Quick entry on every page: a button in the app frame, / and Cmd+K on desktop, and aware of the page it opens on (a provider's page links that provider) |
-| B-1039 | feature | in-progress | quick-entry-3 | prd/quick-entry-3 | Quick entry 'go to <page>' and 'open <page> in a new tab' (with other wordings) to move around the site |
+| B-1038 | feature | ready | quick-entry-3 | prd/quick-entry-3 | Quick entry on every page: a button in the app frame, / and Cmd+K on desktop, and aware of the page it opens on (a provider's page links that provider) |
+| B-1039 | feature | ready | quick-entry-3 | prd/quick-entry-3 | Quick entry 'go to <page>' and 'open <page> in a new tab' (with other wordings) to move around the site |
 | B-1040 | change | triaged | undo-first |  | Act first, Undo after, app-wide: reversible actions run without a confirm, a longer Undo and a recent actions list to roll back; only irreversible or high-stakes actions still ask |
 | B-1041 | feature | triaged | undo-first |  | Quick entry undo and fix commands: 'undo', 'undo that', 'change that to …', 'delete that' |
 | B-1042 | feature | triaged | quick-entry-4 |  | Quick entry acts on existing things: 'done <todo>', 'skip <pass>', 'tag that <tag>', 'move <event> to <time>' |
@@ -1880,19 +1880,19 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1038 · feature · Quick entry on every page: a button in the app frame, / and Cmd+K on desktop, and aware of the page it opens on (a provider's page links that provider)
 
-- status: in-progress
+- status: ready
 - prd: quick-entry-3
 - owner: prd/quick-entry-3
-- commit:
+- commit: f2d90201b
 
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28: 'The ez entry box is very close to graduation from a "timeline feature" to a "alternative primary interface to the site"... Lets plan "BIG" and then slice into manageable steps'. Planned inline in the backlog session.
 
 ### B-1039 · feature · Quick entry 'go to <page>' and 'open <page> in a new tab' (with other wordings) to move around the site
 
-- status: in-progress
+- status: ready
 - prd: quick-entry-3
 - owner: prd/quick-entry-3
-- commit:
+- commit: f2d90201b
 
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28: 'The ez entry box is very close to graduation from a "timeline feature" to a "alternative primary interface to the site"... Lets plan "BIG" and then slice into manageable steps'. Planned inline in the backlog session.
 
