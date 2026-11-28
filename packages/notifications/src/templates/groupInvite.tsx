@@ -1,16 +1,17 @@
+import { GROUP_ROLE_NAMES, type GroupRoleName } from "@caretook/data/permissions";
 import { z } from "zod";
 import { defineNotification } from "../define";
 import { tokenZ } from "./appPath";
 import { ButtonLink, EmailLayout, Muted, Paragraph } from "./layout";
 
-const ROLE_LABELS = {
+const ROLE_LABELS: Record<GroupRoleName, string> = {
   owner: "an owner",
   admin: "an admin",
   caretaker: "a caretaker",
   viewer: "a viewer",
   easy_helper: "an Easy helper",
   easy_viewer: "an Easy viewer",
-} as const;
+};
 
 // An email invite to a care group (careGroupInviteService.createEmail and
 // resend). It names the group and who sent it, and nothing else: no health
@@ -23,7 +24,7 @@ export const groupInvite = defineNotification({
     /** The group as its members see it (the care recipient's preferred name or name). */
     groupName: z.string().trim().min(1).max(200),
     inviterName: z.string().trim().max(100).optional(),
-    role: z.enum(["owner", "admin", "caretaker", "viewer", "easy_helper", "easy_viewer"]),
+    role: z.enum(GROUP_ROLE_NAMES),
     token: tokenZ,
   }),
   email: (data, { link }) => {
