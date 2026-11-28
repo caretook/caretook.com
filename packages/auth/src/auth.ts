@@ -29,6 +29,7 @@ import { sendResetPassword, sendSignInEmail, sendVerificationEmail, sendVerifica
 import { allowedOrigins, clientIpHeader } from "./host";
 import { addressKey, createAuthLimits } from "./limits";
 import { readsLiveSession } from "./liveSession";
+import { afterHooks, disconnectAssistants } from "./sessionsEnded";
 
 // The email-OTP plugin's endpoints we don't use: a code only signs in.
 // Resets go through the emailed link, and verification through its own link.
@@ -173,7 +174,8 @@ export const createAuth = ({
       ...(originCheck === undefined ? {} : { disableOriginCheck: !originCheck }),
     },
     disabledPaths: [...UNUSED_OTP_PATHS, ...UNUSED_USER_PATHS, ...CONNECTOR_DISABLED_PATHS],
-    hooks: { before: beforeHooks(limits) },
+    // After: ending other or all sessions ends the account's assistants too (sessionsEnded.ts).
+    hooks: { before: beforeHooks(limits), after: afterHooks },
     // A disabled account never gets a session, by any path (password, link,
     // code, verification's auto sign-in): the answer is a wrong password's.
     databaseHooks: {
@@ -190,15 +192,12 @@ export const createAuth = ({
     // default), which would hide the list from anyone signed in for longer.
     // Nothing else we use checks freshness (deleteUser and unlink-account are off).
     //
-    // ⚠ The cookie cache (B-140): a signed copy of the session in a cookie
-    // stands in for the session table for up to 3 minutes, so ordinary /rpc
-    // calls skip that read. The tradeoff: for up to 3 minutes after a session
-    // is revoked (signed out elsewhere, removed on the Devices page, a
-    // password reset), ordinary /rpc calls carrying its cookie still succeed.
-    // Staff procedures, /token (above) and the app's own session check read
-    // the live session; the account (disabled, role) and its memberships are
-    // read live on every call. See docs/domain/auth.md and
-    // plans/security-review.md; reconsider before launch.
+    // The cookie cache (B-140): a signed copy of the session in a cookie
+    // stands in for Better Auth's own session read for up to 3 minutes.
+    // getAuthUser still joins the live session row by id in its one query
+    // (B-339), so a session revoked elsewhere is refused on the next /rpc
+    // call. Staff procedures, /token (above) and the app's own session check
+    // also bypass the cache. See docs/domain/auth.md.
     session: { freshAge: 0, cookieCache: { enabled: true, maxAge: 180 } },
     // Accounts come only from invitations (invites slices 3–5), never from
     // public sign-up. An unverified account can't sign in with a password:
@@ -210,6 +209,8 @@ export const createAuth = ({
       requireEmailVerification: true,
       resetPasswordTokenExpiresIn: 60 * 60,
       revokeSessionsOnPasswordReset: true,
+      // A reset ends every session (above) and every assistant's connection (B-329).
+      onPasswordReset: ({ user }) => disconnectAssistants(user.id),
       sendResetPassword,
     },
     emailVerification: {
@@ -230,8 +231,11 @@ export const createAuth = ({
     // No usage data leaves our servers (see Compliance in AGENTS.md).
     telemetry: { enabled: false },
     plugins: [
-      // `Authorization: Bearer <session token>` for Capacitor, where cookies don't work.
-      bearer(),
+      // `Authorization: Bearer <session token>` for Capacitor, where cookies
+      // don't work. Only the signed token (the `set-auth-token` header) is
+      // accepted, never the raw one stored in the session table (B-330): a
+      // copy of that table is no account takeover without the secret.
+      bearer({ requireSignature: true }),
       // "Send email": one email with the link and a code
       // (B-96), existing accounts only.
       magicLink({

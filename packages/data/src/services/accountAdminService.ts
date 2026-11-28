@@ -37,6 +37,7 @@ import {
 } from "../db/schema";
 import { isError, newError } from "../errors";
 import * as adminAuditService from "./adminAuditService";
+import { revokeAllForUser } from "./connectorGrantService";
 import { auditActorId, staffRefusal } from "./staffAccess";
 
 // Staff account help (admin PRD, slice 2): find an account, see how it signs
@@ -348,7 +349,10 @@ export const revokeSession = (ctx: ServiceContext, input: RevokeSessionInput) =>
     return { revoked: 1 };
   }, ctx);
 
-/** Staff (`users.help`): sign every session out. Returns how many there were. */
+/**
+ * Staff (`users.help`): sign every session out, and disconnect every
+ * assistant (connector grants). Returns how many sessions there were.
+ */
 export const revokeAllSessions = (ctx: ServiceContext, input: AccountHelpInput) =>
   withTransaction(async (tx) => {
     const target = await helpTarget(ctx, accountHelpZSchema, input, tx);
@@ -362,6 +366,9 @@ export const revokeAllSessions = (ctx: ServiceContext, input: AccountHelpInput) 
       "accountAdmin:query",
     );
     if (isError(removed)) return removed;
+    // A raw delete skips Better Auth's hooks, so the assistants go here (B-329).
+    const disconnected = await revokeAllForUser(target.account.id, tx);
+    if (isError(disconnected)) return disconnected;
     const recorded = await adminAuditService.record(tx, {
       actorId: auditActorId(ctx),
       action: "user.revokeAllSessions",
@@ -468,10 +475,10 @@ const voidPendingLinks = (tx: Tx, account: { id: string; email: string }) => {
 };
 
 /**
- * Admins (`users.disable`): disable an account. Every session goes, its
- * pending sign-in and reset links stop working, and it can't sign in or get
- * a sync token until it's re-enabled (packages/auth); memberships and data
- * stay. One transaction with its audit entry. Never yourself, never the last
+ * Admins (`users.disable`): disable an account. Every session and every
+ * assistant's connection goes, its pending sign-in and reset links stop
+ * working, and it can't sign in or get a sync token until it's re-enabled
+ * (packages/auth); memberships and data stay. One transaction with its audit entry. Never yourself, never the last
  * admin. Returns how many sessions were signed out.
  */
 export const disable = (ctx: ServiceContext, input: AccountHelpInput) =>
@@ -514,6 +521,8 @@ export const disable = (ctx: ServiceContext, input: AccountHelpInput) =>
       "accountAdmin:query",
     );
     if (isError(removed)) return removed;
+    const disconnected = await revokeAllForUser(account.id, tx);
+    if (isError(disconnected)) return disconnected;
     const voided = await voidPendingLinks(tx, account);
     if (isError(voided)) return voided;
 

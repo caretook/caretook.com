@@ -7,8 +7,8 @@ export type AuthUserOptions = {
   /**
    * Read the live session row, bypassing Better Auth's session cookie cache
    * (auth.ts, `cookieCache`): staff work and anything else that must see a
-   * revocation at once. Without it, a session revoked in the last 3 minutes
-   * can still resolve (docs/domain/auth.md).
+   * revocation at once. Without it, the session's row is still checked
+   * (getAuthFacts), so a revoked one resolves to null either way.
    */
   live?: boolean;
 };
@@ -20,7 +20,11 @@ export type AuthUserOptions = {
  * sessions are revoked when it's disabled; this covers one already in use,
  * and a session still in the cookie cache, since the account is read live).
  *
- * The account and its memberships load in one query (B-140).
+ * The account, its memberships and the live session row load in one query
+ * (B-140, B-339): a session revoked elsewhere (signed out, a password
+ * reset, staff) reads as signed out on the next call, even while Better
+ * Auth's cookie cache still holds a copy of it. `live` still matters where
+ * Better Auth's own session read must be fresh (its expiry, staff work).
  *
  * `groupRoles` is for UI checks only; the model layer re-checks membership
  * in SQL on every query.
@@ -35,7 +39,7 @@ export const getAuthUser = async (
   });
   if (!session) return null;
 
-  const facts = await userModel.getAuthFacts(session.user.id);
+  const facts = await userModel.getAuthFacts(session.user.id, session.session.id);
   if (isError(facts)) return facts;
   if (!facts || facts.disabledAt) return null;
 
