@@ -4,15 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State   | Merge into `prd/shared-displays` (slice commits) |
-| ----- | ---- | ------- | ------------------------------------------------ |
-| 1     | 1    | planned |                                                  |
-| 2     | 2    | planned |                                                  |
-| 3     | 3    | planned |                                                  |
-| 4     | 3    | planned |                                                  |
-| 5     | 3    | planned |                                                  |
-| 6     | 4    | planned |                                                  |
-| 7     | 1    | planned |                                                  |
+| Slice | Wave | State                         | Merge into `prd/shared-displays` (slice commits) |
+| ----- | ---- | ----------------------------- | ------------------------------------------------ |
+| 1     | 1    | running (sonnet: a pure move) |                                                  |
+| 2     | 2    | planned                       |                                                  |
+| 3     | 3    | planned                       |                                                  |
+| 4     | 3    | planned                       |                                                  |
+| 5     | 3    | planned                       |                                                  |
+| 6     | 4    | planned                       |                                                  |
+| 7     | 1    | running (opus)                |                                                  |
+
+- **Landing mode: run everything through** (dispatcher start, 2026-11-28): start every ready slice, land each green wave, ask only real questions via `risa ask`.
+- **Wave 1** started 2026-11-28: worktrees `.loops/shared-displays-1` and `-7`, agents spawned; `risa watch` running. B-961 claimed. Backlog at start: nothing new for this topic (B-1004, a `linkToBox` flake, is `fixes-tooling`).
 
 ## Architectural decisions
 
