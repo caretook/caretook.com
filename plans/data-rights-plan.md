@@ -10,7 +10,7 @@
 
 **Landing mode:** run everything through (start every ready slice, land each green wave, ask only real questions via `risa ask`).
 
-**Where it stands:** wave 1 landed in dev 2026-11-28 (PR #341, run 46177793758; to-test `2026-11-28-1355-data-rights.md`). **Wave 2 running (2026-11-28):** slice 5 (B-357, claimed), agent on **opus** (a migration, FK drops, RBAC). Sync before it: no merge needed. Then wave 3 = slice 6 (B-53 group half). Follow-ups for this topic: B-1049 (a deleted pass's name blank in the connector's `listMedications`), B-1053 (a note upload racing a delete keeps content). Lesson for the next plan: slices 1 to 3 ran 14 to 21 files, past the hook's 12.
+**Where it stands:** wave 1 landed in dev 2026-11-28 (PR #341, run 46177793758; to-test `2026-11-28-1355-data-rights.md`). **Wave 2 (2026-11-28):** slice 5 (B-357) built on **opus**, merged `40be45d26`; full-tier CI gate running. Slice 5 notes: the inviter's version column is `consent_attested_version` (`consent_version` already exists, the joiner's); a link's consent row is written at `requestWithLink`, not `approve`; a joiner still reads their own consent row after the group goes. Sync before it: no merge needed. Then wave 3 = slice 6 (B-53 group half). Follow-ups for this topic: B-1049 (a deleted pass's name blank in the connector's `listMedications`), B-1053 (a note upload racing a delete keeps content). Lesson for the next plan: slices 1 to 3 ran 14 to 21 files, past the hook's 12.
 
 **Open:** slice 3 saw a scrubbed (empty-name) place drop out because `toProvider` returned null; slice 2's `toProvider` now keeps a deleted row with no name, so check at the wave gate that a scrubbed place reads "Removed place" (and `toMedication` likewise) before filing a follow-up. Slices 2 (21 files) and 3 (14) passed the file-count warning: note for the next plan.
 
@@ -20,7 +20,7 @@
 | 2     | 1    | landed      | `288ff6273` (2677eadb0, e4cf04280)           |
 | 3     | 1    | landed      | `bfcdf7504` (60e80fbe7..f0745418d)           |
 | 4     | 1    | landed      | `9a7856062` (4b511c986)                      |
-| 5     | 2    | started     |                                              |
+| 5     | 2    | merged      | `40be45d26` (e959f31a6, 9091b891c), mig 0052 |
 | 6     | 3    | not started |                                              |
 
 **Backlog:** claim each slice's item when it starts. Run `pnpm backlog done` for B-84 after slices 1 to 4 and for B-357 after slice 5. B-53 stays open after slice 6 with a note: its account half is `data-rights-2`'s.
