@@ -21,8 +21,8 @@ apps/web/app/routes/app/groups/timeline/new/  roundtrip
 apps/web/app/routes/app/groups/timeline/edit/  roundtrip
 apps/web/app/routes/app/groups/timeline/EntryForm.tsx roundtrip
 apps/web/app/routes/app/groups/timeline/EntryKindPicker.tsx roundtrip
-# The setup card holds the invite hook first-sync and invites look for.
-apps/web/app/routes/app/groups/timeline/GettingStartedCard.tsx first-sync invites
+# The welcome and the invite card (its hook first-sync and invites look for).
+apps/web/app/routes/app/groups/timeline/TimelineWelcome.tsx first-sync invites
 apps/web/app/routes/app/groups/timeline/InviteSomeoneCard.tsx first-sync invites
 apps/web/app/routes/app/groups/timeline/SymptomFields.tsx roundtrip
 apps/web/app/routes/app/groups/timeline/Vital* roundtrip
