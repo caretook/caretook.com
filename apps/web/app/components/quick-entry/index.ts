@@ -2,4 +2,10 @@
 // together on the device. Used by the timeline, large by easy mode, and in
 // a sheet from any group page (`QuickEntrySheet`).
 export { QuickEntryBox } from "./QuickEntryBox";
-export { closeQuickEntry, openQuickEntry, QuickEntrySheet, useQuickEntryOpen } from "./QuickEntrySheet";
+export {
+  closeQuickEntry,
+  openQuickEntry,
+  QuickEntrySheet,
+  useOfferQuickEntry,
+  useQuickEntryOpen,
+} from "./QuickEntrySheet";
