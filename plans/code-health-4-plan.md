@@ -4,7 +4,11 @@
 
 ## Status
 
-**Where it stands:** planned; nothing started.
+**From the user:** none yet.
+
+**Landing mode:** run everything through (started run-through by the dispatcher, 2026-11-28).
+
+**Where it stands:** wave 1 (slices 1, 2) starting 2026-11-28; models: slice 1 opus, slice 2 opus.
 
 | Slice | Wave | State   | Merge into `prd/code-health-4` (slice commits) |
 | ----- | ---- | ------- | ---------------------------------------------- |
