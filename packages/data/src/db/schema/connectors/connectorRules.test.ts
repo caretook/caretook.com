@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
   connectorClientName,
@@ -83,5 +84,20 @@ describe("connector rules", () => {
     expect(CONNECTOR_CONSENT_VERSION).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(CONNECTOR_CONSENT_TEXT).toMatch(/AI assistant I chose/);
     expect(CONNECTOR_CONSENT_TEXT).toMatch(/no one's contact details/);
+  });
+
+  it("name tags among what is sent (connectors-5)", () => {
+    expect(CONNECTOR_CONSENT_TEXT).toMatch(/\btags\b/);
+  });
+
+  // A recorded version must mean the words that person saw: each version
+  // pins its text's hash, so changing the text without a new version (and a
+  // new line here) fails. Keep old lines; never edit one.
+  it("move the version whenever the text changes", () => {
+    const TEXT_BY_VERSION: Record<string, string> = {
+      "2026-11-27": "c1296412419c83f7",
+    };
+    const hash = createHash("sha256").update(CONNECTOR_CONSENT_TEXT).digest("hex").slice(0, 16);
+    expect(TEXT_BY_VERSION[CONNECTOR_CONSENT_VERSION]).toBe(hash);
   });
 });
