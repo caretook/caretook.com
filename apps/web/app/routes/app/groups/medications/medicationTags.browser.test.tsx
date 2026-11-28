@@ -90,7 +90,7 @@ describe("tags on a medication", () => {
     await expect.poll(pageChips).toBe("Care home move,Knee");
     expect(await linksOf(device, LISINOPRIL.id)).toEqual(["Care home move", "Knee"]);
 
-    await pick("Heart");
+    await pick("Heart", "main header:has([data-medication-name])");
     await device.settle();
     await expect.poll(pageChips).toBe("Care home move,Heart,Knee");
     await userEvent.click(page.getByRole("button", { name: "Done", exact: true }));
