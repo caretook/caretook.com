@@ -19,7 +19,7 @@
 - Slice 1 handed off (quick check green on 96dc47533), merged 98f9114db. No upload-path service needed changing; only the registry's softDelete PUT now passes `ctx`. For slice 2: PATCH/DELETE paths in the registry (softDelete remove/update, timeline_entry and todo PATCH) run without `tx` today; slice 2's whole-PUT `tx` makes them join. A nested throw now returns `db:transaction` instead of propagating. B-294 stays open until slice 5.
 
 - Slice 4 handed off (quick check green on fe68fed3e), merged 95b947f22. `SYNC_WRITE_LIMIT = 1000` in `@caretook/data/domain`. Audit: every multi-row `*.sync.ts` save already uses one `db.drizzle.transaction`; nothing wrapped. Largest write measured: the series split, 437 ops (pinned). Screens chaining several single-row saves were out of scope. Audit list for the sync doc at landing is in the slice's hand-off (multi-row saves: appointments, series, visitPrep, quickEntry, medicationPasses, passLogs, medications, allergies, liveEntry, providers, tags, carePeriods, todos, conditions, medicationConditions, timeline, symptomTypes).
-- Wave 1 gate: `risa ci run components` on 95b947f22 (requested).
+- Wave 1 gate: components run 46129518715 on 743f3859c: flake (only `search.sync.browser.test.tsx`'s 2,000-entry timing, on the brake list, outside our files): counts green. `risa sync`: up to date with dev. Slice worktrees 1 and 4 removed. PR #322 opened; Codex review waiting. Browser check (`risa browser --changed --base dev`) running.
 
 ## Durable decisions
 
