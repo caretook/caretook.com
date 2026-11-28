@@ -133,7 +133,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `tags-4` | — | `tags-3` | — | — |
 | `todo-links-2` | done | `todo-links` | `apps/web/app/lib/todos/todoView`, `apps/web/app/lib/todos/todoTreeView`, `apps/web/app/lib/todos/todoSheets`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/planner/` | — |
 | `free-limits-2` | — | `account-security`, `free-limits` | — | — |
-| `quick-entry-3` | — | — | — | — |
+| `quick-entry-3` | — | — | `apps/web/app/routes/app/layout/`, `apps/web/app/components/quick-entry/`, `apps/web/app/lib/assistant/`, `packages/data/src/domain/assistant/`, `packages/data/src/db/schema/assistant/quickEntry.ts`, `apps/web/app/routes/app/groups/help/` | — |
+| `undo-first` | — | `quick-entry-3` | — | — |
+| `quick-entry-4` | — | `undo-first` | — | — |
 
 ## Summary
 
@@ -292,9 +294,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1037 | change | triaged | fixes-perf |  | Bring the components tier's first shard under 275 s so the components time gate can be armed |
 | B-1038 | feature | triaged | quick-entry-3 |  | Quick entry on every page: a button in the app frame, / and Cmd+K on desktop, and aware of the page it opens on (a provider's page links that provider) |
 | B-1039 | feature | triaged | quick-entry-3 |  | Quick entry 'go to <page>' and 'open <page> in a new tab' (with other wordings) to move around the site |
-| B-1040 | change | triaged | quick-entry-3 |  | Act first, Undo after, app-wide: reversible actions run without a confirm, a longer Undo and a recent actions list to roll back; only irreversible or high-stakes actions still ask |
-| B-1041 | feature | triaged | quick-entry-3 |  | Quick entry undo and fix commands: 'undo', 'undo that', 'change that to …', 'delete that' |
-| B-1042 | feature | triaged | quick-entry-3 |  | Quick entry acts on existing things: 'done <todo>', 'skip <pass>', 'tag that <tag>', 'move <event> to <time>' |
+| B-1040 | change | triaged | undo-first |  | Act first, Undo after, app-wide: reversible actions run without a confirm, a longer Undo and a recent actions list to roll back; only irreversible or high-stakes actions still ask |
+| B-1041 | feature | triaged | undo-first |  | Quick entry undo and fix commands: 'undo', 'undo that', 'change that to …', 'delete that' |
+| B-1042 | feature | triaged | quick-entry-4 |  | Quick entry acts on existing things: 'done <todo>', 'skip <pass>', 'tag that <tag>', 'move <event> to <time>' |
 | B-1043 | feature | triaged | quick-entry-3 |  | Quick entry find, switch and contact: 'find <text>' opens search, 'switch to <group>', 'call <provider>' opens the dialer |
 
 ## Items
@@ -1845,29 +1847,32 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-1040 · change · Act first, Undo after, app-wide: reversible actions run without a confirm, a longer Undo and a recent actions list to roll back; only irreversible or high-stakes actions still ask
 
 - status: triaged
-- prd: quick-entry-3
+- prd: undo-first
 - owner:
 - commit:
 
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28: 'I'd like to eventually move away from "confirmations" and into "default action taken let me know if you want to roll back" so a user can use the site as much as possible hands free.' Chose app-wide.
+- 2026-11-28 (plan/quick-entry-3): 2026-11-28: follow-on of quick-entry-3; its PRD's 'The whole plan' section sets this topic's scope and the confirms that go and stay. Plan from it.
 
 ### B-1041 · feature · Quick entry undo and fix commands: 'undo', 'undo that', 'change that to …', 'delete that'
 
 - status: triaged
-- prd: quick-entry-3
+- prd: undo-first
 - owner:
 - commit:
 
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28: 'The ez entry box is very close to graduation from a "timeline feature" to a "alternative primary interface to the site"... Lets plan "BIG" and then slice into manageable steps'. Planned inline in the backlog session.
+- 2026-11-28 (plan/quick-entry-3): 2026-11-28: follow-on of quick-entry-3; its PRD's 'The whole plan' section sets this topic's scope and the confirms that go and stay. Plan from it.
 
 ### B-1042 · feature · Quick entry acts on existing things: 'done <todo>', 'skip <pass>', 'tag that <tag>', 'move <event> to <time>'
 
 - status: triaged
-- prd: quick-entry-3
+- prd: quick-entry-4
 - owner:
 - commit:
 
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28: 'The ez entry box is very close to graduation from a "timeline feature" to a "alternative primary interface to the site"... Lets plan "BIG" and then slice into manageable steps'. Planned inline in the backlog session.
+- 2026-11-28 (plan/quick-entry-3): 2026-11-28: follow-on of quick-entry-3; its PRD's 'The whole plan' section sets this topic's scope and the confirms that go and stay. Plan from it.
 
 ### B-1043 · feature · Quick entry find, switch and contact: 'find <text>' opens search, 'switch to <group>', 'call <provider>' opens the dialer
 
