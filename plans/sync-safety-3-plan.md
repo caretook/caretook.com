@@ -4,35 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State          | Merge into `prd/sync-safety-3` (slice commits) |
-| ----- | ---- | -------------- | ---------------------------------------------- |
-| 1     | 1    | merged (opus)  | 98f9114db (e46c7c7c7, 96dc47533)               |
-| 2     | 2    | merged (opus)  | c3121383a (a0b109cfe)                          |
-| 3     | 3    | running (opus) |                                                |
-| 4     | 1    | merged (opus)  | 95b947f22 (0aa0e004d, fe68fed3e)               |
-| 5     | 4    | planned        |                                                |
+| Slice | Wave | State         | Merge into `prd/sync-safety-3` (slice commits) |
+| ----- | ---- | ------------- | ---------------------------------------------- |
+| 1     | 1    | landed (opus) | 98f9114db (e46c7c7c7, 96dc47533)               |
+| 2     | 2    | landed (opus) | c3121383a (a0b109cfe)                          |
+| 3     | 3    | landed (opus) | b7155cd89 (54aed68c0)                          |
+| 4     | 1    | landed (opus) | 95b947f22 (0aa0e004d, fe68fed3e)               |
+| 5     | 4    | next          |                                                |
 
 **Landing mode: run everything through** (dispatcher start, 2026-11-28): start every ready slice, land each green wave, ask only real questions.
 
-- 2026-11-28: wave 1 started. B-294 claimed. Worktrees `sync-safety-3-1` and `sync-safety-3-4` made from prd at the plan's anchor fix; one opus agent each. Start conditions clear (onboarding-2 and code-health-2 not running).
-
-- Slice 1 handed off (quick check green on 96dc47533), merged 98f9114db. No upload-path service needed changing; only the registry's softDelete PUT now passes `ctx`. For slice 2: PATCH/DELETE paths in the registry (softDelete remove/update, timeline_entry and todo PATCH) run without `tx` today; slice 2's whole-PUT `tx` makes them join. A nested throw now returns `db:transaction` instead of propagating. B-294 stays open until slice 5.
-
-- Slice 4 handed off (quick check green on fe68fed3e), merged 95b947f22. `SYNC_WRITE_LIMIT = 1000` in `@caretook/data/domain`. Audit: every multi-row `*.sync.ts` save already uses one `db.drizzle.transaction`; nothing wrapped. Largest write measured: the series split, 437 ops (pinned). Screens chaining several single-row saves were out of scope. Audit list for the sync doc at landing is in the slice's hand-off (multi-row saves: appointments, series, visitPrep, quickEntry, medicationPasses, passLogs, medications, allergies, liveEntry, providers, tags, carePeriods, todos, conditions, medicationConditions, timeline, symptomTypes).
-- Wave 1 gate: components run 46129518715 on 743f3859c: flake (only `search.sync.browser.test.tsx`'s 2,000-entry timing, on the brake list, outside our files): counts green. `risa sync`: up to date with dev. Slice worktrees 1 and 4 removed. PR #322 opened; Codex review waiting. Browser check (`risa browser --changed --base dev`) running.
-
-- Codex clean on 743f385. Wave 1 docs folded: data-layer's `withTransaction` line (savepoint), sync _Device_ "one save, one transaction" (the full audit list stays here, too long for the 10 KB doc); both trimmed to stay at budget. Next: browser check result, push, re-review, `risa land sync-safety-3 --tier components`, then rotate (wave 2: slice 2, opus).
-
-- **Wave 1 landed** in dev through PR #322 (dev 26eb8f0), tier components; flake filed on B-1000; report a387; to-test `2026-11-28-0803-sync-safety-3.md`. Slice worktrees 1 and 4 removed after the reboot; browser 11/11.
-
-- 2026-11-28 13:05Z: **wave 2 started.** Backlog ingest: nothing new for this topic. `risa sync`: no merge needed. Worktree `sync-safety-3-2` made; one opus agent spawned on `risa prompt slice sync-safety-3 2`.
-
-- Slice 2 handed off (quick check green on a0b109cfe), merged c3121383a. `syncRegistry.ts` unchanged (softDelete and tag PATCH already pass `ctx`). `SYNC_BATCH_LIMIT = 100` stays in `sync.ts`. A 500-op write took about 3.4 s locally (savepoints cost almost nothing). For slice 3: `refusedId` only with `sync:writeRefused`; `failed` always at the write's first op; over 100 ops only when every op shares one `write`; a NUL refuses the whole write (`sync:invalid` on that op). Docs fold at landing: sync _Upload_ still says 100 ops and per-op results. Wave 2 gate: `risa ci run integration` (risa tier: server code).
-
-- **Wave 2 landed** in dev through PR #325 (dev cefab09), tier integration (run 46148641016 green; Codex clean on f389a70; browser roundtrip + live-notes 2/2); landed on an unsynced tip (dev's 2 commits shared no file). Report filed; to-test `2026-11-28-0825-sync-safety-3.md`. Slice worktree 2 removed. Sync doc _Upload_ folded (f389a70fe).
-- 2026-11-28 13:30Z: **wave 3 started** (after a restart). Backlog ingest: nothing new for this topic. `risa sync`: no merge needed. Worktree `sync-safety-3-3` made; one opus agent spawned on `risa prompt slice sync-safety-3 3`, told slice 2's contract. At landing, fold sync _Device_ (`uploader.ts`: whole writes). B-294 stays in progress until slice 5.
-- Slice 3 handed off (quick check green on 54aed68c0), merged b7155cd89. `nextBatch` reads one past the batch; a first write over 100 is read alone up to `SYNC_WRITE_LIMIT`; over the limit its first 100 go without `write` (the rest then goes whole once it fits). 400 resends write by write (`uploadWriteByWrite`). For slice 5: every op sent with a write has `write_id`, but only multi-op writes share `line_key` `write:<id>`, so keep grouping by `line_key`; `recorded_at` within a line is arbitrary, pick the reason from the op not `sync:writeRefused`. Wave 3 gate: `risa ci run components` (risa tier: app code): run 46150457904 green on 9d9cc39b. `risa sync`: no merge needed. Slice worktree 3 removed. PR #326 opened; Codex review and `risa browser --changed --base dev` running. Sync doc _Device_ folded (193e7c129). Next: review clean, push, `risa land sync-safety-3 --tier components`, report, status-trim, rotate (wave 4: slice 5, opus).
-- **Wave 3 landed** in dev through PR #326 (dev 4b2a7f5), tier components (run 46150457904 green; Codex clean on 76c31fe; browser 3/3); unsynced tip (dev's 4 commits shared no file). Report filed; to-test `2026-11-28-0901-sync-safety-3.md`. Codex's 2 P2s are slice 5's work, noted on B-294 and replied.
+- **Waves 1-3 landed** in dev 2026-11-28: wave 1 (slices 1, 4) PR #322, dev 26eb8f0; wave 2 (slice 2) PR #325, dev cefab09; wave 3 (slice 3, merged b7155cd89) PR #326, dev 4b2a7f5, tier components, run 46150457904 green, Codex clean on 76c31fe, browser 3/3. To-test files `2026-11-28-0803`, `-0825`, `-0901-sync-safety-3.md`. Sync and data-layer docs folded per wave. Codex's 2 P2s on #326 are slice 5's work, noted on B-294 and replied.
+- Slice 3's uploader: `nextBatch` reads one past the batch; a first write over 100 is read alone up to `SYNC_WRITE_LIMIT`; over it, 100 go without `write`. A 400 resends write by write (`uploadWriteByWrite`).
 - **Next session (wave 4):** `risa backlog ingest` and `list`, `risa sync`, then `risa slice sync-safety-3 5` and one opus agent on `risa prompt slice sync-safety-3 5`. Tell it: group by `line_key` (single-op writes carry `write_id` but keep their row's key; multi-op writes share `write:<id>`); `unsavedLines` takes code/issues from the record not answering `sync:writeRefused` (never the newest: `recorded_at` within a write is arbitrary); `retryUnsaved` sends a line's records as one write with their stored `write_id` (else a 101-1000-op set-aside write is over the 100-op cap and unretryable). Both are Codex findings on PR #326. When slice 5 merges, `risa backlog done B-294`. At landing, fold sync _Device_ ("Changes not saved": one line per write). Last wave: `risa rm sync-safety-3` at the end.
 
 ## Durable decisions
