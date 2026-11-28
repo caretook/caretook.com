@@ -98,6 +98,20 @@ const refuseLoggerOnly = async (
 };
 
 /**
+ * `checkDoseMedication`'s answer for a dose whose medication (as the member
+ * sees it, deleted ones too) is in `medicationGroupId`, undefined for none.
+ */
+const doseMedicationRefusal = (groupId: string, medicationGroupId: string | undefined) =>
+  medicationGroupId === groupId
+    ? null
+    : newError({
+        code: "timelineEntryService:medicationNotInGroup",
+        meta: {
+          issues: [{ path: "details.medicationId", message: "Choose a medication in this care group" }],
+        },
+      });
+
+/**
  * A dose's medication must be in the entry's group, as the actor sees it. A
  * deleted medication still counts: its doses stay, and a replayed upload of
  * one must still land.
@@ -115,14 +129,7 @@ const checkDoseMedication = async (
     includeDeleted: true,
   });
   if (isError(medication)) return medication;
-  return medication?.groupId === groupId
-    ? null
-    : newError({
-        code: "timelineEntryService:medicationNotInGroup",
-        meta: {
-          issues: [{ path: "details.medicationId", message: "Choose a medication in this care group" }],
-        },
-      });
+  return doseMedicationRefusal(groupId, medication?.groupId);
 };
 
 /**
@@ -532,7 +539,8 @@ const once = <T>(read: (key: string) => Promise<T>) => {
  * `create` for many entries in one INSERT (a series' visits: B-755). Each
  * entry gets create's checks, in create's order, with the reads they share
  * done once: the actor's role and the recipient per group, each series
- * once, and the series days taken in one read. Then one calendar push per
+ * once, every dose's medication in one read, and the series days taken in
+ * one read. Then one calendar push per
  * group with an event. All or nothing. Returns the entries in `inputs`' order.
  */
 export const createMany = (
@@ -551,9 +559,28 @@ export const createMany = (
       return checkSeriesOf(ctx, tx, { seriesId, groupId, kind });
     });
 
+    const parsedAll = inputs.map((input) => timelineEntryCreateZSchema.safeParse(input));
+    // Every dose's medication in one read, not one per dose (a Given all's: B-1051).
+    const medicationIds = [
+      ...new Set(
+        parsedAll.flatMap((p) =>
+          p.success && isDoseDetails(p.data.details) ? [p.data.details.medicationId] : [],
+        ),
+      ),
+    ];
+    const doseMedications = medicationIds.length
+      ? await medicationModel.list({
+          ...ctx,
+          tx,
+          includeDeleted: true,
+          filter: { id: { type: "inArray", value: medicationIds } },
+        })
+      : { data: [] };
+    if (isError(doseMedications)) return doseMedications;
+    const medicationGroup = new Map(doseMedications.data.map((m) => [m.id, m.groupId]));
+
     const entries = [];
-    for (const input of inputs) {
-      const parsed = timelineEntryCreateZSchema.safeParse(input);
+    for (const parsed of parsedAll) {
       if (!parsed.success) return invalid(parsed.error);
       const { recipientId, details, ...data } = parsed.data;
 
@@ -573,7 +600,9 @@ export const createMany = (
       const future = refuseFuture(data.kind, data.occurredAt);
       if (future) return future;
 
-      const medication = await checkDoseMedication(ctx, tx, data.groupId, details);
+      const medication = isDoseDetails(details)
+        ? doseMedicationRefusal(data.groupId, medicationGroup.get(details.medicationId))
+        : null;
       if (medication) return medication;
 
       const moved = await checkRescheduledTo(ctx, tx, data);
