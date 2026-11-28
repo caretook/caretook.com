@@ -3,6 +3,18 @@ export const CARE_GROUPS_ERRORS = {
     message: "Care group not found",
     statusCode: 404,
   },
+  "careGroupService:ownerOnly": {
+    message: "Only an owner can delete a care group",
+    statusCode: 403,
+  },
+  "careGroupService:wrongName": {
+    message: "Type the care group's name to delete it",
+    statusCode: 400,
+  },
+  "careGroupService:db": {
+    message: "The care group couldn't be deleted",
+    statusCode: 500,
+  },
   "careGroupMemberService:notFound": {
     message: "Group member not found",
     statusCode: 404,

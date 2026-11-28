@@ -225,6 +225,15 @@ export const careGroup = {
       return { groupId: input.groupId, userId: input.userId };
     }),
 
+  /**
+   * Delete the group and everything in it (owners only, data-rights), the
+   * owner typing its name to confirm. A wrong name is a 400, any other
+   * member a 403, a non-member a 404. Devices lose it on their next sync.
+   */
+  delete: authedProcedure
+    .input(z.object({ groupId: id, confirmName: z.string().max(200) }))
+    .handler(async ({ context, input }) => unwrap(await careGroupService.remove(context, input))),
+
   /** Start a care group with its recipient; the creator is its owner (groups.ts). */
   create: createCareGroup,
 

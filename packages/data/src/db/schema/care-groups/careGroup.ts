@@ -55,3 +55,13 @@ export const careGroupUpdateZSchema = /* @__PURE__ */ createUpdateSchema(careGro
 
 /** A group's name, as the web app parses it (plain zod: see careRecipientProfileZSchema, B-872). */
 export const careGroupNameZSchema = z.object({ name });
+
+/**
+ * Whether `typed` names the group `name`, as deleting it asks (data-rights):
+ * the same words, ignoring case, spaces at either end and doubled spaces.
+ * The Delete button and the server both ask it.
+ */
+export const confirmsGroupName = (typed: string, name: string) => {
+  const plain = (text: string) => text.trim().replace(/\s+/g, " ").toLocaleLowerCase();
+  return plain(name) !== "" && plain(typed) === plain(name);
+};

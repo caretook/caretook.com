@@ -209,6 +209,17 @@ describe("careGroup: group settings", () => {
     ...over,
   });
 
+  // The rules are careGroupService's (groupDelete.int.test.ts): one pass-through.
+  it("delete: the owner deletes the group by its name; a wrong name is a 400", async () => {
+    const s = await settingsSetup();
+    const wrong = await rejection(s.owner.careGroup.delete({ groupId: s.group.id, confirmName: "Other" }));
+    expect(wrong.code).toBe("BAD_REQUEST");
+    expect(await s.owner.careGroup.delete({ groupId: s.group.id, confirmName: s.group.name })).toEqual({
+      groupId: s.group.id,
+    });
+    expect(await s.viewer.careGroup.listMine()).toEqual([]);
+  });
+
   describe("update", () => {
     it.each(["owner", "admin"] as const)("lets an %s rename the group, trimmed", async (role) => {
       const s = await settingsSetup();
