@@ -7,7 +7,8 @@ import { SETUP_NUDGE_FOLLOW_UP_MS } from "~/lib/app-shell/setupNudges";
 import { renderWithDevice } from "../../../../../test/device";
 import { forgetShownNudges } from "./useSetupNudges";
 import { fixClock } from "../../../../../test/found";
-import { TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
+import { Link } from "react-router";
+import { fx, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 
 // The setup nudges over the group's pages (the group layout's
 // `useSetupNudges`), on the offline test device with a fake clock: the help
@@ -15,13 +16,39 @@ import { TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 // (pending, offline) and the entry nudge following 30 s later, whose Open
 // lands on a new note. The default test device (every nudge retired) shows
 // none. The pages under the group are stand-ins; the scheduler's rules are
-// its unit test's.
+// its unit test's. A shown nudge goes with its group (switching groups) and
+// with its eligibility (a setup page opened), so its Open never points at a
+// page that no longer applies.
 
 const ROUTES: DeviceRoute[] = [
   { path: "/app/groups/:groupId/timeline", module: { default: () => <p>Timeline page</p> } },
   { path: "/app/groups/:groupId/entries/:entryId", module: { default: () => <p>Entry page</p> } },
 ];
 const TIMELINE = appUrls.timeline(TEST_GROUP.id);
+
+/** A second group, Grandpa Lou's, where the user is a caretaker: not its setter, so no setup page or nudge of its own. */
+const LOU = { id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f1b02", recipient: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f1c02" };
+const louGroup = [
+  fx.group({ id: LOU.id, name: "Moreno Family 2" }),
+  fx.recipient({ id: LOU.recipient, groupId: LOU.id, name: "Lou Moreno", preferredName: "Grandpa Lou" }),
+  fx.member({ userId: TEST_USER.id, groupId: LOU.id, role: "caretaker" }),
+];
+/** The timeline stand-in with links to another group and to a setup page, as the header and settings give. */
+const LINKED_ROUTES: DeviceRoute[] = [
+  {
+    path: "/app/groups/:groupId/timeline",
+    module: {
+      default: () => (
+        <>
+          <p>Timeline page</p>
+          <Link to={appUrls.timeline(LOU.id)}>Grandpa Lou</Link>
+          <Link to={appUrls.setup(TEST_GROUP.id, "providers")}>Set up providers</Link>
+        </>
+      ),
+    },
+  },
+  { path: "/app/groups/:groupId/setup/:step", module: { default: () => <p>Setup page</p> } },
+];
 
 /** This device knows the account's settings: the server answered before, with the setup pages opened. */
 const knownSettings = () => {
@@ -100,6 +127,36 @@ describe("the setup nudges", () => {
     await expect.element(help).toBeVisible();
     // A repeat would wait behind it in the queue and show as soon as it goes.
     await userEvent.click(help.getByRole("button", { name: "Dismiss" }));
+    await expect.element(help).not.toBeInTheDocument();
+    await device.settle();
+    expect(anyNudge()).toBeNull();
+  });
+
+  test("a shown nudge goes when another group opens", async () => {
+    knownSettings();
+    const device = await renderWithDevice({
+      route: LINKED_ROUTES,
+      url: TIMELINE,
+      noSetupRecord: true,
+      fixtures: louGroup,
+    });
+    const help = nudge("Want help onboarding?");
+    await expect.element(help).toBeVisible();
+    await userEvent.click(page.getByRole("link", { name: "Grandpa Lou" }));
+    await expect.poll(device.location).toBe(appUrls.timeline(LOU.id));
+    await expect.element(help).not.toBeInTheDocument();
+    await device.settle();
+    expect(anyNudge()).toBeNull();
+  });
+
+  test("a shown nudge goes when a setup page opens", async () => {
+    knownSettings();
+    const device = await renderWithDevice({ route: LINKED_ROUTES, url: TIMELINE, noSetupRecord: true });
+    const help = nudge("Want help onboarding?");
+    await expect.element(help).toBeVisible();
+    await userEvent.click(page.getByRole("link", { name: "Set up providers" }));
+    await expect.element(page.getByText("Setup page")).toBeVisible();
+    await expect.poll(device.location).toBe(appUrls.setup(TEST_GROUP.id, "providers"));
     await expect.element(help).not.toBeInTheDocument();
     await device.settle();
     expect(anyNudge()).toBeNull();

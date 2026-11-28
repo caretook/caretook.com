@@ -2,7 +2,7 @@ import type { SetupNudge } from "@caretook/data/schema";
 
 import { useEffect, useMemo, useReducer, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { toast } from "~/components/ui";
+import { dismissToast, toast } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useSetupFacts } from "~/lib/app-shell/gettingStarted.sync";
 import { useGroup } from "~/lib/app-shell/group";
@@ -23,7 +23,9 @@ import {
 // group through the settings path (pending offline), the next nudge following
 // `SETUP_NUDGE_FOLLOW_UP_MS` later. The device's own timing: the last time it
 // showed a nudge (local storage) and whether this browser session has shown
-// one (session storage).
+// one (session storage). A shown nudge goes with its group (the layout
+// unmounts on a switch) and when a setup page opens, so its Open never points
+// at the old group's setup or new note.
 
 const MESSAGES: Record<SetupNudge, string> = {
   help: "Want help onboarding?",
@@ -84,6 +86,8 @@ export function useSetupNudges() {
   const navigate = useNavigate();
   const [wake, bump] = useReducer((n: number) => n + 1, 0);
   const followUpAt = useRef<number | null>(null);
+  /** The toast of the nudge this group showed, while it may still be on screen. */
+  const shownToast = useRef<string | null>(null);
 
   const facts = useMemo(() => (live ? { ...live.setup, hasEntry: live.facts.hasEntry } : null), [live]);
   const setupPage = onSetupPage(pathname, groupId);
@@ -96,6 +100,22 @@ export function useSetupNudges() {
       window.removeEventListener("focus", bump);
     };
   }, []);
+
+  // Its group's pages gone (another group, or left the group): its nudge goes too.
+  useEffect(
+    () => () => {
+      if (shownToast.current) dismissToast(shownToast.current);
+      shownToast.current = null;
+    },
+    [groupId],
+  );
+
+  // A setup page open: the nudge pointing there no longer applies.
+  useEffect(() => {
+    if (!setupPage || !shownToast.current) return;
+    dismissToast(shownToast.current);
+    shownToast.current = null;
+  }, [setupPage]);
 
   useEffect(() => {
     if (document.visibilityState === "hidden") return;
@@ -121,7 +141,7 @@ export function useSetupNudges() {
         nudge === "help"
           ? appUrls.setup(groupId, (facts && firstUnfinishedStep(facts)) ?? undefined)
           : appUrls.newEntry(groupId, "note");
-      toast({
+      shownToast.current = toast({
         message: MESSAGES[nudge],
         timeout: SETUP_NUDGE_TIMEOUT,
         data: { "data-setup-nudge": nudge },

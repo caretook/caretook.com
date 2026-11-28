@@ -50,10 +50,12 @@ export const setupRedirect = async ({
 
   const { setup: facts } = await readSetupFacts(db, groupId, userId);
   if (!setsUpGroup({ userId, role, facts }) || firstUnfinishedStep(facts) === null) return null;
-  // Known settings are the cached copy (pending changes on top). Otherwise the
-  // loaders' path, which sends what's pending first: a new device waits for the
-  // server's first answer, which may say the group was opened elsewhere.
-  const settings = settingsKnown(userId) ? cached : await loadSettings(request, userId);
+  // Known settings are the cached copy (pending changes on top), read again:
+  // the /app middleware's early fetch may have landed during the read above
+  // (B-1010). Otherwise the loaders' path, which sends what's pending first: a
+  // new device waits for the server's first answer, which may say the group
+  // was opened elsewhere.
+  const settings = settingsKnown(userId) ? cachedSettings(userId) : await loadSettings(request, userId);
   const step = setupRedirectStep({
     groupId,
     userId,

@@ -4,8 +4,9 @@ import { medicationUrls } from "./urls";
 
 // Where a medication's page was opened from, for its Back link: a link
 // that opens the page (Schedule, the list, Passes, a provider, a todo,
-// search, a condition, a timeline entry) carries the screen it was on, with
-// its search and filters, in history state (`medicationPageState`). The
+// search, a condition, a timeline entry, the setup flow's medications
+// step) carries the screen it was on, with its search and filters, in
+// history state (`medicationPageState`). The
 // page reads it back (`medicationOriginFromState`) and names that screen;
 // without it (a direct load, a reload with no state, a shared link) Back is
 // the Medications list. History state, not a step back: it survives sheets
@@ -30,6 +31,9 @@ const labelFor = (path: string): string | null => {
     if (second === "passes") return "Med times";
     return null;
   }
+  // The setup flow's medications step lists what it adds; its label is the
+  // step's heading (`SETUP_STEP_META.medications.title`).
+  if (first === "setup" && second === "medications" && parts.length === 2) return "Medications";
   if (first === "timeline") return "Timeline";
   if (first === "search" && parts.length === 1) return "Search";
   if (first === "planner") return "Planner";
