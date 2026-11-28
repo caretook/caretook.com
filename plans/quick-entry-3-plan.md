@@ -8,17 +8,17 @@
 
 **Landing mode:** run everything through (dispatcher start, 2026-11-28): start every ready slice, land each green wave, ask only real questions.
 
-**Now (2026-11-28):** wave 1 (1, 3, 4) merged, but the tip fails typecheck: two `QuickEntryPage` types (slices 3 and 4) clash in the assistant index. Fixed by slice 3 (rename to `QuickEntryPageContext`, 5c3ac577d), merged as 52cbf459d; the components CI run (46175762928, on 68364595) braked: static (the clash) and components-3 `headerFit.browser.test.tsx` at 640 (short and long name), fixed by slice 1 (header `px-4` up to `lg`, d29dd590d), merged. CI rerun requested on the tip. Slice 2 handed off (d59858be2, merge 20057b2cf), check blocked by the clash. Slice 5 working (opus), told to merge prd after the fix. Watch running.
+**Now (2026-11-28):** wave 1 (1, 3, 4) merged, but the tip fails typecheck: two `QuickEntryPage` types (slices 3 and 4) clash in the assistant index. Fixed by slice 3 (rename to `QuickEntryPageContext`, 5c3ac577d), merged as 52cbf459d; the components CI run (46175762928, on 68364595) braked: static (the clash) and components-3 `headerFit.browser.test.tsx` at 640 (short and long name), fixed by slice 1 (header `px-4` up to `lg`, d29dd590d), merged. CI rerun requested on the tip. Slice 2 handed off, check green on 190bb66e4 (d59858be2; merges 20057b2cf, 190bb66e4); held unmerged so wave 1's CI verdict stays on its tip; merge after wave 1 lands. Slice 5 handed off, check green on 3af4ddbfd (fe9a688df); held like slice 2. Wave 2 = merge 2 then 5 after wave 1 lands, then rotate. Watch running.
 
 **Notes from hand-offs:** slice 1 added a reader refusal in the box (`!canLog` → no cards, `READER_REFUSAL` message), since `partsForRole` didn't refuse a reader's vital; fold into assistant.md at landing. Check `headerFit.browser.test.tsx` at the gate (new header button, ~36px). Slice 4's page keys and suggested URL map are in its hand-off for slice 5 (planner, medicationSchedule, profileAllergies, groupSettings for members/tags, account settings, periods). Slice 3: `useQuickEntrySuggestions` gets no page context (left alone). Backlog at the boundary: nothing new for this topic.
 
-| Slice | Wave | State   | Merge into `prd/quick-entry-3` (slice commits) |
-| ----- | ---- | ------- | ---------------------------------------------- |
-| 1     | 1    | merged  | 918598d63 (ac658e785)                          |
-| 2     | 2    | started |                                                |
-| 3     | 1    | merged  | 5dd34f0d8 (d81c8c54e, 6e4c09790, 19c9d74ae)    |
-| 4     | 1    | merged  | 4a31039bc (f9cd16008)                          |
-| 5     | 2    | started |                                                |
+| Slice | Wave | State      | Merge into `prd/quick-entry-3` (slice commits) |
+| ----- | ---- | ---------- | ---------------------------------------------- |
+| 1     | 1    | merged     | 918598d63 (ac658e785)                          |
+| 2     | 2    | handed off |                                                |
+| 3     | 1    | merged     | 5dd34f0d8 (d81c8c54e, 6e4c09790, 19c9d74ae)    |
+| 4     | 1    | merged     | 4a31039bc (f9cd16008)                          |
+| 5     | 2    | handed off |                                                |
 
 **Backlog:** claim a slice's item when it starts; `risa backlog done` an item when its last slice merges.
 
