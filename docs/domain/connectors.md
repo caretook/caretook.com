@@ -1,6 +1,6 @@
 # Connectors (a member's own Claude or ChatGPT, over MCP)
 
-PRDs: `plans/connectors{,-2,-3}-prd.md`. A member connects their own assistant to **one care group**: it reads what they see and writes by quick entry's rules. **No MCP SDK**. **Web only:** `/mcp`, `/connect` (a server loader) and `/.well-known/` (`routes/connectors/routes.ts`).
+PRDs: `plans/connectors{,-2,-3,-5}-prd.md`. A member connects their own assistant to **one care group**: it reads what they see and writes by quick entry's rules. **No MCP SDK**. **Web only:** `/mcp`, `/connect` (a server loader) and `/.well-known/` (`routes/connectors/routes.ts`).
 
 ## OAuth (`packages/auth/src/connectors.ts`)
 
@@ -12,14 +12,14 @@ PRDs: `plans/connectors{,-2,-3}-prd.md`. A member connects their own assistant t
 ## Consent (`/connect`)
 
 - Authorize sends to `/connect?…&sig=…` (signed, 10 min); signed out, `/sign-in`. **It reads the session live** (`getAuthUser(…, { live: true })`): it mints 30-day tokens. A browser's dead end gets HTML (`withConnectorAuthorizePage`); others keep JSON.
-- `ConnectConsent.tsx`: client and redirect host, groups with the switch on, scope by role, the consent checkbox (`CONNECTOR_CONSENT_TEXT`, `_VERSION`), Connect, Cancel. None on: the off groups, the ask button (non-owners) or Assistants' link (owners).
-- **Success:** Connect returns `{ connected }` (Cancel redirects): "Connected to <group>", three examples, "Return to <client>". **Needs JS:** CSP `form-action 'self'` blocks a cross-origin 302; it's `window.location`.
+- `ConnectConsent.tsx`: client and redirect host, groups with the switch on, scope by role, the consent checkbox (`CONNECTOR_CONSENT_TEXT`, `_VERSION`; new words, new version, pinned by hash), Connect, Cancel. None on: the off groups, the ask button (non-owners) or Assistants' link (owners).
+- **Success:** Connect returns `{ connected }`: "Connected to <group>", examples, "Return to <client>". **Needs JS:** CSP `form-action 'self'` blocks a cross-origin 302; it's `window.location`.
 
 ## Grants (`connector_grant`, `connectorGrantService`)
 
 - One grant binds a token to one group (`scope` `read|readWrite`, `consent_version`, `revoked_at`). One live grant per user and client; a new one ends the old's tokens.
 - `PERMISSIONS.connector_grant`: read, delete for the member, owners, admins; create, update for `system`.
-- **`verify(token)` is the only way into `/mcp`.** Each call rechecks account, membership, role (`scopesForRole`: viewers read, easy roles none), the switch and read only; token scopes narrow it (`effectiveScope`). It returns the member (`roleNames: ["member"]`), stamping `last_used_at` once a minute. `groupId` comes from the grant, never tool input.
+- **`verify(token)` is the only way into `/mcp`.** Each call rechecks account, membership, role (`scopesForRole`: viewers read, easy roles none), the switch and read only; token scopes narrow it (`effectiveScope`). It returns the member (`roleNames: ["member"]`), stamping `last_used_at` each minute. `groupId` comes from the grant, never tool input.
 - `revoke` ends the tokens and the `oauth_consent` row. `revokeForMember` runs in `careGroupMemberService.remove`/`leave`.
 - **The switch** `care_group.connectors_enabled` (default off; Dev Family on): owners only (`careGroupService.update`). Off revokes every grant.
 - **Read only** `connectors_read_only` (synced): owners only, survives the switch, revokes nothing. `verify` narrows each call; grants keep their scope, so switching back restores it. A blocked write: `mcp:groupReadOnly`, not a 403; only `readOnlyByOwner` names the owner.
@@ -40,13 +40,14 @@ PRDs: `plans/connectors{,-2,-3}-prd.md`. A member connects their own assistant t
 ## Tools
 
 - **Reads:** `group_overview`, `list_timeline` (day, kind, author; 90 days), `latest_vitals`, `search` (≤ 25, no todos), `list_medications` (`includePast`; `type`), `todays_doses` (as Today; `passId` is `give_pass`'s), `dose_schedule` (`doseSchedule`: rounds from today, no doses; 7 days, 14 max), `past_doses` (`doseRecord`; 7 days to today, 14 max, 90 back; only the window; 40 full pages: `TOO_BUSY_REFUSAL`), `upcoming` (30 days, 90 max), `list_todos` (open; done 90 days back; `mine`; with `repeats`, `eventId` (first linked event), `linkedEntryIds` (live ones), `parentId`), `list_providers`, `recipient_profile` (`conditions` with ids by `sortConditions`, `noKnownConditions`; providers by name). Pages of 50; times carry the recipient's offset.
-  - **`upcoming`** gives events plus open todos with a due day, overdue through the window's end (recipient's days): overdue todos first, then by day (all-day or untimed before timed), then time. Items are `kind: "event"` or `kind: "todo"` (`id`, `title`, `dueOn`, `dueTime`, `overdue`, `assignee {id, name}`, `repeats`, `partOf`). Subtasks: assigned or due before the parent (`upcomingListsSubtask`). No notes, done or undated todos or doses.
+  - **`upcoming`** gives events plus open todos with a due day, overdue through the window's end (recipient's days): overdue todos first, then by day (all-day or untimed before timed), then time. Items are `kind` `event` or `todo`. Subtasks: assigned or due before the parent (`upcomingListsSubtask`). No notes, done or undated todos or doses.
+- **Tags** (`tagSupport.ts`): `list_tags` (live counts by kind), `tagged_items` (`tag` a name or id, `kinds`; unknown or another group's: `tagFound: false`). No colors.
 - **Never returned:** members', recipient's and emergency contacts' emails, phones, addresses; invite and access-code data; the date of birth (age only); `rxNumber`, quantity; a provider's email, or more than name, role and status for an "other" provider. A sweep test guards it.
 - **Writes** (`tools/writes.ts`): `log_vitals` (canonical units), `log_symptom` (a catalog spelling, else adds it), `log_dose`, `give_pass`, `add_note`, `add_event`, `add_todo`, `append_to_entry`, `update_entry`, `add_condition`, `update_condition`, `resolve_condition`, `add_provider` (as the member; a repeat of type and name isn't added), `add_medication` (as the member). Each runs through **`assistantActionService.run(ctx, groupId, actions, { via })`**, `runActions`' server twin: one transaction, all checked first (schemas, skew, writer role, live medications, providers, passes), errors with `meta.index`. `add_note` takes `providerIds` (`noteDocFromText`; `providerGone` outside the group). `add_todo` takes an assignee's name and a structured `repeat` (`todoRepeatInput`; never RRULE text), returns `todoId`, `dueOn`, `repeats`. `log_dose` takes a scheduled slot's id: a repeat (same status, amount, note or none) answers "Already logged, nothing added". Dose writers read all medications and passes (deleted too), unpaged.
   - **`log_past_doses`** (a weekly sheet; ≤ `SHEET_DOSE_MARKS_MAX` `sheetDoseMarkZSchema` marks) runs `assistantActionService.logPastDoses` (shared `openBatch`): ids from `doseSlotIdFor`, reach 14 days; each slot locked whatever its answer (`lockDoseSlot`), then its id. Outcomes by `sheetDoseOutcomes`: `add`, `alreadyLogged`, `conflict`, `noSlot`, `notYet`, `tooOld`, `repeated`. Never changes a recorded dose.
-  - **Notes are for what has happened:** `add_note`, `update_entry` and `append_to_entry` refuse a note ahead with "A note can't be in the future. Use add_todo with a due day for something to do later." (from `FUTURE_DATE_MESSAGE`); `append_to_entry` also refuses a stored future note. Descriptions say so; they say "event" (no aliases); consent text still says appointments.
+  - **Notes are for what has happened:** `add_note`, `update_entry` and `append_to_entry` refuse a note ahead with "A note can't be in the future. Use add_todo with a due day for something to do later." (from `FUTURE_DATE_MESSAGE`); `append_to_entry` also refuses a stored future note. Descriptions say so and say "event"; consent text still says appointments.
   - Answers use `actionPreview` wording and a link (`links.ts`; tested against `appUrls`).
-- **Edits and conditions** are server-only kinds (`runnableActionZSchema`). `append_to_entry` (≤ 50 lines, 5,000 chars): a live note or event, one `note_update` as the member (`appendNoteSection`), compacted. `update_entry`: title, time (the end follows; a series visit detaches). Conditions use `recipientConditionService` (no provider links). Refused: deleted (`entryDeleted`, `conditionDeleted`), symptoms, vitals, doses (`notEditable`); another group's id: `entryNotFound`/`conditionNotFound`. No `via`.
+- **Edits and conditions** are server-only kinds (`runnableActionZSchema`). `append_to_entry`: a live note or event, one `note_update` as the member (`appendNoteSection`), compacted. `update_entry`: title, time (the end follows; a series visit detaches). Conditions use `recipientConditionService` (no provider links). Refused: deleted (`entryDeleted`, `conditionDeleted`), symptoms, vitals, doses (`notEditable`); another group's id: `entryNotFound`/`conditionNotFound`. No `via`.
 
 ## The "via" tag
 
@@ -63,5 +64,5 @@ PRDs: `plans/connectors{,-2,-3}-prd.md`. A member connects their own assistant t
 ## Tests
 
 - `testing.ts`: `connectAssistant` runs the whole OAuth flow in process for real tokens; `/mcp` calls use `mcpPost`, `callTool`, `toolResultOf`, `textOf`.
-- Browser checks mint a token (`mintToken.ts <email> <groupId> [clientName]`); `roundtrip` writes via `/mcp`.
+- Browser checks mint a token (`mintToken.ts`); `roundtrip` writes via `/mcp`.
 - By hand before launch: connect from Claude and ChatGPT, and check the guide's steps ([runbook](../../ops/runbook.md)).
