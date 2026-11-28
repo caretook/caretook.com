@@ -6,7 +6,7 @@
 
 | Slice | Wave | State   | Merge into `prd/onboarding-2` (slice commits) |
 | ----- | ---- | ------- | --------------------------------------------- |
-| 1     | 1    | running (opus) |                                        |
+| 1     | 1    | merged (opus) | e6594062c (7844ff2e0)                          |
 | 2     | 2    | planned |                                               |
 | 3     | 3    | planned |                                               |
 | 4     | 3    | planned |                                               |
@@ -15,7 +15,7 @@
 
 **Landing mode:** run everything through (dispatcher run-through start): start every ready slice, land each green wave, ask only real questions via `risa ask`.
 
-**Wave 1 (2026-11-27):** slice 1 worktree `.loops/onboarding-2-1`, agent spawned on opus. B-670 claimed. No new backlog items for this topic.
+**Wave 1 (2026-11-27):** slice 1 worktree `.loops/onboarding-2-1`, agent spawned on opus. B-670 claimed. No new backlog items for this topic. Slice 1 handed off (quick check green on 7844ff2e0) and merged; wave 1 CI run next. Note for slice 2+: settings are *known* only once `me.get` answered on this device (`settingsKnown`/`useSettingsKnown` in `lib/app-shell/me.ts`, marker key `caretook:settings:<id>:known`); `me.update` is the existing `me.updatePreferences`; test device option `noSetupRecord: true`.
 
 **Backlog:** `done` B-670 when slice 6 merges (B-670 replaces the setup card, which is slice 6's work).
 
