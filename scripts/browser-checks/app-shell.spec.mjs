@@ -37,8 +37,8 @@
 //    admin.settings.set, a real staff action, which writes one audit row that
 //    the server-loaded /admin/audit lists; and the banner reaches member@'s
 //    /app. Put back through the API.
-// 6. Deleting a group (data-rights): member@ owns a fresh group (made in SQL)
-//    with caretaker@ in it; once it reaches caretaker@'s device, member@
+// 6. Deleting a group (data-rights): member@ owns a fresh group (made in SQL,
+//    its setup dismissed) with caretaker@ in it; once it reaches caretaker@'s device, member@
 //    deletes it from Details (its confirm and the move to /app are
 //    groupSettings.browser.test.tsx's), and the next sync takes it off
 //    caretaker@'s device.
@@ -466,6 +466,12 @@ test("deleting a group: it leaves another member's device on the next sync", asy
     psql(
       `INSERT INTO care_group_member (group_id, user_id, role, created_by, updated_by) SELECT '${GROUP}', ${userId(email)}, '${role}', ${owner}, ${owner}`,
     );
+  // member@ is the group's setter: setup dismissed, so Details opens as it is.
+  const setupDismissed = (change) =>
+    psql(
+      `UPDATE "user" SET preferences = jsonb_set(coalesce(preferences, '{}'::jsonb), '{setupDismissed}', ${change}) WHERE email = 'member@example.com'`,
+    );
+  setupDismissed(`coalesce(preferences->'setupDismissed', '[]'::jsonb) || to_jsonb('${GROUP}'::text)`);
   const dM = await device("delete-owner");
   const dO = await device("delete-member");
   const M = dM.page;
@@ -502,6 +508,7 @@ test("deleting a group: it leaves another member's device on the next sync", asy
   } finally {
     psql(`DELETE FROM care_group WHERE id = '${GROUP}'`);
     psql(`DELETE FROM admin_audit_log WHERE target_group_id = '${GROUP}'`);
+    setupDismissed(`coalesce(preferences->'setupDismissed', '[]'::jsonb) - '${GROUP}'`);
   }
   await noErrors(dM, dO);
 });
