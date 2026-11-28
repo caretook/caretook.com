@@ -1062,3 +1062,25 @@ An alpha tester on iOS Safari and the installed PWA sees the Today header with n
 - On WebKit (Safari, iOS browsers and the installed PWA) apply no `OFFSCREEN_ROWS` at all; detect it once, in one small helper beside `offscreenRows.ts`, with a comment saying why (B-1046). Chromium and Firefox keep B-139's behaviour for the older days.
 - Unit tests (`offscreenRows.test.ts`): Today and a later day are never settled, even with many rows after them; the WebKit check turns the offscreen class off. Component tests: keep `timelineBlank.browser.test.tsx` and `timelineScroll.browser.test.tsx` green; add one that Today's rows carry no `content-visibility` after paging an older page in.
 - B-1046 stays open after this slice for report 2 (empty after the logo, reopening fixed it: likely the local database not answering after an iOS resume): say so in the hand-off.
+
+## Wave 30
+
+Two small wrong-data fixes moved here at data-rights' close (its hot files are free now). All test data fictional. No migration.
+
+### Slice 100: an old schedule labels a deleted pass instead of showing a blank name (B-1049)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/medications.md, docs/domain/connectors.md · Tests: integration
+
+The connector's `list_medications` (`packages/api/src/connectors/tools/listMedications.ts`) reads deleted passes on purpose so an old schedule keeps its shape, but the data-rights scrub (`0051_scrub_deleted.sql`) now clears a deleted pass's name, so the schedule reads with a blank slot (`risa backlog show B-1049`).
+
+- Decision (kept small, no change to what the scrub removes): a deleted pass whose name was scrubbed reads as a fixed label (for example "Removed time") in the schedule text, never a blank or a stray separator. A live pass reads as before. The scrub is left as it is.
+- Integration test: a medication with two passes, one then deleted (so scrubbed), lists through `list_medications` with the live pass's name and the label, and no empty name.
+
+### Slice 101: a note upload that overlaps its delete is refused (B-1053)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/live-notes.md, docs/domain/data-layer.md · Tests: integration
+
+`noteDocumentService.appendUpdate` checks the owner is visible and writable without locking it, so an append in flight can land after the scrub trigger cleared the document and deleted its updates; the stream replicates it and compaction can write the content back (`risa backlog show B-1053`, Codex on PR #341).
+
+- Lock the owner row (`FOR SHARE`) inside `appendUpdate`'s transaction and recheck `deleted_at` under the lock; a deleted owner refuses the append with the same returned error a deleted owner gets today.
+- Integration test: an append racing a delete of the owning entry (two connections, the delete committing first under the lock) leaves no `note_update` row and no text on the scrubbed document.
