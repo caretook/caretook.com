@@ -25,6 +25,8 @@
 
 - 11:40Z: blocked on Docker. The daemon is unresponsive machine-wide (`docker info` times out; test Postgres :5436 down), so `risa rm sync-safety-3-1` hung in `test-db.sh drop` and no browser check ever ran. Asked the backlog session (caretook-com-cb) who runs `risa recover`. Pushed f9313cb7e to PR #322; Codex re-review waiting. After Docker: rm slices 1 and 4, `risa serve --restart`, `risa browser --changed --base dev`, land.
 
+- Cause (backlog session): the disk filled (ENOSPC) at about 09:13Z, hanging Docker and the dispatcher; about 7 GB freed; the user is rebooting. Codex clean on f9313cb. **Resume after reboot** (`risa recover` restarts Docker): `risa rm sync-safety-3-1`, `risa rm sync-safety-3-4`, `risa serve --restart`, `risa browser --changed --base dev`, `risa pr sync-safety-3` (pushes the Status commits), `risa review sync-safety-3 --wait` (or `--no-review` if only Markdown changed since the clean verdict), `risa land sync-safety-3 --tier components -m "feat(sync-safety-3): savepoint transactions and the shared write limit (wave 1, B-294)"`, the landing report, `risa status-trim`, then rotate (wave 2: slice 2, opus).
+
 ## Durable decisions
 
 - **A write is a device transaction:** the op's `write` is PowerSync's transaction id; consecutive ops with the same one are applied together or not at all. An op with no `write` is its own write.
