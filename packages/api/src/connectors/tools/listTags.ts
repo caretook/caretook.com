@@ -9,7 +9,7 @@ export const listTags = defineTool({
   name: "list_tags",
   title: "List tags",
   description:
-    "The care group's tags, A to Z, each with its id and how many live items carry it (in all and by kind: entry, todo, provider, medication). Pass a tag's name or id to tagged_items to see what carries it.",
+    "The care group's tags, A to Z, each with its id and how many live items carry it (in all and by kind: entry, todo, provider, medication). Give a tag's name or id to tagged_items to see what carries it.",
   scope: "read",
   input: z.object({}),
   annotations: READ_ANNOTATIONS,

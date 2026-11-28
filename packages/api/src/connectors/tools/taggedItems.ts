@@ -43,7 +43,7 @@ const KIND_TITLES: Record<string, string> = {
 export const taggedItems = defineTool({
   name: "tagged_items",
   title: "List tagged items",
-  description: `Everything live that carries a tag: timeline entries and events (newest first), todos (open first, then done), providers and medications (A to Z), in that order. Pass the tag's name (any case) or its id from list_tags; kinds narrows it. Each item has its kind, id, title, when (entries) or status, its tags and a link to it in the app. At most ${LIST_PAGE_MAX} a page; pass nextCursor back for more.`,
+  description: `Everything live that carries a tag: timeline entries and events (newest first), todos (open first, then done), providers and medications (A to Z), in that order. Give the tag's name (any case) or its id from list_tags; kinds narrows it. Each item has its kind, id, title, when (entries) or status, its tags and a link to it in the app. At most ${LIST_PAGE_MAX} a page; pass nextCursor back for more.`,
   scope: "read",
   input,
   annotations: READ_ANNOTATIONS,
