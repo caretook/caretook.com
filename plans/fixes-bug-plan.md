@@ -10,10 +10,13 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+| Slice | Item   | State             | Merge |
+| ----- | ------ | ----------------- | ----- |
+| 96    | B-1046 | starting (opus)   | —     |
+| 97    | B-1056 | starting (opus)   | —     |
+| 98    | B-1058 | starting (sonnet) | —     |
 
-**Wave 27 landed** (2026-11-28): PR #323 (dev 5dd73fd), Codex clean, CI components green (run 46129305490), browser checks app-shell, first-sync, invites passed; to-test `2026-11-28-0801-fixes-bug.md`. Slices 93-95 (B-1008, B-1009, B-1010) removed. Docs folded into app-shell (36768de99, on this branch: it rides the next landing). **Next:** `risa sync` at the next wave's start, then plan wave 28 from the triaged `fixes-bug` items. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table.
+**Wave 28** (2026-11-28): dev synced (d48ce5cd0; app-shell doc conflict resolved and trimmed under budget). Slices 96-98 written and starting in parallel. Models: 96, 97 opus; 98 sonnet (a one-line selector change the plan spells out). Wave 27 landed earlier (PR #323); its history is in the history file. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table.
 
 ## Wave 1
 
@@ -1012,3 +1015,34 @@ In `apps/web/app/routes/app/groups/layout/setupRedirect.ts` (about line 56), set
 
 - In the known-settings branch, re-read `cachedSettings(userId)` after the await and decide from it.
 - Component test: settings that arrive (setup dismissed) while `readSetupFacts` is pending: no redirect to setup.
+
+## Wave 28
+
+One alpha report (B-1046) and two quick-entry-3 follow-ups (Codex findings on PRs #344 and #345), run in parallel: each touches different files. **First confirm each bug with a failing test**; if it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code. All test data fictional. No migration.
+
+### Slice 96: the timeline's entries show without a scroll, after a resume and with several filters (B-1046)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/timeline.md, docs/domain/sync.md, docs/domain/components.md · Tests: component · Check: apps/web/app/routes/app/groups/timeline/timelineBlank.browser.test.tsx
+
+An alpha tester (mobile Safari and the installed PWA) sees the timeline paint only the Today header (and sometimes the vitals line) until a scroll; once, after tapping the logo, scrolling didn't help and only reopening the app did; once day headers rendered with every day's entries empty until a refresh, after resuming Safari and with several filter categories combined. The backlog notes (`risa backlog show B-1046`) have the three reports. Suspects, in order: the entries query or its subscription not re-running when the local database becomes ready on resume, or when filters combine (`lib/timeline/timeline.sync.ts`, `timelineFilters.ts`, `routes/app/groups/timeline/TimelineEntryList.tsx`); a client navigation to Today (the logo) that keeps a stale window; the list measuring before rows arrive (`offscreenRows.ts`).
+
+- Find which of these paths leaves the list empty, with a failing component test for each one you can reproduce; fix the cause so entries show as soon as they're in the local database, with no scroll or reload.
+- Component tests: entries arriving after the first empty read show without a scroll; several filter categories at once still list matching entries; navigating to Today from another page of the same group lists its entries. If a path doesn't reproduce, say so in the hand-off with its test.
+
+### Slice 97: a visit line on a provider's page is an event with that provider (B-1056)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md, docs/domain/appointments.md · Tests: unit · Check: packages/data/src/db/schema/assistant/quickEntry.test.ts
+
+On a provider's page, "saw her yesterday" reads as a note while "saw Dr. Lee yesterday" gives an event: the event eligibility check (`packages/data/src/db/schema/assistant/quickEntry.ts`, about line 1856) runs before the page provider counts (`aboutProvider`, line 1109), and the fallback event card has no `providerIds`.
+
+- Only for a visit verb ("saw", "visited", "appointment with"…), let the page provider count as named, so the line is an event linked to that provider. Every other line on a provider's page keeps today's reading (quick-entry-3 kept the page provider out of naming on purpose: "refill sent" stays a note).
+- Unit tests: "saw her yesterday" with a page provider gives an event with that provider's id; "refill sent" with a page provider is still not an event; "saw Dr. Lee yesterday" unchanged.
+
+### Slice 98: the quick entry shortcut stays shut while a native dialog is open (B-1058)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md, docs/domain/components.md · Tests: component · Check: apps/web/app/components/quick-entry/quickEntryShortcut.browser.test.tsx
+
+`inOtherLayer` in `apps/web/app/components/quick-entry/useQuickEntryShortcut.ts` (line 14) matches only `[role=dialog]` and friends, so `/` and Cmd/Ctrl+K open the quick entry sheet over a native `<dialog>` confirm.
+
+- Add `dialog` elements to the layer guard's selector.
+- Component test: with an open native `<dialog>` holding focus, `/` and Cmd/Ctrl+K don't open the sheet.
