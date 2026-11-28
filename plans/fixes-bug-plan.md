@@ -13,7 +13,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | Slice | Item   | State                                            | Merge     |
 | ----- | ------ | ------------------------------------------------ | --------- |
 | 100   | B-1049 | merged (already fixed by data-rights; test only) | 490073328 |
-| 101   | B-1053 | started 2026-11-28, opus agent, worktree made    | —         |
+| 101   | B-1053 | merged                                           | 8d9a348ac |
 
 **Wave 28 landed** (2026-11-28): PR #354 (dev 1c2b872), Codex clean, CI components flake (run 46186862084; todayCard, filed B-1065); to-test `2026-11-28-1540-fixes-bug.md`. B-1056, B-1058 done.
 
