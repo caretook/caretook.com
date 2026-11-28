@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import { Notice } from "~/components/ui/plain";
 
+import { CONTAINER, H1, H2, SECTION } from "./look";
 import { formatLegalDate, inlineParts, TOC_MIN_SECTIONS } from "./legal";
 import type { LegalBlock, LegalPageContent } from "./legal";
 
@@ -56,72 +57,75 @@ function Block({ block }: { block: LegalBlock }) {
 export function LegalPage({ content }: { content: LegalPageContent }) {
   const toc = content.sections.length >= TOC_MIN_SECTIONS;
   return (
-    <article aria-labelledby="page-heading" className="mx-auto w-full max-w-3xl px-4 py-12 sm:px-6 sm:py-16">
-      {content.draft && (
-        <div role="note" data-draft className="mb-8">
-          <Notice tone="warning">
-            <strong>DRAFT, not yet reviewed.</strong> This text is a draft for legal review. It isn&apos;t
-            final and may change before Caretook opens to the public.
-          </Notice>
+    // The site's container, with the text kept to a reading width inside it.
+    <article aria-labelledby="page-heading" className={`${CONTAINER} ${SECTION}`}>
+      <div className="mx-auto max-w-3xl">
+        {content.draft && (
+          <div role="note" data-draft className="mb-8">
+            <Notice tone="warning">
+              <strong>DRAFT, not yet reviewed.</strong> This text is a draft for legal review. It isn&apos;t
+              final and may change before Caretook opens to the public.
+            </Notice>
+          </div>
+        )}
+        <h1 id="page-heading" className={H1}>
+          {content.heading}
+        </h1>
+        <p className="mt-3 text-base text-base-content/70" data-last-updated>
+          Last updated <time dateTime={content.lastUpdated}>{formatLegalDate(content.lastUpdated)}</time>
+        </p>
+        <div className="mt-6 space-y-4 leading-relaxed">
+          {content.intro.map((p) => (
+            <p key={p}>
+              <Inline text={p} />
+            </p>
+          ))}
         </div>
-      )}
-      <h1 id="page-heading" className="text-4xl font-bold tracking-tight text-balance">
-        {content.heading}
-      </h1>
-      <p className="mt-3 text-base text-base-content/70" data-last-updated>
-        Last updated <time dateTime={content.lastUpdated}>{formatLegalDate(content.lastUpdated)}</time>
-      </p>
-      <div className="mt-6 space-y-4 leading-relaxed">
-        {content.intro.map((p) => (
-          <p key={p}>
-            <Inline text={p} />
-          </p>
+
+        {toc && (
+          <nav aria-labelledby="toc-heading" className="mt-10 rounded-box bg-base-200 p-5 sm:p-6">
+            <h2 id="toc-heading" className="font-semibold">
+              On this page
+            </h2>
+            <ol className="mt-3 list-decimal space-y-1 pl-6 text-base">
+              {content.sections.map((s) => (
+                <li key={s.id}>
+                  <Link to={`#${s.id}`} className="link link-hover">
+                    {s.heading}
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          </nav>
+        )}
+
+        {content.sections.map((s) => (
+          <section key={s.id} aria-labelledby={s.id} className="mt-12">
+            <h2 id={s.id} className={`scroll-mt-20 ${H2}`}>
+              {s.heading}
+              <Link
+                to={`#${s.id}`}
+                className="ml-2 rounded-field font-normal text-base-content/50 no-underline hover:text-primary focus-visible:text-primary"
+                aria-label={`Link to this section: ${s.heading}`}
+                data-anchor
+              >
+                #
+              </Link>
+            </h2>
+            <div className="mt-4 rounded-box border-l-4 border-primary bg-primary/5 p-4 sm:p-5">
+              <p className="text-sm font-semibold tracking-wide text-primary uppercase">In plain words</p>
+              <p className="mt-1 leading-relaxed">
+                <Inline text={s.summary} />
+              </p>
+            </div>
+            <div className="mt-5 space-y-4 text-base leading-relaxed text-base-content/85">
+              {s.formal.map((block, i) => (
+                <Block key={i} block={block} />
+              ))}
+            </div>
+          </section>
         ))}
       </div>
-
-      {toc && (
-        <nav aria-labelledby="toc-heading" className="mt-10 rounded-box bg-base-200 p-5 sm:p-6">
-          <h2 id="toc-heading" className="font-semibold">
-            On this page
-          </h2>
-          <ol className="mt-3 list-decimal space-y-1 pl-6 text-base">
-            {content.sections.map((s) => (
-              <li key={s.id}>
-                <Link to={`#${s.id}`} className="link link-hover">
-                  {s.heading}
-                </Link>
-              </li>
-            ))}
-          </ol>
-        </nav>
-      )}
-
-      {content.sections.map((s) => (
-        <section key={s.id} aria-labelledby={s.id} className="mt-12">
-          <h2 id={s.id} className="scroll-mt-20 text-2xl font-semibold tracking-tight">
-            {s.heading}
-            <Link
-              to={`#${s.id}`}
-              className="ml-2 rounded-field font-normal text-base-content/50 no-underline hover:text-primary focus-visible:text-primary"
-              aria-label={`Link to this section: ${s.heading}`}
-              data-anchor
-            >
-              #
-            </Link>
-          </h2>
-          <div className="mt-4 rounded-box border-l-4 border-primary bg-primary/5 p-4 sm:p-5">
-            <p className="text-sm font-semibold tracking-wide text-primary uppercase">In plain words</p>
-            <p className="mt-1 leading-relaxed">
-              <Inline text={s.summary} />
-            </p>
-          </div>
-          <div className="mt-5 space-y-4 text-base leading-relaxed text-base-content/85">
-            {s.formal.map((block, i) => (
-              <Block key={i} block={block} />
-            ))}
-          </div>
-        </section>
-      ))}
     </article>
   );
 }
