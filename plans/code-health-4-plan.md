@@ -8,12 +8,12 @@
 
 **Landing mode:** run everything through (started run-through by the dispatcher, 2026-11-28).
 
-**Where it stands:** wave 1 (slices 1, 2) starting 2026-11-28; models: slice 1 opus, slice 2 opus.
+**Where it stands:** wave 1 running since 2026-11-28: slices 1 and 2 worktrees made, agents spawned (both opus); watch running.
 
 | Slice | Wave | State   | Merge into `prd/code-health-4` (slice commits) |
 | ----- | ---- | ------- | ---------------------------------------------- |
-| 1     | 1    | planned |                                                |
-| 2     | 1    | planned |                                                |
+| 1     | 1    | running |                                                |
+| 2     | 1    | running |                                                |
 | 3     | 2    | planned |                                                |
 | 4     | 2    | planned |                                                |
 | 5     | 2    | planned |                                                |
