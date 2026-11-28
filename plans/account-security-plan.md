@@ -11,7 +11,7 @@
 **Now (2026-11-28, hand-over brief):**
 
 - **Wave 1 landed** through PR #327 as 01e4921df; **wave 2 landed** through PR #329 (dev 35ef13f; integration green run 46154288491, lean browser suite 11/11, Codex clean). Both reports filed; both waves' docs folded. All slice worktrees (1 to 6) removed.
-- **Next: wave 3, slice 7** (B-337, ready: slices 2, 5, 6 merged). `risa backlog ingest`/`list`, claim B-337, `risa slice account-security 7`, an opus agent with `risa prompt slice account-security 7`. Tell it: slice 2's link sign-up keys on the raw `clientIp` (skipped when missing) in `packages/auth/src/tickets.ts`; switch it to `clientIpKey`. Slice 6's per-user block sits at the end of `packages/api/src/rateLimit.ts` (imports moved to the top); add `clientIpKey` after it. After slice 7 lands, `risa rm account-security` (the last wave).
+- **Wave 3 under way (2026-11-28):** dev sync skipped (no shared files); B-337 claimed; worktree account-security-7 made; opus agent spawned with `risa prompt slice account-security 7` plus these notes: slice 2's link sign-up keys on the raw `clientIp` (skipped when missing) in `packages/auth/src/tickets.ts`; switch it to `clientIpKey`. Slice 6's per-user block sits at the end of `packages/api/src/rateLimit.ts` (imports moved to the top); add `clientIpKey` after it. After slice 7 lands, `risa rm account-security` (the last wave).
 - **Open follow-ups (account-security, triaged):** B-1017 approve doesn't recheck a revoked link; B-1018 re-ask answer carries the old request id; B-1019 staff notice reads role unlocked; B-1020 two membership lock orders can deadlock; B-1011 rate-limit audit (not in this plan: a wave 4 after slice 7, or account-security-2; the user to confirm, so ask before `risa rm` closes the topic).
 - Slice models: every slice and fix on opus; doc folds on sonnet.
 
@@ -25,7 +25,7 @@
 | 4     | 2    | landed  | 515224cc9 (273ba77a0)                                      |
 | 5     | 2    | landed  | fcf8a50d3 (1a43a0197)                                      |
 | 6     | 2    | landed  | e75ed6950 (1e5f23269)                                      |
-| 7     | 3    | planned | —                                                          |
+| 7     | 3    | started | —                                                          |
 
 ## Architectural decisions
 
