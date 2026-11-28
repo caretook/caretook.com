@@ -14,11 +14,11 @@ PRD: [test-time-gates-2-prd.md](test-time-gates-2-prd.md). Items B-859, B-837, B
 
 **Slice 1 (merged cd093268c, 2026-11-28):** requested `components` run 46162250609 on b176b461 (`flake`: the brake-listed `search.sync` perf test and `resetStaging.int.test.ts`, neither ours). Test-step seconds: shard 1 323 (warn), 2 305 (warn), 3 199, 4 208; 262 files, 2580 tests. The three-shard count from 45760650119 (220 files, 2198 tests) is 2009 commits old; the nearest three-shard run, free-limits' 46160525942 on 25aab0f1, had 260 files and 2571 tests (5 files differ). Slice 3 refreshes the table from 46162250609. Its quick check was judged under today's rule (125 s, ok), with no `tooling` step. Note: slice shells inherit `RISA_CONFIG`/`RISA_SESSION_*` from this session; unset them in slice prompts.
 
-| Slice                                        | Wave | State                                                                  | Merge |
-| -------------------------------------------- | ---- | ---------------------------------------------------------------------- | ----- |
-| 1. Four component shards                     | 1    | started (opus, worktree test-time-gates-2-1)                           | —     |
-| 2. The quick gate armed                      | 1    | waits for slice 1 hand-off (nothing to build before its measuring run) | —     |
-| 3. The durations refreshed; components armed | 2    | planned                                                                | —     |
+| Slice                                        | Wave | State                                                            | Merge     |
+| -------------------------------------------- | ---- | ---------------------------------------------------------------- | --------- |
+| 1. Four component shards                     | 1    | merged                                                           | cd093268c |
+| 2. The quick gate armed                      | 1    | started (opus, worktree test-time-gates-2-2; quiet window asked) | —         |
+| 3. The durations refreshed; components armed | 2    | planned                                                          | —         |
 
 ## Architectural decisions
 
