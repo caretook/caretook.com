@@ -48,13 +48,17 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
     canChange: !!entry && canChangeEntry({ role: group.role, userId: group.userId, entry }),
   });
   if ("redirect" in decision) throw redirect(decision.redirect);
-  // A dose names its medication (deleted or not: the dose keeps it).
+  // A dose names its medication ("Removed medication" once it's deleted: the delete took its name).
   const medicationId = medicationIdOf(decision.sheet.entry);
   const [medication] = medicationId ? await readRows<MedicationRow>(db, medicationQuery(medicationId)) : [];
   return {
     ...decision.sheet,
     medicationName: medicationId
-      ? medicationLabel(medication?.name ? { name: medication.name, strength: medication.strength } : null)
+      ? medicationLabel(
+          medication?.name || medication?.deleted_at
+            ? { name: medication.name ?? "", strength: medication.strength, deletedAt: medication.deleted_at }
+            : null,
+        )
       : null,
   };
 }
