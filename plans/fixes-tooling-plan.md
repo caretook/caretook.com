@@ -19,13 +19,13 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | Slice | Item                        | State           | Merge |
 | ----- | --------------------------- | --------------- | ----- |
 | 94    | B-619, B-839, B-998, B-1000 | working (opus, spawned 2026-11-28) |       |
-| 95    | B-808, B-922, B-983         | working (opus, spawned 2026-11-28) |       |
-| 96    | B-1004, B-1005              | working (opus, spawned 2026-11-28) |       |
+| 95    | B-808, B-922, B-983         | handed off 399880fe, reviewed |       |
+| 96    | B-1004, B-1005              | handed off bb6e1697, reviewed (test layout: list overflowed 420px) |       |
 | 97    | B-785, B-790                | working (opus, spawned 2026-11-28) |       |
 | 98    | B-949                       | working (opus, spawned 2026-11-28) |       |
-| 99    | B-967                       | working (opus, spawned 2026-11-28) |       |
-| 100   | B-776                       | working (opus, spawned 2026-11-28) |       |
-| 101   | B-749, B-851                | working (opus, spawned 2026-11-28) |       |
+| 99    | B-967                       | handed off a76b8656, reviewed; merge after 94-98 |       |
+| 100   | B-776                       | handed off 4d1e043e, reviewed (quarantine line left for risa ci) |       |
+| 101   | B-749, B-851                | handed off f6fcf6f1 (test dropped after send-back), reviewed |       |
 
 ## Wave 1
 
