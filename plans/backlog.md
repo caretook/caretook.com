@@ -121,7 +121,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `orchestration-split` | done | — | `scripts/loops/`, `scripts/backlog/`, `scripts/ci/`, `.githooks/`, `scripts/project/`, `package.json`, `vitest.config.ts`, `.github/workflows/`, `AGENTS.md`, `risa.json` | Held until after launch by the user (B-543): extract the orchestration tooling or replace it with a prebuilt one |
 | `member-avatars` | done | `onboarding`, `ui-kit-5` | `packages/data/src/db/schema/auth/user.ts`, `packages/data/src/models/user/userModel.ts`, `packages/data/src/permissions/blocks.ts`, `packages/api/src/app-shell/me.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/app-shell/me.ts`, `apps/web/app/components/ui/UserAvatar.tsx`, `apps/web/app/components/ui/AvatarStack.tsx`, `apps/web/app/components/notes/EditorAvatars.tsx`, `apps/web/app/components/entry/KindIcon.tsx`, `apps/web/app/routes/app/settings/account/`, `apps/web/app/routes/app/layout/UserMenu.tsx`, `apps/web/app/routes/app/groups/settings/members/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `apps/web/app/routes/app/groups/timeline/PassLogItem.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/planner/`, `scripts/browser-checks/roundtrip.spec.mjs` | Released 2026-11-23 by the user. Members choose an avatar color and icon; no photos or image storage. |
 | `orchestration-split-2` | done | `orchestration-split` | `scripts/loops/`, `scripts/project/`, `packages/data/test/`, `apps/web/test/`, `docs/agents/`, `docs/orchestration.md`, `AGENTS.md`, `risa.json` | — |
-| `sync-safety-3` | — | `sync-safety-2` | — | to write (B-294): atomic device writes, cut from sync-safety-2 2026-11-25; start from plans/sync-safety-3-notes.md (thread the context's transaction through the services first) |
+| `sync-safety-3` | — | `sync-safety-2` | `packages/data/src/db/client.ts`, `packages/data/src/domain/sync/`, `packages/data/src/errors/sync.ts`, `packages/api/src/sync.ts`, `packages/api/src/syncRegistry.ts`, `packages/api/src/testing.ts`, `apps/web/app/lib/sync/uploader.ts`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/app-shell/unsavedChanges`, `apps/web/app/routes/app/settings/not-saved/` | A device write lands whole (B-294): savepoints, the server applies a write in one transaction, the uploader sends whole writes, one line per write on Changes not saved. Plan: plans/sync-safety-3-plan.md |
 | `onboarding-3` | hold | `onboarding-2` | — | — |
 | `care-booklet` | hold | — | — | Printed care booklet (B-918, B-919). Held by the user 2026-11-26 until released. |
 | `med-intervals` | — | `connectors-3` | `packages/data/src/db/schema/medications/`, `apps/web/app/lib/medications/`, `apps/web/app/routes/app/groups/medications/`, `packages/data/src/services/assistantActionService.ts`, `packages/data/src/services/medicationService.ts`, `packages/api/src/connectors/tools/` | Every-N-hours schedules for medications and Med times (B-938). |
@@ -272,6 +272,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1003 | bug | triaged | fixes-bug |  | Repeating todos: a stale tick on a device holding the Undo's soft-deleted next writes a PATCH clearing deleted_at, and restoreOccurrence still restores for a writer when the chain has no open row, so a stopped chain can still come back (the B-387 PUT flag doesn't cover the PATCH path) |
 | B-1004 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/components/todos/linkToBox.browser.test.tsx: the Link to box leaves out what's linked, and a pic… |
 | B-1005 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/components/todos/linkToBox.browser.test.tsx: the empty Link to box's suggestions (B-947) what's … |
+| B-1006 | bug | triaged | fixes-bug |  | Deleting a medication pass on a device resends every medication's whole schedule from the device's copy (removePass), so an offline delete overwrites another member's schedule edit made meanwhile; the server already rewrites the schedules itself |
 
 ## Items
 
@@ -422,6 +423,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. Example: a series split in lib/appointments/series.sync.ts:433-521. Design finding: upload by device transaction and apply it atomically. Related: removePass rewrites every medication's schedule from the device's possibly stale copy (medicationPasses.sync.ts:283-287).
 - 2026-11-21 (plan/sync-safety): Cut from sync-safety to the follow-on sync-safety-2 by its planner (2026-11-21): six slices at most, and these are the lowest severity or build on sync-safety's upload registry and per-op results. See plans/sync-safety-prd.md, Out of Scope.
 - 2026-11-25 (plan/sync-safety-2): Moved from sync-safety-2 to sync-safety-3 on the user's word (ask a237, 2026-11-25): the 12 services the upload calls open their own transactions (~62 withTransaction calls with no tx), so they must first join a shared one. Design and skeptic findings: plans/sync-safety-3-notes.md.
+- 2026-11-28 (plan/sync-safety-3): sync-safety-3 planned (2026-11-28): five slices (nested transactions as savepoints, the server applies a write whole, the uploader sends whole writes, one save one local transaction, Changes not saved one line per write). The notes' claim that services never join ctx.tx was wrong; the gap is savepoints. removePass split out as B-1006.
 
 ### B-295 · bug · System-written change entries take the device clock unchecked: a clock a day ahead dates 'Stopped …' tomorrow, at the top of the history, uneditable
 
@@ -1681,3 +1683,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (Robert Bo Davis): [ci-key 46c0bc48fe6c] Flaked (passed on its rerun); found by prd/onboarding-2. First failure: Error: expected [] to deeply equal [ [ { type: 'event', …(1) } ] ] at Proxy.__VITEST_POLL_CHAIN__ (http://127.0.0.1:42671/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bffb8a3488ce3393e3/deps/index.CZzC1gGg-CNxlpHSe.js?v=cccfb9e6:5950:47) at http://127.0.0.1:42671/home/runner/work/caretook.com/caretook.com/apps/web/app/components/todos/linkToBox.browser.test.tsx?import&browserv=1812567600000:430:46 at async http://127.0.0.1:42671/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bff…
+
+### B-1006 · bug · Deleting a medication pass on a device resends every medication's whole schedule from the device's copy (removePass), so an offline delete overwrites another member's schedule edit made meanwhile; the server already rewrites the schedules itself
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-28 (plan/sync-safety-3): Filed by the sync-safety-3 planner (2026-11-28): B-294's related note, kept out of sync-safety-3 (a stale overwrite, not a half-applied write). Fix idea: the device flags those medication PATCHes and the server ignores them, or the device stops sending them. medicationPasses.sync.ts removePass; syncRegistry.ts medicationPass comment.
