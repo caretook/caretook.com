@@ -8,7 +8,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 
 - Inbox handoff (risa rotate --self) didn't work (B-1045)
   risa rotate --self reported 'Opened inbox in a new background iTerm2 tab' but the handoff did not take effect, per the user.
-- Timeline sometimes renders blank: only the Today header and vitals summary show, the rest of the screen is empty until the user scrolls, then everything appears (alpha tester, mobile)
+- Timeline sometimes renders blank: only the Today header and vitals summary show, the rest of the screen is empty until the user scrolls, then everything appears (alpha tester, mobile) (B-1046)
 
 ## Change requests
 
