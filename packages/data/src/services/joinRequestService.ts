@@ -198,6 +198,7 @@ export const requestWithLink = async (
       kind: "joiner",
       consentVersion: CONSENT_VERSION,
       inviteId: invite.id,
+      ...careGroupConsentModel.attestationOf(invite),
     },
   });
   if (isError(consented)) return consented;
