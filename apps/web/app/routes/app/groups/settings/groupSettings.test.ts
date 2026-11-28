@@ -149,6 +149,11 @@ describe("memberAccess", () => {
       leave: false,
     });
   });
+  it("gives the Easy roles and an unknown role no roles to give", () => {
+    for (const actorRole of ["easy_helper", "easy_viewer", "someone"]) {
+      for (const memberRole of ALL) expect(access(actorRole, memberRole).roles).toEqual([]);
+    }
+  });
   it("lets caretakers, viewers and anyone without a role only leave", () => {
     for (const actorRole of ["caretaker", "viewer", null]) {
       for (const memberRole of ALL) {

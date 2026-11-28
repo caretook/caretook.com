@@ -8,6 +8,8 @@ import {
   WRITERS,
   hasGroupRole,
   hasPermission,
+  isManagerRole,
+  isOwnerRole,
 } from "@caretook/data/permissions";
 import type { EasyTile, EasyTiles } from "@caretook/data/schema";
 
@@ -219,10 +221,10 @@ export const memberAccess = ({
   memberRole: string | null;
   isSelf: boolean;
 }): { roles: MemberRole[]; remove: boolean; leave: boolean } => {
-  const owner = actorRole === "owner";
-  const manages = (owner || actorRole === "admin") && (owner || memberRole !== "owner");
+  const owner = isOwnerRole(actorRole);
+  const manages = isManagerRole(actorRole) && (owner || !isOwnerRole(memberRole));
   return {
-    roles: manages ? MEMBER_ROLES.filter((role) => owner || role !== "owner") : [],
+    roles: manages ? MEMBER_ROLES.filter((role) => owner || !isOwnerRole(role)) : [],
     remove: manages && !isSelf,
     leave: isSelf,
   };

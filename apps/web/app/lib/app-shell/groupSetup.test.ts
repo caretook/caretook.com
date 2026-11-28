@@ -41,6 +41,11 @@ describe("setsUpGroup", () => {
     ["an invited admin", "admin", OTHER, false],
     ["a viewer", "viewer", OTHER, false],
     ["the first member, no longer an owner", "caretaker", ME, false],
+    ["the first member, now an admin", "admin", ME, false],
+    ["the first member, now an Easy helper", "easy_helper", ME, false],
+    ["the first member, now an Easy viewer", "easy_viewer", ME, false],
+    ["the first member, with a role this build doesn't know", "steward", ME, false],
+    ["the first member, with no role", null, ME, false],
     ["anyone, before the members have synced", "owner", null, false],
   ] as const)("%s: %s", (_, role, earliestMemberId, expected) => {
     expect(setsUpGroup({ userId: ME, role, facts: facts({ earliestMemberId }) })).toBe(expected);
