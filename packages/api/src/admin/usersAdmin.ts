@@ -3,7 +3,9 @@ import {
   accountAdminService,
   accountHelpZSchema,
   accountSearchZSchema,
+  groupLimitService,
   revokeSessionZSchema,
+  setGroupLimitZSchema,
   setRoleZSchema,
 } from "@caretook/data";
 import { deliverSoon } from "@caretook/notifications";
@@ -19,7 +21,9 @@ import { staffProcedure } from "../procedures";
 // groups by name and role, and the mail sent to it by template and status.
 // Never care data, an email's data or body, or a session's token.
 // Disabling, re-enabling and staff roles (slice 3) need `users.disable` and
-// `users.setRole` (admins only) and a reason.
+// `users.setRole` (admins only) and a reason. An account's care group limit
+// (free-limits PRD): read with `users.read`, set or reset with `users.limits`
+// (admin and support) and a reason; both answer `{ started, limit, override }`.
 
 const optionalIso = (value: string | null) => (value ? iso(value) : null);
 
@@ -152,4 +156,14 @@ export const usersAdmin = {
   setRole: staffProcedure("users.setRole")
     .input(setRoleZSchema)
     .handler(async ({ context, input }) => unwrap(await accountAdminService.setRole(context, input))),
+
+  /** How many groups the account started and still owns, its limit, and its own override (null: the default). */
+  groupLimit: staffProcedure("users.read")
+    .input(z.object({ userId: z.uuid() }))
+    .handler(async ({ context, input }) => unwrap(await groupLimitService.forUser(context, input.userId))),
+
+  /** Set the account's own care group limit (1 to 1000), or null for the default, with why. */
+  setGroupLimit: staffProcedure("users.limits")
+    .input(setGroupLimitZSchema)
+    .handler(async ({ context, input }) => unwrap(await groupLimitService.setForUser(context, input))),
 };

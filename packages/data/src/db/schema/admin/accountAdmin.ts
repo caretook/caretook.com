@@ -60,3 +60,21 @@ export const mailErrorCode = (status: string, lastError: string | null | undefin
   }
   return /^([A-Za-z][\w.-]{0,40}):/.exec(lastError)?.[1] ?? "error";
 };
+
+/** The highest care group limit staff can give one account (the column's check: 1 to 1000). */
+export const GROUP_LIMIT_MAX = 1000;
+
+/**
+ * One account's own care group limit (free-limits PRD): who, a whole number
+ * from 1 to `GROUP_LIMIT_MAX` or null for the `limits.groupsStarted`
+ * default, and why.
+ */
+export const setGroupLimitZSchema = accountHelpZSchema.extend({
+  limit: z
+    .number()
+    .int("A whole number")
+    .min(1, "At least 1")
+    .max(GROUP_LIMIT_MAX, `At most ${GROUP_LIMIT_MAX}`)
+    .nullable(),
+});
+export type SetGroupLimitInput = z.input<typeof setGroupLimitZSchema>;
