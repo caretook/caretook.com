@@ -8,6 +8,7 @@ import { isError, newError } from "../errors";
 import { careGroupMemberModel, careGroupModel, careRecipientModel } from "../models";
 import { isSystemUser } from "../permissions";
 import { revokeForGroup } from "./connectorGrantService";
+import { defaultLimit as groupLimitDefault, refusal as groupLimitRefusal } from "./groupLimitService";
 import { addDefaults as addDefaultPasses } from "./medicationPassService";
 import { addDefaults as addDefaultSymptoms } from "./symptomTypeService";
 
@@ -22,10 +23,20 @@ export type CareGroupCreateData = CareGroupInsert & {
 
 /**
  * Start a care group. The actor becomes its first owner; the recipient
- * profile, when given, is created with it. All or nothing.
+ * profile, when given, is created with it. All or nothing. A member at the
+ * free plan's limit is refused first (`groupLimitService:atLimit`).
  */
-export const create = (ctx: ServiceContext, { recipient, ...data }: CareGroupCreateData) =>
-  withTransaction(async (tx) => {
+export const create = async (ctx: ServiceContext, { recipient, ...data }: CareGroupCreateData) => {
+  // The free plan's cap (free-limits): the setting is read before the
+  // transaction opens (B-1036), then checked first inside it, the user's row
+  // locked until commit.
+  const limited = ctx.authUser && !isSystemUser(ctx.authUser) ? ctx.authUser.id : null;
+  const fallback = limited ? await groupLimitDefault() : 0;
+  return withTransaction(async (tx) => {
+    if (limited) {
+      const atLimit = await groupLimitRefusal(tx, limited, fallback);
+      if (atLimit) return atLimit;
+    }
     const group = await careGroupModel.create({ ...ctx, tx, data });
     if (isError(group)) return group;
     if (!group) return { group: null, recipient: null };
@@ -48,6 +59,7 @@ export const create = (ctx: ServiceContext, { recipient, ...data }: CareGroupCre
     }
     return { group, recipient: created };
   }, ctx);
+};
 
 export const get = (ctx: ServiceContext, opts: ServiceSelectArgs<K> = {}) =>
   careGroupModel.get({ ...ctx, ...opts });

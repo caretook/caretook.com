@@ -1,14 +1,15 @@
 import type { JoinMailer, JoinNotice } from "./joinRequestService";
 
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { createUser, createWorld, ok, system } from "../../test/fixtures";
 import { getDb } from "../db";
-import { careGroupInviteSchema, CONSENT_VERSION } from "../db/schema";
+import { careGroupInviteSchema, careGroupJoinRequestSchema, CONSENT_VERSION } from "../db/schema";
 import { isError } from "../errors";
 import { careGroupConsentModel, careGroupMemberModel } from "../models";
 import { careGroupInviteService, joinRequestService, timelineEntryService } from ".";
+import { REASK_COOLDOWN_DAYS } from "./joinRequestService";
 
 // Invite links and join requests (invites slice 4). Each test builds its own group and users.
 
@@ -298,14 +299,75 @@ describe("answering a request", () => {
     expect(ok(await joinRequestService.list(s.outsider.ctx, { filter })).data).toHaveLength(0);
   });
 
-  it("the requester withdraws their own, and a new ask makes a new request", async () => {
+  it("the requester withdraws their own, and a new ask after the cooldown makes a new request", async () => {
     const s = await requested();
     expect(codeOf(await joinRequestService.withdraw(s.outsider.ctx, s.requestId))).toBe(
       "joinRequestService:notFound",
     );
     expect(ok(await joinRequestService.withdraw(s.joiner.ctx, s.requestId)).status).toBe("withdrawn");
+    await decidedDaysAgo(s.requestId, REASK_COOLDOWN_DAYS + 1);
     const again = ok(await ask(s.joiner, s.link.token));
     expect(again.status === "requested" && again.requestId).not.toBe(s.requestId);
+  });
+});
+
+/** Move a request's decision `days` into the past. */
+const decidedDaysAgo = (requestId: string, days: number) =>
+  getDb()
+    .update(careGroupJoinRequestSchema)
+    .set({ decidedAt: new Date(Date.now() - days * 24 * 60 * 60_000).toISOString() })
+    .where(eq(careGroupJoinRequestSchema.id, requestId));
+
+const requestsOf = async (groupId: string, userId: string) =>
+  getDb()
+    .select({ id: careGroupJoinRequestSchema.id, status: careGroupJoinRequestSchema.status })
+    .from(careGroupJoinRequestSchema)
+    .where(
+      and(eq(careGroupJoinRequestSchema.groupId, groupId), eq(careGroupJoinRequestSchema.userId, userId)),
+    );
+
+describe("asking again after a decline or withdrawal (B-334)", () => {
+  for (const answer of ["declined", "withdrawn"] as const) {
+    it(`a ${answer} requester asking within ${REASK_COOLDOWN_DAYS} days hears "requested", with no new row, use or email`, async () => {
+      const s = await setup();
+      const made = await link(s.owner, s.groupId);
+      const joiner = await createUser(`reask-${answer}`);
+      const first = ok(await ask(joiner, made.token));
+      if (first.status !== "requested") throw new Error("expected a request");
+      if (answer === "declined") ok(await joinRequestService.decline(s.owner.ctx, first.requestId));
+      else ok(await joinRequestService.withdraw(joiner.ctx, first.requestId));
+
+      // Just inside the cooldown.
+      await decidedDaysAgo(first.requestId, REASK_COOLDOWN_DAYS - 0.01);
+      const { sent, mail } = recordingMailer();
+      const again = ok(await ask(joiner, made.token, mail));
+      expect(again).toMatchObject({ status: "requested", groupId: s.groupId, role: "viewer" });
+      expect(sent).toHaveLength(0);
+      expect(await requestsOf(s.groupId, joiner.user.id)).toEqual([{ id: first.requestId, status: answer }]);
+      expect(ok(await careGroupInviteService.getById(s.owner.ctx, made.invite.id))?.useCount).toBe(1);
+      expect(await roleOf(s.groupId, joiner.user.id)).toBeNull();
+
+      // Past it, asking works again: a new pending request, emailed to managers.
+      await decidedDaysAgo(first.requestId, REASK_COOLDOWN_DAYS + 0.01);
+      const later = ok(await ask(joiner, made.token, mail));
+      expect(later.status === "requested" && later.requestId).not.toBe(first.requestId);
+      expect(sent.map((n) => n.kind)).toEqual(["joinRequested"]);
+      expect((await requestsOf(s.groupId, joiner.user.id)).map((r) => r.status).sort()).toEqual(
+        [answer, "pending"].sort(),
+      );
+    });
+  }
+
+  it("another group's decline doesn't hold back a request here", async () => {
+    const s = await setup();
+    const other = await setup();
+    const joiner = await createUser("reask-elsewhere");
+    const there = ok(await ask(joiner, (await link(other.owner, other.groupId)).token));
+    if (there.status !== "requested") throw new Error("expected a request");
+    ok(await joinRequestService.decline(other.owner.ctx, there.requestId));
+    const { sent, mail } = recordingMailer();
+    ok(await ask(joiner, (await link(s.owner, s.groupId)).token, mail));
+    expect(sent.map((n) => n.kind)).toEqual(["joinRequested"]);
   });
 });
 

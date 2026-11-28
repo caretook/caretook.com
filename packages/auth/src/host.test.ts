@@ -1,5 +1,13 @@
-import { describe, expect, it } from "vitest";
-import { allowedOrigins, clientIpHeader, clientIpOf, NATIVE_APP_ORIGINS, nativeAppOrigins } from "./host";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  allowedOrigins,
+  clientIpHeader,
+  clientIpKey,
+  clientIpOf,
+  DEV_CLIENT_IP_KEY,
+  NATIVE_APP_ORIGINS,
+  nativeAppOrigins,
+} from "./host";
 
 describe("nativeAppOrigins", () => {
   it("is empty unless NATIVE_APP_ORIGINS is 1", () => {
@@ -65,5 +73,32 @@ describe("clientIpHeader", () => {
     expect(clientIpHeader({ CLIENT_IP_HEADER: " X-Vercel-Forwarded-For " })).toBe("x-vercel-forwarded-for");
     expect(clientIpHeader({ CLIENT_IP_HEADER: "" })).toBeUndefined();
     expect(clientIpHeader({})).toBeUndefined();
+  });
+});
+
+describe("clientIpKey", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("is the client IP, trimmed, wherever it runs", () => {
+    expect(clientIpKey(" 203.0.113.7 ", "mcp", { NODE_ENV: "production" })).toBe("203.0.113.7");
+    expect(clientIpKey("203.0.113.7", "mcp", { NODE_ENV: "development" })).toBe("203.0.113.7");
+  });
+
+  it("with no client IP, production refuses (null) and logs it", () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    for (const missing of [null, undefined, "", "  "]) {
+      expect(clientIpKey(missing, "calendar.feed", { NODE_ENV: "production" }), String(missing)).toBeNull();
+    }
+    expect(logged).toHaveBeenCalledTimes(4);
+    expect(String(logged.mock.calls[0]?.[0])).toMatch(/no client IP.*procedure=calendar\.feed/);
+  });
+
+  it("with no client IP, dev and tests key on the fixed dev key, never 'unknown'", () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    for (const NODE_ENV of ["development", "test", undefined]) {
+      expect(clientIpKey(null, "mcp", { NODE_ENV }), String(NODE_ENV)).toBe(DEV_CLIENT_IP_KEY);
+    }
+    expect(DEV_CLIENT_IP_KEY).not.toBe("unknown");
+    expect(logged).not.toHaveBeenCalled();
   });
 });

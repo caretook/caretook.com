@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { X } from "lucide-react";
 import { Badge, tagColorClass } from "~/components/ui";
 import { chipSplit } from "~/lib/tags/tagPicker";
@@ -11,8 +13,16 @@ type ChipTag = { id: string; name: string; color?: string | null };
  * (`tagColorClass`); a null or unknown color is the neutral chip.
  *
  * `onRemove` gives each chip an × button ("Remove tag <name>"), and
- * `onMore` makes "+N" a button (it opens the picker); both are
- * `QuickTags`'s, for whoever may tag the record.
+ * `onMore` makes "+N" a button (it opens the picker); `add` (Add tag) is the
+ * list's last item, a wider gap after the chips on its line and flush left
+ * when it wraps to a line of its own (B-1023); all three are `QuickTags`'s,
+ * for whoever may tag the record.
+ *
+ * Each item is a flex box, so every item is its chip's height and they share
+ * one centre line (B-1021: an inline chip sat in its item's text line box, a
+ * line taller than the chip and off its centre). Add tag is in the chips' own
+ * wrap, so it follows the last chip on its line rather than dropping below
+ * every chip as a box of its own.
  */
 export function TagChips({
   tags,
@@ -20,22 +30,30 @@ export function TagChips({
   className = "",
   onRemove,
   onMore,
+  add,
 }: {
   tags: readonly ChipTag[] | undefined;
   max?: number | null;
   className?: string;
   onRemove?: (tag: ChipTag) => void;
   onMore?: () => void;
+  add?: ReactNode;
 }) {
-  if (!tags?.length) return null;
+  if (!tags?.length) return add ? <div className="flex">{add}</div> : null;
   const { shown, more } = max === null ? { shown: tags, more: 0 } : chipSplit(tags, max);
   const moreLabel = more === 1 ? "1 more tag" : `${more} more tags`;
+  // Add tag's wider gap (10px, not the chips' 4px, so a tap meant for one doesn't hit the other) is
+  // the last item's own right padding, not Add tag's left margin: a margin went with it when it
+  // wrapped, so it started 6px in from the chips' left edge (B-1023); the padding stays behind at
+  // the end of the line above. Padding, not a margin, so the item stays inside `max-w-full`.
+  const beforeAdd = add ? "pr-1.5" : "";
   return (
     <ul className={`flex flex-wrap items-center gap-1 ${className}`} aria-label="Tags" data-tag-chips="">
-      {shown.map((t) => {
+      {shown.map((t, i) => {
         const fill = tagColorClass(t.color);
+        const last = i === shown.length - 1 && more === 0;
         return (
-          <li key={t.id} className="max-w-full">
+          <li key={t.id} className={`flex max-w-full ${last ? beforeAdd : ""}`}>
             <Badge
               className={`max-w-full ${onRemove ? "gap-0.5 pr-0.5" : ""}`}
               fill={fill}
@@ -61,13 +79,13 @@ export function TagChips({
         );
       })}
       {more > 0 && (
-        <li>
+        <li className={`flex ${beforeAdd}`}>
           {onMore ? (
             <button
               type="button"
               onClick={onMore}
               aria-haspopup="dialog"
-              className="focus-visible:outline-base-content cursor-pointer rounded-full focus-visible:outline-2"
+              className="focus-visible:outline-base-content flex cursor-pointer rounded-full focus-visible:outline-2"
               data-tag-more-open=""
             >
               <Badge data-tag-more="">
@@ -83,6 +101,7 @@ export function TagChips({
           )}
         </li>
       )}
+      {add && <li className="flex">{add}</li>}
     </ul>
   );
 }

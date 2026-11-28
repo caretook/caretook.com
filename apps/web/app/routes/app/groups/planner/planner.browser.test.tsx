@@ -139,13 +139,16 @@ describe("the header", () => {
   });
 
   test("the tabs carry what each reads: Upcoming what it shows and the author, Past the author, Todos its chip", async () => {
-    await openPlanner({ url: `${PLANNER_URL}?kind=event&author=${SAM.id}` });
+    const device = await openPlanner({ url: `${PLANNER_URL}?kind=event&author=${SAM.id}` });
     expect(tab("Upcoming").getAttribute("href")).toBe(`${PLANNER_URL}?kind=event&author=${SAM.id}`);
     expect(tab("Past").getAttribute("href")).toBe(`${PAST_URL}?author=${SAM.id}`);
     expect(tab("Todos").getAttribute("href")).toBe(TODOS_URL);
     await userEvent.click(tab("Todos"));
-    await userEvent.click(page.getByRole("button", { name: /^Filter(, \d+ on)?$/ }));
-    await userEvent.click(page.getByRole("menuitemradio", { name: "Mine", exact: true }));
+    // Upcoming stays on screen, its own "Filter, 1 on" button with it, until the Todos
+    // clientLoader answers: wait for the Todos page before opening its Filter menu (B-776).
+    await expect.poll(() => device.location()).toBe(TODOS_URL);
+    await expect.poll(() => tab("Todos").getAttribute("aria-current")).toBe("page");
+    await choose("Mine");
     await expect.poll(() => tab("Todos").getAttribute("href")).toBe(`${TODOS_URL}?who=mine`);
     expect(tab("Upcoming").getAttribute("href")).toBe(PLANNER_URL);
   });

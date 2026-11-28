@@ -24,8 +24,18 @@ Notes for every wave:
 
 **Wave 22 landed 2026-11-27** as dev f41af6ffc through PR #305 (Codex clean on 88d910a), CI components green on the synced tip (run 46102756026, a4d044ac; the sync brought seeds, datastore reset); landed on an unsynced tip (dev's 1 commit shared no file). to-test/2026-11-27-2235-fixes-ui.md. Slice 110 (B-999 `shortDayLabel` below `sm`, full label stays the heading's name; opus, 4b24c08e0). Browser `--changed`: none mapped. Docs folded into timeline (trimmed to stay under budget). Slice worktree removed. No fixes-ui item waits: topic closed.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+**Restarted 2026-11-28, run-through:** landing mode run everything through. Fixed 2 stale anchors (slices 96, 97: forms moved to `components/`). Ingest empty, prd/fixes-ui = dev (04f86cd85). Wave 23: slices 111 (B-1015), 112 (B-1016), 113 (B-1021), all opus, parallel. Hot: `components/entry/`, `routes/app/groups/timeline/`, `routes/app/groups/todos/`, `lib/todos/`, `components/tags/`.
+
+**Restarted 2026-11-28 (next session), run-through:** landing mode run everything through. No cut-off landing; ingest empty; sync: up to date with dev (prd/fixes-ui = dev + the wave 23 docs commit b16e882e4). Wave 24: slices 114 (B-1022), 115 (B-1023), both opus, parallel. Hot: `components/todos/`, `routes/app/groups/todo/`, `routes/app/groups/todos/`, `routes/app/groups/planner/`, `lib/todos/`, `components/tags/`.
+
+| Slice | Item                  | State                                                                                              | Merge     |
+| ----- | --------------------- | -------------------------------------------------------------------------------------------------- | --------- |
+| 114   | B-1022 (todo ⋯ menu)  | merged (opus; `TodoMenu` in components/todos, todo route clientAction gone, not on Upcoming cards) | 99c5a2939 |
+| 115   | B-1023 (add-tag wrap) | merged (opus; pr-1.5 on the item before Add tag)                                                   | fb20719d5 |
+
+Wave 24 gate: CI components on 62284cd9 failed (run 46159215768): plannerAddTodo "a todo's page Edit still comes back" (blame: ours, slice 114); fix sent to slice 114's agent; fix 126253a21 merged as 3f1db7e6e (plannerAddTodo and easyRolePages tests go through the ⋯); rerun green (run 46160421549, 4b6e82fb); sync: no merge needed. PR #333 opened, Codex clean on 4b6e82f. Browser `--changed`: none mapped. Docs folded into todos (`TodoMenu`, trimmed to stay under budget) and tags. Landing now. Docs to fold at landing: todos.md still names `SKIP_INTENT` and TodoHeader's own Edit; point it at `TodoMenu`.
+
+**Wave 23 landed 2026-11-28** as dev cbed7d899 through PR #330 (Codex clean on 2838d42), CI components green (run 46156373520, 89bd9f2c); sync skipped (dev shared no file), landed on an unsynced tip. to-test/2026-11-28-0957-fixes-ui.md. Slices 111 (B-1015 one `TimelineEntryRow` with `look`, `TimelineEntryCard` gone, `PassLogItem` follows; opus, 1bca848ec), 112 (B-1016 Done as trees via `doneTreePage`; opus, e8c1c0298), 113 (B-1021 add-tag button is the chips list's last item; opus, 299ddb718). Browser `--changed`: roundtrip pass (no `--suite`: the user wants it asked first). Docs folded into components, timeline, todos, layout (trimmed to stay at or under dev). Slice worktrees removed. Waiting for the next wave: B-1022 (todo rows get a ⋯ menu), B-1023 (add-tag wraps 6px in on narrow rows).
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
@@ -1388,7 +1398,7 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/providers.md, docs/domain/
 
 **Blocked by:** slice 95.
 
-**Build.** `routes/app/groups/providers/ProviderForm.tsx` uses slice 95's form tabs to the approved split. Save (`FormFooter`) stays visible on every tab. Editing opens on Essentials; More shows the content marker when it holds a saved value. A server or native error on More switches there and focuses the field. The sheet's discard prompt (`providerSheetGuard.ts`) still counts fields on every tab.
+**Build.** `components/providers/ProviderForm.tsx` uses slice 95's form tabs to the approved split. Save (`FormFooter`) stays visible on every tab. Editing opens on Essentials; More shows the content marker when it holds a saved value. A server or native error on More switches there and focuses the field. The sheet's discard prompt (`providerSheetGuard.ts`) still counts fields on every tab.
 
 **Acceptance criteria.**
 
@@ -1401,7 +1411,7 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/medications.md, docs/domai
 
 **Blocked by:** slice 95.
 
-**Build.** `routes/app/groups/medications/MedicationForm.tsx` uses slice 95's form tabs to the approved split; Strength and Dose each time share one row, side by side on phones too. The tabs replace the "Prescription details" fold (`hasPrescriptionDetails`, `detailsOpen`, the `data-prescription-details` focus path): every type shows every field on its tab. Save stays visible on every tab; editing opens on Essentials, with the content marker on tabs holding saved values; errors switch tabs and focus the field; the discard prompt counts every tab. Leave the Schedule field as it is (slice 98 changes it). Update `medicationForm.browser.test.tsx` where it tested the fold.
+**Build.** `components/medications/MedicationForm.tsx` uses slice 95's form tabs to the approved split; Strength and Dose each time share one row, side by side on phones too. The tabs replace the "Prescription details" fold (`hasPrescriptionDetails`, `detailsOpen`, the `data-prescription-details` focus path): every type shows every field on its tab. Save stays visible on every tab; editing opens on Essentials, with the content marker on tabs holding saved values; errors switch tabs and focus the field; the discard prompt counts every tab. Leave the Schedule field as it is (slice 98 changes it). Update `medicationForm.browser.test.tsx` where it tested the fold.
 
 **Acceptance criteria.**
 
@@ -1445,7 +1455,7 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 
 **Problem.** Specialty is free text in the provider form (Essentials tab), so people type it from scratch and spell it differently.
 
-**Build.** In `routes/app/groups/providers/ProviderForm.tsx`, give the specialty field a native `<datalist>` of suggestions per provider type, beside `SPECIALTY`: for clinicians a fixed list of common specialties (Primary care, Cardiology, Oncology, Neurology, Physical therapy, Dermatology, Gastroenterology, Endocrinology, Psychiatry, Orthopedics, …); for practices, pharmacies and other, a short list matching their label (e.g. Retail, Mail order, Compounding, Specialty for pharmacies). Typed values still save unchanged. Keep the list in a small pure module (e.g. `lib/providers/specialties.ts`) so it's testable. Use the kit combo box only if a datalist can't be made to work with the kit's `Field`; say so in the hand-off.
+**Build.** In `components/providers/ProviderForm.tsx`, give the specialty field a native `<datalist>` of suggestions per provider type, beside `SPECIALTY`: for clinicians a fixed list of common specialties (Primary care, Cardiology, Oncology, Neurology, Physical therapy, Dermatology, Gastroenterology, Endocrinology, Psychiatry, Orthopedics, …); for practices, pharmacies and other, a short list matching their label (e.g. Retail, Mail order, Compounding, Specialty for pharmacies). Typed values still save unchanged. Keep the list in a small pure module (e.g. `lib/providers/specialties.ts`) so it's testable. Use the kit combo box only if a datalist can't be made to work with the kit's `Field`; say so in the hand-off.
 
 **Acceptance criteria.**
 
@@ -1609,3 +1619,82 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 - [ ] Unit test for the helper: a past day gives "Wed, Nov 18"-style text, a past year adds the year, and Today/Yesterday/Tomorrow come back unchanged.
 - [ ] Component test (`DayHeader`/timeline): at phone width the visible heading text is the short form, at a wider width the full form, and the heading's accessible name is the full label at both.
 - [ ] Existing timeline tests pass; grep tests and `scripts/browser-checks/` for full weekday heading text they match and update any that break.
+
+## Wave 23 (written 2026-11-28 by the orchestrator, from the triaged fixes-ui items)
+
+No migration, no dependency. The three slices run in parallel; slice 113 stays inside `components/tags/` so it doesn't collide with slice 111's entry display.
+
+## Slice 111: One shared timeline entry display with a Full and a Condensed look (B-1015)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md · Tests: component
+
+**Problem.** The timeline's two views use two components: `routes/app/groups/timeline/TimelineEntryCard.tsx` (Full, "cards") and `components/entry/TimelineEntryRow.tsx` (Condensed); `TimelineEntryList.tsx` picks one (`view === "cards" ? TimelineEntryCard : TimelineEntryRow`). The user's words (2026-11-28): "I'd like for them to merge and just have a full/condensed view. Full SHOULD have more spacing between items whereas condensed has less. I like the way time is laid out on current full screen more (it leaves more column width for content). Both should use user avatar for user information the same way as the current condensed view."
+
+**Build.** One component in `components/entry/` (keep the name `TimelineEntryRow`, or rename it with every caller updated) taking `EntryViewProps` plus a `look: "full" | "condensed"` prop, modelled on `ProviderCard`'s look (shared-displays, B-961). Both looks use the current Full card's time layout (the one leaving more column width for content) and the current Condensed row's author avatar (`AuthorCircle`) for who wrote it. Full spaces entries further apart, Condensed closer; otherwise the looks match. `TimelineEntryList` passes the look from its view; delete `TimelineEntryCard.tsx`. Other callers of `TimelineEntryRow` (search `EntryResultItem`, provider `LinkedEntries`, `TodoEntryLinks`, `UpcomingEntryCard` if it uses it) keep working on the look they show today's closest match to (condensed by default). Update the doc comments.
+
+**Acceptance criteria.**
+
+- [ ] Component test: both looks render the time in the Full layout's place and the author as the avatar; Full's entries are spaced further apart than Condensed's (a class or data attribute on the list item, not pixel values).
+- [ ] Component test: switching the timeline's view switches the look on the same component; `TimelineEntryCard` is gone.
+- [ ] Existing timeline, search, provider-links and todo-links tests pass; grep tests and `scripts/browser-checks/` for the card's markup or the old author text and update any that break.
+
+## Slice 112: The Done todos show as todo trees, like the open list (B-1016)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/todos.md · Tests: component
+
+**Problem.** `routes/app/groups/todos/DoneTodos.tsx` lists each done todo as a flat `TodoRow` (newest first, paged with Show more), so a done parent and its done subtasks show as unrelated rows, while the open list uses `TodoTree`. The user's words (2026-11-28): "We should use the tree view for complete todos instead of a weird flat view. It breaks the "unified ux" rule and is confusing."
+
+**Build.** Done renders with the open list's `TodoTree` (the one shared display), same row look and controls (unticking reopens, as today). Page by tree: each page item is a whole done tree (a done top-level todo with its subtasks), newest completion first; Show more keeps working. A done subtask whose parent is still open stays in the open tree as today and doesn't repeat under Done. Keep the paging logic in a small pure helper (in `lib/todos/` or beside `useTodoList.ts`) so it's unit-testable. Update `DoneTodos`'s doc comment.
+
+**Acceptance criteria.**
+
+- [ ] Unit test for the helper: done trees come newest completion first, a page holds whole trees, and a done subtask under an open parent is left out of Done.
+- [ ] Component test: a done parent with done subtasks shows under Done as one tree (subtasks nested under it, the same markup as the open tree), and Show more adds the next trees.
+- [ ] Existing todos, todo-tree and planner tests pass; grep tests and `scripts/browser-checks/` for `data-todo-section="done"` and update any that break.
+
+## Slice 113: The add-tag button lines up with the tag chips beside it (B-1021)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/tags.md · Tests: component
+
+**Problem.** The user (2026-11-28): "add tag icon button doesn't align vertically with the tags next to it like it should". The add-tag control is shared (`components/tags/QuickTags.tsx`, with `TagChips.tsx`) and appears on: timeline row, entry page header, timeline edit; todo row, todo links, todo page header, todo edit; medication list row, MedicationTags, medication header; provider card, directory row, provider medications, provider header and actions; provider edit; search results.
+
+**Build.** Find why the icon button sits off the chips' centre line (height, line-height, baseline alignment or margin) and fix it once in the shared control (`components/tags/`), so the button and chips share one centre line in every place above. Keep its tap target room from its neighbours. Don't edit the callers' row layouts (slice 111 is changing the timeline row); if a caller's own layout causes it, say so in the hand-off.
+
+**Acceptance criteria.**
+
+- [ ] Component test (`quickTagsRow.browser.test.tsx`): with chips present, the add-tag button's vertical centre matches the chips' within 1px, in a row and in a header placement.
+- [ ] Hand-off names each place checked in the browser and how it looked.
+- [ ] Existing tags tests pass.
+
+## Wave 24 (written 2026-11-28 by the orchestrator, from the triaged fixes-ui items)
+
+No migration, no dependency. The two slices run in parallel: slice 115 stays inside `components/tags/`; slice 114 doesn't touch it.
+
+## Slice 114: Todo rows get the shared ⋯ menu (Edit, Reopen, Delete); the todo page's Edit moves into it (B-1022)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/todos.md · Tests: component
+
+**Problem.** The user (2026-11-28): "The todo items in the planner todos tab should have a hamburger menu to the right of the add subtask icon button that allows direct edit and delete. Edit should move into the hamburger on the todo display page." And: "shared components that go back to the right place for all of that if possible".
+
+**Build.** One shared todo menu (the existing ⋯ look: `components/ui` `Menu` with the `Ellipsis` icon, as `routes/app/groups/todo/TodoActions.tsx` and the timeline's `EntryMenu` use; not a new hamburger icon) with Edit, Reopen (only once done) and Delete, used by `components/todos/TodoRow.tsx` (right of the add-subtask button, so it shows wherever todo rows appear: planner Todos tab, Todos page, Done) and by the todo page header (`TodoHeader`: its actions become ⋯ only). Move what both need (the menu, the delete confirm naming subtasks, `RepeatDeleteDialog`'s skip-or-stop for an open repeating todo, the intents) into `components/todos/` so there's one edit sheet and one delete flow. Each returns to where it was opened: Edit from a row opens the same edit sheet and closes back to that row's list with its scroll kept, not the todo page; Delete from a row stays on the list (the row leaves); from the todo page, Edit comes back to the page and Delete goes back to the list the page was opened from (as today). Writers only: readers see no menu. Keep the row's tap targets spaced from the add-subtask button.
+
+**Acceptance criteria.**
+
+- [ ] Component test: a writer's todo row shows ⋯ right of add-subtask with Edit and Delete (and Reopen when done); a reader's row shows none.
+- [ ] Component test: Edit from a row on the planner Todos tab and on the Todos page opens the edit sheet and saving or closing returns to that list, not the todo page.
+- [ ] Component test: Delete from a row asks the same confirm (subtask count; skip-or-stop for a repeating todo) and the row leaves while the list stays.
+- [ ] Component test: the todo page header has no separate Edit button; ⋯ holds Edit, Reopen and Delete, and they behave as before.
+- [ ] Existing todo, todos, todo-tree and planner tests pass; grep tests and `scripts/browser-checks/` for the old Edit button and update any that break.
+
+## Slice 115: The add-tag button starts flush left when it wraps to its own line (B-1023)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/tags.md · Tests: component
+
+**Problem.** Found by slice 113 (B-1021): the add-tag button is the tags list's last item with `ml-1.5` (`components/tags/TagChips.tsx`); in narrow columns (medication list row ~238px, provider page header ~246px) two chips plus +N fill the line, so the button wraps and starts 6px in from the left.
+
+**Build.** Fix it once in `components/tags/` (e.g. the list's gap spacing the button instead of a left margin), so a wrapped button starts flush with the chips' left edge and an unwrapped one keeps its room from the last chip and its centre line (B-1021). Don't edit callers' layouts.
+
+**Acceptance criteria.**
+
+- [ ] Component test: in a narrow container where the button wraps, its left edge matches the first chip's within 1px; in a wide one it keeps its spacing from the last chip and its vertical centre matches the chips' within 1px.
+- [ ] Existing tags tests pass.

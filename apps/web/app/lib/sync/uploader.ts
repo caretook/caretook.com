@@ -3,6 +3,7 @@ import type { InferRouterInputs } from "@orpc/server";
 import type { AbstractPowerSyncDatabase, CrudEntry } from "@powersync/web";
 import type { ApiOutputs } from "../core/rpc";
 
+import { SYNC_WRITE_LIMIT } from "@caretook/data/domain";
 import { OWN_DOSE_COPY_METADATA } from "@caretook/data/schema";
 import { ORPCError } from "@orpc/client";
 import { getTableName } from "drizzle-orm";
@@ -32,6 +33,18 @@ import { localTryStore, tryCounter, tryKey } from "./uploadTries";
 // single-op request fails any other way (offline, a 401, a 5xx), the resend
 // stops there: only the ops already answered are acknowledged, and the
 // upload throws so PowerSync retries the rest.
+//
+// Whole writes (sync-safety-3, B-294): one save is one local transaction, and
+// the server applies a write (consecutive ops sharing `write`, the entry's
+// transaction id) in one transaction. So a batch never ends partway through a
+// write: it holds whole writes up to UPLOAD_BATCH ops, or one write alone up
+// to SYNC_WRITE_LIMIT. A write over the limit can't go whole: it is sent with
+// no `write`, a hundred ops at a time, op by op as before (once the rest of it
+// fits, the rest goes as one write). Every rule above then works per write:
+// a refused write's ops are all recorded (the others answer
+// `sync:writeRefused`); a failed write counts one try on its first entry and
+// is set aside whole; a 400 resends the batch one write per request. A
+// multi-op write's records share one `line_key`, so the page shows one line.
 
 /** Ops per upload request. Matches SYNC_BATCH_LIMIT in packages/api/src/sync.ts. */
 export const UPLOAD_BATCH = 100;
@@ -48,15 +61,70 @@ type Failure = Extract<UploadResult, { status: "failed" }>;
 /** What `unsaved_change` keeps of a result: a refusal, or a failure set aside. */
 type Unsaved = [CrudEntry, Refusal | Failure];
 
+/**
+ * The next batch: its entries in queue order, split into writes. `whole` is
+ * false only for a write over the limit, whose entries go with no `write`
+ * (each then its own write here too).
+ */
+type Batch = { entries: CrudEntry[]; writes: CrudEntry[][]; whole: boolean };
+
+/** Whether two entries are one write: the same local transaction. */
+const sameWrite = (a: CrudEntry | undefined, b: CrudEntry | undefined) =>
+  a?.transactionId != null && a.transactionId === b?.transactionId;
+
+/** Consecutive entries of one transaction are one write; with `whole` false, each entry is its own. */
+const writesOf = (entries: CrudEntry[], whole: boolean) => {
+  const writes: CrudEntry[][] = [];
+  for (const [i, entry] of entries.entries()) {
+    const last = writes.at(-1);
+    if (last && whole && sameWrite(entries[i - 1], entry)) last.push(entry);
+    else writes.push([entry]);
+  }
+  return writes;
+};
+
+const batchOf = (entries: CrudEntry[], whole: boolean): Batch => ({
+  entries,
+  writes: writesOf(entries, whole),
+  whole,
+});
+
+/**
+ * Read the queue's next batch of whole writes: up to UPLOAD_BATCH ops, read
+ * one past it to tell whether the last write runs on (then the batch ends
+ * before that write). A first write longer than the batch is read alone, up
+ * to the limit; over it, its first UPLOAD_BATCH ops go without `write`.
+ */
+const nextBatch = async (db: AbstractPowerSyncDatabase): Promise<Batch | null> => {
+  const read = (await db.getCrudBatch(UPLOAD_BATCH + 1))?.crud;
+  if (!read?.length) return null;
+  if (read.length <= UPLOAD_BATCH) return batchOf(read, true);
+  let end = UPLOAD_BATCH;
+  while (end > 0 && sameWrite(read[end - 1], read[end])) end--;
+  if (end > 0) return batchOf(read.slice(0, end), true);
+
+  const long = (await db.getCrudBatch(SYNC_WRITE_LIMIT + 1))?.crud ?? read;
+  let size = 1;
+  while (size < long.length && sameWrite(long[0], long[size])) size++;
+  return size <= SYNC_WRITE_LIMIT
+    ? batchOf(long.slice(0, size), true)
+    : batchOf(long.slice(0, UPLOAD_BATCH), false);
+};
+
+/** The write id an entry was sent with: its transaction id, unless the batch went without. */
+const writeIdOf = (batch: Batch, entry: CrudEntry) => (batch.whole ? (entry.transactionId ?? null) : null);
+
 /** The op the server gets for one queued entry. */
-const toOp = (entry: CrudEntry, ownDoses: ReadonlySet<CrudEntry>): UploadOp => {
+const toOp = (batch: Batch, entry: CrudEntry, ownDoses: ReadonlySet<CrudEntry>): UploadOp => {
   const metadata = ownDoses.has(entry) ? OWN_DOSE_COPY_METADATA : entry.metadata;
+  const write = writeIdOf(batch, entry);
   return {
     op: entry.op,
     table: entry.table,
     id: entry.id,
     data: entry.opData ?? null,
     ...(metadata ? { metadata } : {}),
+    ...(write === null ? {} : { write }),
   };
 };
 
@@ -144,12 +212,21 @@ const labelFor = async (db: AbstractPowerSyncDatabase, entry: CrudEntry): Promis
   return pickLabel(await localRow(db, entry.table, entry.id));
 };
 
-/** Record refused and set-aside ops in `unsaved_change`, one row each, in one transaction. */
-const recordUnsaved = async (db: AbstractPowerSyncDatabase, unsaved: Unsaved[]) => {
+/** A write's records share one line when it has several ops; a single op keeps its row's line. */
+const lineKeyOf = (batch: Batch, entry: CrudEntry) => {
+  const write = writeIdOf(batch, entry);
+  const size = batch.writes.find((ops) => ops.includes(entry))?.length ?? 1;
+  return write !== null && size > 1 ? `write:${write}` : lineKey(entry.table, entry.id, entry.opData);
+};
+
+/** Record refused and set-aside ops in `unsaved_change`, one row each, in one transaction, in queue order (`write_seq`). */
+const recordUnsaved = async (db: AbstractPowerSyncDatabase, batch: Batch, unsaved: Unsaved[]) => {
+  if (!unsaved.length) return;
+  const now = new Date().toISOString();
   const rows = await Promise.all(
-    unsaved.map(async ([entry, result]) => [
+    unsaved.map(async ([entry, result], seq) => [
       crypto.randomUUID(),
-      new Date().toISOString(),
+      now,
       entry.table,
       entry.id,
       entry.op,
@@ -158,15 +235,17 @@ const recordUnsaved = async (db: AbstractPowerSyncDatabase, unsaved: Unsaved[]) 
       result.status === "rejected" && result.issues?.length ? JSON.stringify(result.issues) : null,
       result.status === "rejected" ? "refused" : "set_aside",
       await labelFor(db, entry),
-      lineKey(entry.table, entry.id, entry.opData),
+      lineKeyOf(batch, entry),
+      writeIdOf(batch, entry),
+      seq,
     ]),
   );
   await db.writeTransaction(async (tx) => {
     for (const row of rows)
       await tx.execute(
         `INSERT INTO unsaved_change
-           (id, recorded_at, table_name, row_id, op, data, code, issues, outcome, label, line_key)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (id, recorded_at, table_name, row_id, op, data, code, issues, outcome, label, line_key, write_id, write_seq)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         row,
       );
   });
@@ -178,13 +257,19 @@ const resultOf = (entries: CrudEntry[], results: UploadResult[], i: number) => {
   return results[i]?.id === id ? results[i] : results.find((r) => r.id === id);
 };
 
+/** The ops the server refused, each with its result; one refused op's write answers `sync:writeRefused` too. */
 const refusalsOf = (entries: CrudEntry[], results: UploadResult[]): Unsaved[] =>
   entries.flatMap((entry, i) => {
     const result = resultOf(entries, results, i);
     return result?.status === "rejected" ? [[entry, result]] : [];
   });
 
-/** The first op the server couldn't process, and its result; none when every op was answered. */
+const warnRefusals = (unsaved: Unsaved[]) => {
+  for (const [, result] of unsaved)
+    if (result.code !== "sync:writeRefused") console.warn("Sync: the server refused a change", result);
+};
+
+/** The first op the server couldn't process (a write's first op), and its result; none when every op was answered. */
 const failureOf = (entries: CrudEntry[], results: UploadResult[]) => {
   for (const index of entries.keys()) {
     const result = resultOf(entries, results, index);
@@ -192,6 +277,10 @@ const failureOf = (entries: CrudEntry[], results: UploadResult[]) => {
   }
   return null;
 };
+
+/** A failed write set aside: every op recorded with the failure. */
+const setAsideAll = (write: CrudEntry[], failure: Failure): Unsaved[] =>
+  write.map((entry) => [entry, { ...failure, id: entry.id }]);
 
 /**
  * Acknowledge the first `count` ops of the queue: a batch of exactly that
@@ -219,7 +308,7 @@ export class UploadFailedError extends Error {
 }
 
 export type UploadOptions = {
-  /** The failing op's try counter (default: kept in localStorage). */
+  /** The failing write's try counter (default: kept in localStorage). */
   tries?: ReturnType<typeof tryCounter>;
   /** The clock, in epoch ms. */
   now?: () => number;
@@ -231,30 +320,44 @@ let deviceTries: ReturnType<typeof tryCounter> | null = null;
 const isBadRequest = (e: unknown): e is ORPCError<string, unknown> =>
   e instanceof ORPCError && e.status === 400;
 
-/** A single-op request's 400 as the op's refusal; its issues' paths are relative to the op. */
-const refusalOf = (entry: CrudEntry, e: ORPCError<string, unknown>): Refusal => {
+type Issue = { path: string; message: string };
+
+/**
+ * A one-write request's 400 as the write's refusal, as the server answers a
+ * refused write: each op its issues name answers `sync:invalid` with them
+ * (paths relative to the op), the others `sync:writeRefused` naming the
+ * first. Issues that name no op go to the write's first op.
+ */
+const refusalsOfBadRequest = (write: CrudEntry[], e: ORPCError<string, unknown>): Refusal[] => {
   const raw = (e.data as { issues?: { path?: unknown; message?: unknown }[] } | undefined)?.issues ?? [];
-  const issues = raw.flatMap((issue) => {
-    if (typeof issue.message !== "string") return [];
+  const byOp = new Map<number, Issue[]>();
+  for (const issue of raw) {
+    if (typeof issue.message !== "string") continue;
     const parts = Array.isArray(issue.path)
       ? issue.path.map((part: unknown) =>
           typeof part === "object" && part !== null && "key" in part ? String(part.key) : String(part),
         )
       : [];
+    const named = parts[0] === "ops" ? Number(parts[1]) : NaN;
+    const index = Number.isInteger(named) && named >= 0 && named < write.length ? named : 0;
     const relative = parts[0] === "ops" ? parts.slice(2) : parts;
-    return [{ path: relative.join("."), message: issue.message }];
+    byOp.set(index, [...(byOp.get(index) ?? []), { path: relative.join("."), message: issue.message }]);
+  }
+  const refused = byOp.size ? Math.min(...byOp.keys()) : 0;
+  return write.map((entry, i): Refusal => {
+    const issues = byOp.get(i);
+    if (i === refused || issues)
+      return { id: entry.id, status: "rejected", code: "sync:invalid", ...(issues ? { issues } : {}) };
+    return { id: entry.id, status: "rejected", code: "sync:writeRefused", refusedId: write[refused]!.id };
   });
-  return { id: entry.id, status: "rejected", code: "sync:invalid", ...(issues.length ? { issues } : {}) };
 };
 
-type Batch = NonNullable<Awaited<ReturnType<AbstractPowerSyncDatabase["getCrudBatch"]>>>;
-
 /**
- * After a 400 for the whole request: send the batch again one op per request,
- * in order (see the notes at the top). `refused` is that 400, used as is
- * when the batch is a single op.
+ * After a 400 for the whole request: send the batch again one write per
+ * request, in order (see the notes at the top). `refused` is that 400, used
+ * as is when the batch is a single write.
  */
-const uploadOneByOne = async (
+const uploadWriteByWrite = async (
   db: AbstractPowerSyncDatabase,
   batch: Batch,
   ops: UploadOp[],
@@ -262,50 +365,53 @@ const uploadOneByOne = async (
   refused: ORPCError<string, unknown>,
   { tries, now }: Required<UploadOptions>,
 ) => {
-  const entries = batch.crud;
+  const { entries, writes } = batch;
   const unsaved: Unsaved[] = [];
   /** Stop after the first `done` ops: record, acknowledge them, and let PowerSync retry the rest. */
   const stopAt = async (done: number) => {
-    if (unsaved.length) await recordUnsaved(db, unsaved);
+    await recordUnsaved(db, batch, unsaved);
     await acknowledgeFirst(db, done, entries[done - 1]);
     tries.acknowledged(entries.slice(0, done).map(tryKey));
   };
 
-  for (const [index, entry] of entries.entries()) {
-    let result: UploadResult | undefined;
+  let at = 0;
+  for (const write of writes) {
+    const start = at;
+    at += write.length;
+    let results: UploadResult[];
     try {
-      if (entries.length === 1) throw refused;
-      result = (await upload({ ops: [ops[index]!] })).results[0];
+      if (writes.length === 1) throw refused;
+      ({ results } = await upload({ ops: ops.slice(start, at) }));
     } catch (e) {
       if (!isBadRequest(e)) {
-        await stopAt(index);
+        await stopAt(start);
         throw e;
       }
-      result = refusalOf(entry, e);
+      results = refusalsOfBadRequest(write, e);
     }
-    if (result?.status === "rejected") {
-      console.warn("Sync: the server refused a change", result);
-      unsaved.push([entry, result]);
-    } else if (result?.status === "failed") {
-      if (!tries.fail(tryKey(entry), now())) {
-        await stopAt(index);
+    const failure = failureOf(write, results);
+    if (failure) {
+      if (!tries.fail(tryKey(write[0]!), now())) {
+        await stopAt(start);
         throw new UploadFailedError();
       }
-      console.warn("Sync: setting aside a change the server couldn't save", { table: entry.table });
-      unsaved.push([entry, result]);
+      console.warn("Sync: setting aside a change the server couldn't save", { table: write[0]!.table });
+      unsaved.push(...setAsideAll(write, failure.result));
+      continue;
     }
+    const refusals = refusalsOf(write, results);
+    warnRefusals(refusals);
+    unsaved.push(...refusals);
   }
-  if (unsaved.length) await recordUnsaved(db, unsaved);
-  await batch.complete();
-  tries.acknowledged(entries.map(tryKey));
+  await stopAt(entries.length);
 };
 
 /**
  * Upload the next batch of queued writes through `upload`. Refused ops are
- * recorded, then the whole batch is acknowledged. After a `failed` op only
- * the ops before it are acknowledged and this throws, until the op has
- * failed often enough to be set aside (recorded, acknowledged; the queue
- * carries on). A 400 for the whole request resends the batch one op at a
+ * recorded, then the whole batch is acknowledged. After a `failed` write only
+ * the ops before it are acknowledged and this throws, until the write has
+ * failed often enough to be set aside (recorded whole, acknowledged; the queue
+ * carries on). A 400 for the whole request resends the batch one write at a
  * time. A request that fails as a whole any other way (offline, a 5xx, a
  * 401) throws: nothing is acknowledged or counted, and PowerSync retries later.
  */
@@ -314,41 +420,41 @@ export const uploadQueued = async (
   upload: UploadCall,
   { tries = (deviceTries ??= tryCounter(localTryStore())), now = Date.now }: UploadOptions = {},
 ) => {
-  const batch = await db.getCrudBatch(UPLOAD_BATCH);
+  const batch = await nextBatch(db);
   if (!batch) return;
-  const entries = batch.crud;
+  const { entries } = batch;
   const ownDoses = await ownDosePatches(db, entries);
-  const ops = entries.map((entry) => toOp(entry, ownDoses));
+  const ops = entries.map((entry) => toOp(batch, entry, ownDoses));
   let results: UploadResult[];
   try {
     ({ results } = await upload({ ops }));
   } catch (e) {
     if (!isBadRequest(e)) throw e;
-    console.warn("Sync: the server refused an upload as a whole; sending its changes one at a time", e);
-    return uploadOneByOne(db, batch, ops, upload, e, { tries, now });
+    console.warn("Sync: the server refused an upload as a whole; sending its writes one at a time", e);
+    return uploadWriteByWrite(db, batch, ops, upload, e, { tries, now });
   }
 
   const failure = failureOf(entries, results);
-  const failedAt = failure ? failure.index : -1;
-  const answered = failedAt < 0 ? entries : entries.slice(0, failedAt);
-  const unsaved = refusalsOf(answered, results);
-  for (const [, result] of unsaved) console.warn("Sync: the server refused a change", result);
+  // The server answers `failed` at the write's first op; the write is every op of it.
+  const write = failure ? (batch.writes.find((ops) => ops.includes(entries[failure.index]!)) ?? []) : [];
+  const failedAt = failure ? entries.indexOf(write[0]!) : entries.length;
+  const unsaved = refusalsOf(entries.slice(0, failedAt), results);
+  warnRefusals(unsaved);
 
   if (!failure) {
-    if (unsaved.length) await recordUnsaved(db, unsaved);
-    await batch.complete();
+    await recordUnsaved(db, batch, unsaved);
+    await acknowledgeFirst(db, entries.length, entries.at(-1));
     tries.acknowledged(entries.map(tryKey));
     return;
   }
 
-  const failing = entries[failedAt]!;
-  const setAside = tries.fail(tryKey(failing), now());
+  const setAside = tries.fail(tryKey(write[0]!), now());
   if (setAside) {
-    console.warn("Sync: setting aside a change the server couldn't save", { table: failing.table });
-    unsaved.push([failing, failure.result]);
+    console.warn("Sync: setting aside a change the server couldn't save", { table: write[0]!.table });
+    unsaved.push(...setAsideAll(write, failure.result));
   }
-  if (unsaved.length) await recordUnsaved(db, unsaved);
-  const done = setAside ? failedAt + 1 : failedAt;
+  await recordUnsaved(db, batch, unsaved);
+  const done = setAside ? failedAt + write.length : failedAt;
   await acknowledgeFirst(db, done, entries[done - 1]);
   tries.acknowledged(entries.slice(0, done).map(tryKey));
   if (!setAside) throw new UploadFailedError();

@@ -295,3 +295,21 @@ export const revokeForGroup = async (tx: Tx, groupId: string) => {
   const ended = await endGrants(revoked, tx);
   return ended ?? { count: revoked.length };
 };
+
+/**
+ * The account's sessions ended everywhere (a password reset, "sign out
+ * everywhere", staff's sign-out-all or disable): every live grant of the
+ * account ends, with its tokens and consent, in every group, as `revoke`
+ * does for one. Runs as the system, inside `tx` when given (staff's
+ * transactions), else its own. Returns how many grants ended.
+ */
+export const revokeAllForUser = (userId: string, tx?: Tx) =>
+  withTransaction(
+    async (inner) => {
+      const revoked = await connectorGrantModel.revokeForUser(userId, SYSTEM_USER.id, inner);
+      if (isError(revoked)) return revoked;
+      const ended = await endGrants(revoked, inner);
+      return ended ?? { count: revoked.length };
+    },
+    tx ? { tx } : {},
+  );

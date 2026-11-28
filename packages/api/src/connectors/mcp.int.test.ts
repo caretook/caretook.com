@@ -1,8 +1,10 @@
 import type { AuthUser } from "@caretook/data";
 import type { RateLimiter } from "../rateLimit";
 import type { Tool } from "./registry";
+import type { Tokens } from "./testing";
 
 import {
+  accountAdminService,
   careGroupService,
   getDb,
   noteDocumentService,
@@ -10,20 +12,25 @@ import {
   tagService,
   timelineEntrySchema,
   timelineEntryService,
+  verificationSchema,
 } from "@caretook/data";
+import { createAuth, createAuthLimits, getAuth, validateConnectorToken } from "@caretook/auth";
 import { randomUUID } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { createGroup, createUser, newYDoc, ok, typeParagraph } from "../../../data/test/fixtures";
 import { createRateLimiter } from "../rateLimit";
 import { MCP_RATE_LIMIT } from "./http";
 import { defineTool, WRITE_ANNOTATIONS } from "./registry";
 import {
+  authForm,
   connectAssistant,
   enablePasswordSignIn,
   mcpHandler,
   mcpPost,
+  registerRequest,
   rpc,
+  signInCookies,
   TEST_ORIGIN,
   toolRequest,
   toolResultOf,
@@ -460,6 +467,56 @@ describe("/mcp", () => {
     expect(over.headers.get("retry-after")).toBe("60");
   });
 
+  it("limits each client IP before the token is verified: past it, 429 with Retry-After", async () => {
+    const validate = vi.fn(validateConnectorToken());
+    const handler = mcpHandler({
+      validate,
+      ipLimiter: createRateLimiter({ limit: 1, windowMs: 60_000 }),
+      tools: TOOLS,
+    });
+    const w = await world({ signIn: ["owner"] });
+    const { tokens } = await connectAssistant({ email: w.owner.user.email, groupId: w.group.id });
+    expect((await mcpPost(handler, tokens.access_token, rpc("ping"), "198.51.100.10")).status).toBe(200);
+    expect(validate).toHaveBeenCalledTimes(1);
+    const over = await mcpPost(handler, tokens.access_token, rpc("ping"), "198.51.100.10");
+    expect(over.status).toBe(429);
+    expect(over.headers.get("retry-after")).toBe("60");
+    expect(validate).toHaveBeenCalledTimes(1);
+    // Another address has its own count.
+    expect((await mcpPost(handler, tokens.access_token, rpc("ping"), "198.51.100.11")).status).toBe(200);
+  });
+
+  describe("in production", () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+      vi.restoreAllMocks();
+    });
+
+    it("refuses a request without a client IP (400, logged) before verifying its token", async () => {
+      const validate = vi.fn(validateConnectorToken());
+      const handler = mcpHandler({ validate, tools: TOOLS });
+      vi.stubEnv("NODE_ENV", "production");
+      const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+      expect((await mcpPost(handler, "any-token", rpc("ping"))).status).toBe(400);
+      expect(validate).not.toHaveBeenCalled();
+      expect(String(logged.mock.calls[0]?.[0])).toMatch(/no client IP.*procedure=mcp/);
+    });
+  });
+
+  it("limits client registration (/oauth2/register) per client IP: past it, 429 with Retry-After", async () => {
+    const auth = createAuth({
+      limits: createAuthLimits({ enabled: true, limits: { connectorRegisterIp: 2 } }),
+    });
+    const ip = `198.51.${Math.floor(Math.random() * 250) + 1}.${Math.floor(Math.random() * 250) + 1}`;
+    const register = (from: string) =>
+      auth.handler(registerRequest("Test Claude", undefined, { "x-forwarded-for": from }));
+    for (let i = 0; i < 2; i++) expect([200, 201]).toContain((await register(ip)).status);
+    const over = await register(ip);
+    expect(over.status).toBe(429);
+    expect(over.headers.get("retry-after")).toBe("60");
+    expect([200, 201]).toContain((await register(`${ip.split(".").slice(0, 3).join(".")}.0`)).status);
+  });
+
   it("stops working when the owner turns Assistants off", async () => {
     const handler = handlerWith();
     const w = await world();
@@ -472,5 +529,117 @@ describe("/mcp", () => {
       }),
     );
     expect((await mcpPost(handler, tokens.access_token, rpc("ping"))).status).toBe(401);
+  });
+});
+
+// Ending sessions ends the assistants too (B-329): a password reset, "sign
+// out everywhere" (Better Auth's own paths, through its after hook) and
+// staff's sign-out-all and disable (raw deletes in accountAdminService).
+// Signing one device out leaves them.
+describe("/mcp after the account's sessions end", () => {
+  const connected = async () => {
+    const w = await world({ signIn: ["caretaker"] });
+    const { clientId, tokens, cookies } = await connectAssistant({
+      email: w.caretaker.user.email,
+      groupId: w.group.id,
+    });
+    return { w, clientId, tokens, cookies };
+  };
+
+  /** Whether the assistant's access token works at /mcp, and its refresh token at /oauth2/token. */
+  const assistantWorks = async ({ clientId, tokens }: { clientId: string; tokens: Tokens }) => {
+    const mcp = await mcpPost(handlerWith(), tokens.access_token, rpc("ping"));
+    const refreshed = await authForm("/oauth2/token", {
+      grant_type: "refresh_token",
+      refresh_token: tokens.refresh_token,
+      client_id: clientId,
+    });
+    return { mcp: mcp.status === 200, refresh: refreshed.status === 200 };
+  };
+  const refused = { mcp: false, refresh: false };
+
+  it("a password reset disconnects it", async () => {
+    const c = await connected();
+    const token = randomUUID();
+    await getDb()
+      .insert(verificationSchema)
+      .values({
+        identifier: `reset-password:${token}`,
+        value: c.w.caretaker.user.id,
+        expiresAt: new Date(Date.now() + 60_000),
+      });
+    const res = await getAuth().api.resetPassword({
+      body: { token, newPassword: "a brand new passphrase" },
+      asResponse: true,
+    });
+    expect(res.status).toBe(200);
+    expect(await assistantWorks(c)).toEqual(refused);
+  });
+
+  it("the Devices page's sign out everywhere disconnects it, and signing out everywhere does too", async () => {
+    const c = await connected();
+    const devices = await signInCookies(c.w.caretaker.user.email);
+    const res = await getAuth().api.revokeOtherSessions({ headers: devices, asResponse: true });
+    expect(res.status).toBe(200);
+    expect(await assistantWorks(c)).toEqual(refused);
+
+    const again = await connected();
+    const all = await getAuth().api.revokeSessions({ headers: again.cookies, asResponse: true });
+    expect(all.status).toBe(200);
+    expect(await assistantWorks(again)).toEqual(refused);
+  });
+
+  it("staff signing every session out, or disabling the account, disconnects it", async () => {
+    const admin = await createUser("staff", "admin");
+    const c = await connected();
+    ok(
+      await accountAdminService.revokeAllSessions(admin.ctx, {
+        userId: c.w.caretaker.user.id,
+        reason: "Lost phone",
+      }),
+    );
+    expect(await assistantWorks(c)).toEqual(refused);
+
+    const d = await connected();
+    ok(await accountAdminService.disable(admin.ctx, { userId: d.w.caretaker.user.id, reason: "Abuse" }));
+    expect(await assistantWorks(d)).toEqual(refused);
+  });
+
+  it("signing one device out leaves it working", async () => {
+    const c = await connected();
+    const other = await signInCookies(c.w.caretaker.user.email);
+    const otherToken = (await getAuth().api.getSession({ headers: other }))!.session.token;
+    const res = await getAuth().api.revokeSession({
+      headers: c.cookies,
+      body: { token: otherToken },
+      asResponse: true,
+    });
+    expect(res.status).toBe(200);
+    expect(
+      await getAuth().api.getSession({ headers: other, query: { disableCookieCache: true } }),
+    ).toBeNull();
+    expect(await assistantWorks(c)).toEqual({ mcp: true, refresh: true });
+  });
+
+  it("signing out the device that connected it keeps the connection: its refresh token still works", async () => {
+    const c = await connected();
+    const other = await signInCookies(c.w.caretaker.user.email);
+    const consenting = (await getAuth().api.getSession({ headers: c.cookies }))!.session.token;
+    const res = await getAuth().api.revokeSession({
+      headers: other,
+      body: { token: consenting },
+      asResponse: true,
+    });
+    expect(res.status).toBe(200);
+    // The plugin ends the access token bound to that session (back-channel
+    // logout); the offline_access refresh token, and so the connection, stay.
+    const refreshed = await authForm("/oauth2/token", {
+      grant_type: "refresh_token",
+      refresh_token: c.tokens.refresh_token,
+      client_id: c.clientId,
+    });
+    expect(refreshed.status).toBe(200);
+    const next = (await refreshed.json()) as Tokens;
+    expect((await mcpPost(handlerWith(), next.access_token, rpc("ping"))).status).toBe(200);
   });
 });

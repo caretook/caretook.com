@@ -18,7 +18,7 @@ import {
 import { isError, newError } from "../errors";
 import { carePeriodModel, careGroupModel, careRecipientModel, providerModel } from "../models";
 import { rejectError } from "../permissions";
-import { asCreated, unchanged } from "./upserted";
+import { createIfAbsent } from "./upserted";
 import { SERVER_FUTURE_SKEW_MS } from "../domain/core/entryTiming";
 
 // Care periods: where the recipient's care happens, over time. Write through
@@ -186,16 +186,17 @@ export const upsert = (ctx: ServiceContext, input: CarePeriodUpsertInput) =>
     if (!parsed.success) return invalid(parsed.error);
     const { id, groupId, recipientId } = parsed.data;
 
-    const existing = await carePeriodModel.getById(id, { authUser: SYSTEM_USER, tx, includeDeleted: true });
-    if (isError(existing)) return existing;
-    if (!existing) return asCreated(await create({ ...ctx, tx }, input));
-
-    const visible = await carePeriodModel.getById(id, { ...ctx, tx, includeDeleted: true });
-    if (isError(visible)) return visible;
-    if (!visible) return rejectError(ctx.authUser);
-    if (visible.groupId !== groupId || (recipientId !== undefined && visible.recipientId !== recipientId))
-      return newError({ code: "carePeriodService:immutable" });
-    return unchanged(visible);
+    return createIfAbsent({
+      ctx,
+      tx,
+      getById: carePeriodModel.getById,
+      id,
+      create: () => create({ ...ctx, tx }, input),
+      immutable: (visible) =>
+        visible.groupId !== groupId || (recipientId !== undefined && visible.recipientId !== recipientId)
+          ? newError({ code: "carePeriodService:immutable" })
+          : undefined,
+    });
   }, ctx);
 
 /** Soft delete (a period recorded by mistake). The period before it runs on in its place. */

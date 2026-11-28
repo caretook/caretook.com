@@ -63,3 +63,6 @@ apps/web/app/lib/app-shell/              -
 # The setup pages (onboarding-2): component tests (setup/setup.browser.test.tsx).
 apps/web/app/routes/app/groups/setup/routes.ts first-sync layout-offline
 apps/web/app/routes/app/groups/setup/    -
+# The device's settings through the server (me.updatePreferences): layout-offline's
+# layout change reaching the server.
+packages/api/src/app-shell/me.ts         layout-offline

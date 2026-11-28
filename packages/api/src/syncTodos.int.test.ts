@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../data/test/fixtures";
 import { clientFor, outcomes, upload } from "./testing";
-import { ROLLUP_METADATA, UNDO_NEXT_METADATA } from "@caretook/data/domain";
+import { ROLLUP_METADATA, UNDO_NEXT_METADATA, scrubbedColumns } from "@caretook/data/domain";
 
 // sync.upload for todos: rows as a device's SQLite holds them (snake_case,
 // PowerSync's timestamps). Each test makes its own users and group.
@@ -292,10 +292,17 @@ describe("sync.upload: repeating todos", () => {
     expect(await openIn(owner.ctx, group.id, id)).toEqual([[id, "2026-11-16"]]);
 
     // Skip: this one's soft delete, then the next one brought back (the
-    // device has the Undo's deleted copy, so it's a PATCH, not a PUT).
+    // device has the Undo's deleted copy, so it's a PATCH, not a PUT). The
+    // delete scrubbed it (data-rights), and so did the device's copy, so its
+    // content comes back with it.
     const skip = [
       { op: "PATCH" as const, table: "todo", id, data: { deleted_at: MONDAY } },
-      { op: "PATCH" as const, table: "todo", id: next.id, data: { deleted_at: null } },
+      {
+        op: "PATCH" as const,
+        table: "todo",
+        id: next.id,
+        data: { deleted_at: null, title: "Call the pharmacy" },
+      },
     ];
     expect((await upload(owner.api, skip)).map((r) => r.status)).toEqual(["applied", "applied"]);
     expect(await todoService.getById(owner.ctx, id)).toBeNull();
@@ -391,6 +398,30 @@ describe("sync.upload: repeating todos", () => {
       }
     });
 
+    it("brings a scrubbed next back with the device's content on a skip (data-rights)", async () => {
+      const { owner, caretaker, id, nextId, undo } = await ticked();
+      ok(await owner.api.sync.upload({ ops: undo }));
+      expect(ok(await todoService.getById(owner.ctx, nextId, { includeDeleted: true }))).toMatchObject({
+        title: "",
+        assigneeId: null,
+      });
+      const skip = [
+        { op: "PATCH" as const, table: "todo", id, data: { deleted_at: TUESDAY } },
+        {
+          op: "PATCH" as const,
+          table: "todo",
+          id: nextId,
+          data: { deleted_at: null, title: "Put the bins out", assignee_id: caretaker.user.id },
+        },
+      ];
+      expect((await upload(owner.api, skip)).map((r) => r.status)).toEqual(["applied", "applied"]);
+      expect(ok(await todoService.getById(owner.ctx, nextId))).toMatchObject({
+        title: "Put the bins out",
+        assigneeId: caretaker.user.id,
+        deletedAt: null,
+      });
+    });
+
     it("an explicit delete of the next is unchanged: it goes even when edited", async () => {
       const { owner, caretaker, nextId } = await ticked();
       ok(await todoService.update(caretaker.ctx, nextId, { title: "Bins and recycling" }));
@@ -458,6 +489,43 @@ describe("sync.upload: repeating todos", () => {
       expect(await upload(owner.api, [flagged(plain)])).toEqual([{ id: plain, status: "applied" }]);
       expect(ok(await todoService.getById(owner.ctx, own))).toMatchObject({ deletedAt: null });
       expect(ok(await todoService.getById(owner.ctx, plain))).toMatchObject({ deletedAt: null });
+    });
+
+    it("their Undo of their own repeating todo applies after the reopen scrubs the next (data-rights)", async () => {
+      const { group, recipient, owner, viewer } = await setup();
+      const id = randomUUID();
+      const mine = { assignee_id: viewer.user.id };
+      const put = {
+        op: "PUT" as const,
+        table: "todo",
+        id,
+        data: repeating(id, group.id, recipient.id, mine),
+      };
+      ok(await owner.api.sync.upload({ ops: [put] }));
+      const twinOp = twin(id, group.id, recipient.id, "2026-11-23");
+      const next = { ...twinOp, data: { ...twinOp.data, ...mine } };
+      expect(await outcomes(viewer.api, [tick(id, MONDAY, viewer.user.id), next])).toEqual([
+        "applied",
+        "applied",
+      ]);
+
+      // The device's Undo: the reopen (whose server side already takes the
+      // untouched next away, scrubbing it), then the next's flagged delete,
+      // with the device's scrubbed copy. The next keeps its assignee, so the
+      // viewer may still complete it, and neither write is refused.
+      const undo = [
+        { op: "PATCH" as const, table: "todo", id, data: { done_at: null, done_by: null } },
+        {
+          ...flagged(next.id),
+          data: { ...scrubbedColumns("todo"), deleted_at: TUESDAY },
+        },
+      ];
+      expect(await outcomes(viewer.api, undo)).toEqual(["applied", "applied"]);
+      expect(ok(await todoService.getById(owner.ctx, id))).toMatchObject({ doneAt: null, doneBy: null });
+      expect(await openIn(owner.ctx, group.id, id)).toEqual([[id, "2026-11-16"]]);
+      const gone = ok(await todoService.getById(owner.ctx, next.id, { includeDeleted: true }));
+      expect(gone).toMatchObject({ title: "", assigneeId: viewer.user.id });
+      expect(gone?.deletedAt).toBeTruthy();
     });
   });
 

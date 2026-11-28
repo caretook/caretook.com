@@ -41,7 +41,7 @@ import {
   timelineEntryModel,
 } from "../models";
 import { rejectError } from "../permissions";
-import { asCreated, unchanged } from "./upserted";
+import { createIfAbsent } from "./upserted";
 
 // A care group's medication list. Write through here, not the model: this is
 // where content is validated, the prescriber and pharmacy are checked, and
@@ -371,18 +371,19 @@ export const upsert = (
     if (!parsed.success) return invalid(parsed.error);
     const { id, groupId, recipientId } = parsed.data;
 
-    const existing = await medicationModel.getById(id, { authUser: SYSTEM_USER, tx, includeDeleted: true });
-    if (isError(existing)) return existing;
-    // The device's own input, not the parsed one: `create` parses it again.
-    // A device's create: never a `via`.
-    if (!existing) return asCreated(await create({ ...ctx, tx }, input, { changedAt: opts.changedAt }));
-
-    const visible = await medicationModel.getById(id, { ...ctx, tx, includeDeleted: true });
-    if (isError(visible)) return visible;
-    if (!visible) return rejectError(ctx.authUser);
-    if (visible.groupId !== groupId || (recipientId !== undefined && visible.recipientId !== recipientId))
-      return newError({ code: "medicationService:immutable" });
-    return unchanged(visible);
+    return createIfAbsent({
+      ctx,
+      tx,
+      getById: medicationModel.getById,
+      id,
+      // The device's own input, not the parsed one: `create` parses it again.
+      // A device's create: never a `via`.
+      create: () => create({ ...ctx, tx }, input, { changedAt: opts.changedAt }),
+      immutable: (visible) =>
+        visible.groupId !== groupId || (recipientId !== undefined && visible.recipientId !== recipientId)
+          ? newError({ code: "medicationService:immutable" })
+          : undefined,
+    });
   }, ctx);
 
 /**

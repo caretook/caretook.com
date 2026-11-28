@@ -3,6 +3,7 @@ import type { RateLimiter } from "../rateLimit";
 import type { Prompt } from "./prompts";
 import type { Tool } from "./registry";
 
+import { clientIpKey, CONNECTOR_IP_LIMIT } from "@caretook/auth";
 import { connectorGrantService, isError, logError } from "@caretook/data";
 import { OAUTH_SCOPES } from "@caretook/data/schema";
 import { createRateLimiter, defaultStore } from "../rateLimit";
@@ -20,8 +21,11 @@ import { CONNECTOR_TOOLS } from "./tools";
 //   - A call to a write tool on a read-only connection is a 403
 //     `insufficient_scope`, unless the group's owner set read only: then
 //     it's an `mcp:groupReadOnly` tool result (re-authorizing can't help).
-//   - 60 calls a minute per connection (a looping assistant can't hammer
-//     the database), then 429 with Retry-After.
+//   - Per client IP (`clientIpKey`, CONNECTOR_IP_LIMIT) before the token is
+//     looked at, so no one causes database work past it; then 60 calls a
+//     minute per connection (a looping assistant can't hammer the
+//     database). Past either, 429 with Retry-After. In production a request
+//     without a client IP is a 400 (logged).
 //   - Logs follow the api rules: codes, the tool (`procedure`), the actor
 //     and the group, never arguments or results.
 
@@ -36,7 +40,10 @@ export type McpHandlerOptions = {
   validate: ValidateToken;
   /** Origins a browser may call from (an Origin header from anywhere else is refused). */
   allowedOrigins?: readonly string[];
+  /** Per connection (the grant). */
   limiter?: RateLimiter;
+  /** Per client IP, before the token is verified. */
+  ipLimiter?: RateLimiter;
   tools?: readonly Tool[];
   prompts?: readonly Prompt[];
   now?: () => Date;
@@ -73,6 +80,7 @@ export const createMcpHandler = ({
     windowMs: MINUTE_MS,
     store: defaultStore("connector"),
   }),
+  ipLimiter = createRateLimiter({ ...CONNECTOR_IP_LIMIT, store: defaultStore("connector-ip") }),
   tools = CONNECTOR_TOOLS,
   prompts = CONNECTOR_PROMPTS,
   now = () => new Date(),
@@ -85,7 +93,13 @@ export const createMcpHandler = ({
       "www-authenticate": challenge(invalid ? 'error="invalid_token", ' : ""),
     });
 
-  return async (request: Request): Promise<Response> => {
+  const tooMany = () =>
+    json(rpcError(JSON_RPC.invalidRequest, "Too many requests: wait a minute"), 429, {
+      "retry-after": "60",
+    });
+
+  /** `clientIp` is the caller's address as the mount point trusts it (only for the limit; never stored). */
+  return async (request: Request, { clientIp }: { clientIp?: string | null } = {}): Promise<Response> => {
     if (request.method !== "POST") {
       return json(rpcError(JSON_RPC.invalidRequest, "Method not allowed: POST one JSON-RPC message"), 405, {
         allow: "POST",
@@ -94,6 +108,10 @@ export const createMcpHandler = ({
     const origin = request.headers.get("origin");
     if (origin && !allowedOrigins.includes(origin))
       return json(rpcError(JSON_RPC.invalidRequest, "Forbidden"), 403);
+
+    const ipKey = clientIpKey(clientIp, "mcp");
+    if (ipKey === null) return json(rpcError(JSON_RPC.invalidRequest, "Bad request"), 400);
+    if (!(await ipLimiter.hit(ipKey))) return tooMany();
 
     const token = bearerToken(request);
     if (!token) return unauthorized(false);
@@ -106,11 +124,7 @@ export const createMcpHandler = ({
     }
     const fields = { actorId: verified.authUser.id, groupId: verified.groupId };
 
-    if (!(await limiter.hit(verified.grantId))) {
-      return json(rpcError(JSON_RPC.invalidRequest, "Too many requests: wait a minute"), 429, {
-        "retry-after": "60",
-      });
-    }
+    if (!(await limiter.hit(verified.grantId))) return tooMany();
 
     let message: unknown;
     try {

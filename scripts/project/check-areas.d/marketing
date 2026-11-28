@@ -11,3 +11,8 @@ packages/data/src/db/schema/marketing/   marketing
 packages/data/src/domain/marketing/      marketing
 # The component tests' world: only they read it.
 apps/web/app/routes/marketing/marketingWorld.tsx  -
+# The public forms' services and models (publicForms.ts): the marketing check submits both.
+packages/data/src/services/waitlistService.ts marketing
+packages/data/src/services/contactMessageService.ts marketing
+packages/data/src/models/waitlistEntry/  marketing
+packages/data/src/models/contactMessage/ marketing

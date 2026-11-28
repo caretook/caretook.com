@@ -1,6 +1,7 @@
 import { getAuth } from "@caretook/auth";
 import {
   adminAuditLogModel,
+  appSettingService,
   getDb,
   isError,
   notificationOutboxSchema,
@@ -39,6 +40,17 @@ const auditFor = async (targetUserId: string) => {
   const res = await adminAuditLogModel.search({
     authUser: SYSTEM_USER,
     filter: { target: targetUserId },
+    paginate: { page: 1, limit: 100 },
+  });
+  if (isError(res)) throw new Error(String(res.code));
+  return res.data;
+};
+
+/** `actorId`'s audit entries with `action`, read at once (no waiting on background work). */
+const entriesBy = async (actorId: string, action: "user.view" | "user.search") => {
+  const res = await adminAuditLogModel.search({
+    authUser: SYSTEM_USER,
+    filter: { actorId, action },
     paginate: { page: 1, limit: 100 },
   });
   if (isError(res)) throw new Error(String(res.code));
@@ -118,6 +130,19 @@ describe("admin.users.search", () => {
     const second = await api.admin.users.search({ page: 2 });
     expect(second.page).toBe(2);
     expect(second.users.length).toBe(Math.max(0, Math.min(50, total - 50)));
+
+    // Each search with text is on the log with that text when it returns; a
+    // listing without text isn't a search.
+    const searches = await entriesBy(support.user.id, "user.search");
+    expect(searches).toHaveLength(3);
+    expect(searches.map((e) => e.changes)).toEqual(
+      expect.arrayContaining([
+        { query: [tag.toUpperCase(), tag.toUpperCase()] },
+        { query: [suffix, suffix] },
+        { query: ["%", "%"] },
+      ]),
+    );
+    expect(searches[0]).toMatchObject({ targetUserId: null, targetGroupId: null, reason: null });
   });
 });
 
@@ -178,10 +203,10 @@ describe("admin.users.get", () => {
     const forbidden = (await careColumns()).flatMap((c) => [c, camel(c)]);
     expect(keysOf(page).filter((k) => forbidden.includes(k))).toEqual([]);
 
-    // Opening the page is recorded (in the background).
-    const views = (await auditFor(target.user.id)).filter((e) => e.action === "user.view");
+    // Opening the page is recorded before it answers.
+    const views = await entriesBy(support.user.id, "user.view");
     expect(views).toHaveLength(1);
-    expect(views[0]).toMatchObject({ actorId: support.user.id });
+    expect(views[0]).toMatchObject({ actorId: support.user.id, targetUserId: target.user.id });
   });
 
   it("is a 404 for an unknown account", async () => {
@@ -296,5 +321,99 @@ describe("the help actions", () => {
     expect(await codeOf(api.admin.users.revokeAllSessions(help))).toBe("FORBIDDEN");
     expect(await auditFor(target.user.id)).toHaveLength(0);
     // Support: covered action by action above (each test's actor is support).
+  });
+});
+
+describe("an account's care group limit", () => {
+  const groupLimitOf = async (userId: string) =>
+    (await query<{ group_limit: number | null }>(`select group_limit from "user" where id = $1`, [userId]))[0]
+      ?.group_limit;
+  const limitEntries = async (userId: string) =>
+    (await auditFor(userId)).filter((e) => e.action === "user.setGroupLimit");
+
+  it("support reads how many groups a member started, the limit, and no override", async () => {
+    const support = await createUser("usr-limit-read", "support");
+    const member = await createUser("usr-limit-member");
+    await createGroup(member);
+    const fallback = await appSettingService.getSetting("limits.groupsStarted");
+    expect(await clientFor(support.ctx.authUser).admin.users.groupLimit({ userId: member.user.id })).toEqual({
+      started: 1,
+      limit: fallback,
+      override: null,
+    });
+  });
+
+  it("support and admin set it with a reason, once on the log; null resets to the default", async () => {
+    const support = await createUser("usr-limit-support", "support");
+    const admin = await createUser("usr-limit-admin", "admin");
+    const member = await createUser("usr-limit-target");
+    const userId = member.user.id;
+    const fallback = await appSettingService.getSetting("limits.groupsStarted");
+    const bySupport = clientFor(support.ctx.authUser).admin.users;
+    const byAdmin = clientFor(admin.ctx.authUser).admin.users;
+
+    expect(await bySupport.setGroupLimit({ userId, limit: 5, reason: "Runs care for two parents" })).toEqual({
+      started: 0,
+      limit: 5,
+      override: 5,
+    });
+    expect(await groupLimitOf(userId)).toBe(5);
+    let entries = await limitEntries(userId);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({
+      actorId: support.user.id,
+      targetUserId: userId,
+      reason: "Runs care for two parents",
+      changes: { groupLimit: [null, 5] },
+    });
+
+    // The same value again changes nothing and adds no entry.
+    expect(await byAdmin.setGroupLimit({ userId, limit: 5, reason: "Again" })).toMatchObject({ override: 5 });
+    expect(await limitEntries(userId)).toHaveLength(1);
+
+    // Null goes back to the default.
+    expect(await byAdmin.setGroupLimit({ userId, limit: null, reason: "No longer needed" })).toEqual({
+      started: 0,
+      limit: fallback,
+      override: null,
+    });
+    expect(await groupLimitOf(userId)).toBeNull();
+    entries = await limitEntries(userId);
+    expect(entries).toHaveLength(2);
+    expect(entries.find((e) => e.actorId === admin.user.id)).toMatchObject({
+      changes: { groupLimit: [5, null] },
+    });
+    expect(await bySupport.groupLimit({ userId })).toEqual({ started: 0, limit: fallback, override: null });
+  });
+
+  it("refuses members, a missing reason, a limit out of range, and an unknown account", async () => {
+    const member = await createUser("usr-limit-nobody");
+    const admin = await createUser("usr-limit-checks", "admin");
+    const target = await createUser("usr-limit-checked");
+    const userId = target.user.id;
+    const asMember = clientFor(member.ctx.authUser).admin.users;
+    expect(await codeOf(asMember.groupLimit({ userId }))).toBe("FORBIDDEN");
+    expect(await codeOf(asMember.setGroupLimit({ userId, limit: 5, reason: "Because" }))).toBe("FORBIDDEN");
+    // Not even their own.
+    expect(
+      await codeOf(asMember.setGroupLimit({ userId: member.user.id, limit: 50, reason: "Because" })),
+    ).toBe("FORBIDDEN");
+
+    const api = clientFor(admin.ctx.authUser).admin.users;
+    for (const reason of [undefined, "", "   "]) {
+      const input = { userId, limit: 5, reason } as { userId: string; limit: number; reason: string };
+      expect(await codeOf(api.setGroupLimit(input))).toBe("BAD_REQUEST");
+    }
+    for (const limit of [0, -1, 1001, 2.5]) {
+      expect(await codeOf(api.setGroupLimit({ userId, limit, reason: "Out of range" }))).toBe("BAD_REQUEST");
+    }
+    expect(await groupLimitOf(userId)).toBeNull();
+    expect(await limitEntries(userId)).toHaveLength(0);
+    expect(await limitEntries(member.user.id)).toHaveLength(0);
+
+    expect(await codeOf(api.groupLimit({ userId: randomUUID() }))).toBe("NOT_FOUND");
+    expect(await codeOf(api.setGroupLimit({ userId: randomUUID(), limit: 5, reason: "Nobody" }))).toBe(
+      "NOT_FOUND",
+    );
   });
 });

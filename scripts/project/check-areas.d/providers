@@ -12,3 +12,9 @@ packages/data/src/db/seeds/providers.ts  roundtrip
 # Directory defaults: a new file here needs no rule.
 apps/web/app/lib/providers/              -
 packages/data/src/db/schema/providers/   roundtrip
+# The services and models the upload switch writes these tables through
+# (packages/api/src/syncRegistry.ts): roundtrip's sync matrix (6b) uploads each.
+packages/data/src/services/providerService.ts roundtrip
+packages/data/src/services/entryProviderService.ts roundtrip
+packages/data/src/models/provider/       roundtrip
+packages/data/src/models/timelineEntryProvider/ roundtrip

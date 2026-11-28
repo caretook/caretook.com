@@ -14,7 +14,7 @@ import { addDays, localDate } from "@caretook/data/domain";
 // its tree, indented, a done one struck in place (and not in Done); a parent
 // with "n of m done" and a tick that waits on its subtasks; a filter's match
 // under its parent as a context row; a writer's quick add on every row, a
-// viewer's none; no "Part of" row. The seed's "Get ready for the hospital
+// viewer's none; no "Part of" row. Done is trees too (B-1016), paged by tree. The seed's "Get ready for the hospital
 // stay", in fictional form.
 
 const LIST = `/app/groups/${TEST_GROUP.id}/todos`;
@@ -89,7 +89,7 @@ describe("the Todos tab's trees", () => {
     // The row's mark says it; the tick shows no second count.
     expect(rowOf(PARENT)?.querySelector("[data-tick-progress]")).toBeNull();
 
-    // Done is flat: the done subtask of an open tree is struck in its tree, not here.
+    // The done subtask of an open tree is struck in its tree, not in Done.
     expect(titles('[data-todo-section="done"]')).toEqual(["Book the eye exam"]);
     expect(document.querySelector('[data-todo-section="done"] [data-done-more]')).toBeNull();
   });
@@ -138,6 +138,63 @@ describe("the Todos tab's trees", () => {
       "Buy the candles",
       "Send the invites",
     ]);
+  });
+});
+
+describe("the Todos tab's Done trees", () => {
+  const MOVE = id(20);
+  const ago = (minutes: number) => at(new Date(Date.now() - minutes * 60_000));
+  const doneWorld = () => [
+    ...world(),
+    todo({ id: MOVE, title: "Move into the new room", doneAt: ago(10), doneBy: TEST_USER.id }),
+    todo({ id: id(21), title: "Pack the books", parentId: MOVE, doneAt: ago(20), doneBy: TEST_USER.id }),
+    todo({ id: id(22), title: "Label the boxes", parentId: MOVE, doneAt: ago(15), doneBy: TEST_USER.id }),
+    todo({ id: id(23), title: "Tape the lids", parentId: id(22), doneAt: ago(16), doneBy: TEST_USER.id }),
+    // Twenty older done todos: with the two trees above, Done has a second page.
+    ...Array.from({ length: 20 }, (_, n) =>
+      todo({ id: id(30 + n), title: `Old chore ${n + 1}`, doneAt: ago(60 + n), doneBy: TEST_USER.id }),
+    ),
+  ];
+  const DONE = '[data-todo-section="done"]';
+  const doneTops = () =>
+    [...document.querySelectorAll(`${DONE} > [data-todo-tree] > li`)].map((li) =>
+      li.querySelector("[data-todo]")?.getAttribute("data-todo"),
+    );
+  /** A row's `<li>`: its subtasks' list is inside it, after the row. */
+  const itemOf = (todoId: string) => rowOf(todoId)?.closest("li");
+
+  test("a done parent shows its done subtasks nested under it, the open tree's markup; Show more adds the next trees", async () => {
+    await renderWithDevice({ route: ROUTES, url: LIST, role: "owner", fixtures: doneWorld() });
+    await expect.element(page.getByText("Move into the new room")).toBeVisible();
+
+    // One tree: the subtasks are rows inside the parent's row, a level down, indented.
+    const move = itemOf(MOVE);
+    expect(move?.closest(DONE)).not.toBeNull();
+    expect(move?.querySelector(`:scope [data-todo-level="2"] [data-todo="${id(21)}"]`)).not.toBeNull();
+    expect(move?.querySelector(`:scope [data-todo-level="2"] [data-todo="${id(22)}"]`)).not.toBeNull();
+    expect(
+      itemOf(id(22))?.querySelector(`:scope [data-todo-level="3"] [data-todo="${id(23)}"]`),
+    ).not.toBeNull();
+    for (const child of [id(21), id(22)]) expect(left(child)).toBeGreaterThan(left(MOVE));
+    expect(left(id(23))).toBeGreaterThan(left(id(22)));
+    expect(rowOf(MOVE)?.getAttribute("data-todo-look")).toBe("list");
+    for (const child of [id(21), id(22), id(23)]) {
+      expect(document.querySelectorAll(`[data-todo="${child}"]`)).toHaveLength(1);
+      expect(titleOf(child)?.classList.contains("line-through")).toBe(true);
+    }
+    // Unticking reopens, as on any done row.
+    await expect.element(page.getByRole("checkbox", { name: "Reopen “Pack the books”" })).toBeEnabled();
+
+    // Newest completion first, a page of 20 whole trees.
+    const first = doneTops();
+    expect(first.slice(0, 2)).toEqual([id(5), MOVE]);
+    expect(first).toHaveLength(20);
+    expect(first).not.toContain(id(48));
+
+    await userEvent.click(page.getByRole("button", { name: "Show more" }));
+    await expect.poll(() => doneTops()).toHaveLength(22);
+    expect(doneTops().slice(-2)).toEqual([id(48), id(49)]);
+    await expect.element(page.getByRole("button", { name: "Show more" })).not.toBeInTheDocument();
   });
 });
 

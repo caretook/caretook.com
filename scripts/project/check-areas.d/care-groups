@@ -13,6 +13,8 @@ packages/api/src/care-groups/groups.ts               first-sync invites
 packages/api/src/care-groups/invites.ts              invites
 packages/api/src/care-groups/joinRequests.ts         invites
 packages/data/src/services/careGroupInviteService.ts invites
+# A link sign-up's counted use, which its join request then takes.
+packages/data/src/services/linkSignUpUses.ts invites
 packages/data/src/services/accessCodeService.ts invites
 packages/data/src/db/schema/care-groups/accessCode.ts invites
 packages/data/src/db/schema/care-groups/newCareGroup.ts first-sync invites
@@ -26,3 +28,16 @@ apps/web/app/lib/care-groups/memberNames.sync.ts -
 # Directory defaults: a new file here needs no rule.
 apps/web/app/lib/care-groups/            -
 packages/data/src/db/schema/care-groups/ app-shell invites
+# Group settings' procedures (rename, roles, removal) and what they write:
+# app-shell's rename and members steps; a new group is first-sync's.
+packages/api/src/care-groups/careGroup.ts           app-shell
+packages/data/src/services/careGroupService.ts      app-shell first-sync
+packages/data/src/services/careGroupMemberService.ts app-shell
+packages/data/src/models/careGroup/      app-shell first-sync
+packages/data/src/models/careGroupMember/ app-shell
+# Invites, join requests and the consent on joining: the invites check.
+packages/data/src/services/joinRequestService.ts    invites
+packages/data/src/services/careGroupConsentService.ts invites
+packages/data/src/models/careGroupInvite/ invites
+packages/data/src/models/careGroupJoinRequest/ invites
+packages/data/src/models/careGroupConsent/ invites

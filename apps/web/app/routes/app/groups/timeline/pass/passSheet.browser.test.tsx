@@ -163,6 +163,27 @@ describe("a pass log", () => {
     expect(SHEET()).toBeNull();
   });
 
+  test("a deleted medication in the round reads Removed medication, in the row and on the sheet", async () => {
+    // Scrubbed as a delete leaves it: no name or strength.
+    const gone = { ...QC, row: { ...QC.row, name: "", strength: null, deleted_at: at() } };
+    const device = await renderWithDevice({
+      route: ROUTES,
+      url: DOSE_URL,
+      fixtures: [LOG_PASS, QA, QB, gone, QD, DA, DB, DC],
+    });
+    await expect.poll(rowText).toBe("Log: 2 given, 1 refused");
+    await userEvent.click(await found(() => row()?.querySelector("[data-pass-log-toggle]")));
+    await expect
+      .poll(() => [...row()!.querySelectorAll("[data-pass-log-doses] li")].map((li) => li.textContent))
+      .toContain("Removed medication: Refused");
+    await openSheet(device);
+    const legends = [...FORM()!.querySelectorAll("fieldset[data-pass-dose] legend")].map(
+      (l) => l.textContent,
+    );
+    expect(legends).toContain("Removed medication");
+    expect(legends.some((l) => l?.includes("(removed)"))).toBe(false);
+  });
+
   test("a viewer sees the row but no sheet link; the sheet's URL is the timeline, filters kept", async () => {
     const device = await open("viewer");
     await expect.poll(() => row()?.querySelector('a[aria-label^="Edit"]')).toBeNull();

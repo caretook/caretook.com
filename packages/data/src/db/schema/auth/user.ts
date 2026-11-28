@@ -3,7 +3,7 @@ import type { ProtectedField } from "../core/columns";
 import type { UserPreferences } from "../app-shell/userPreferences";
 
 import { sql } from "drizzle-orm";
-import { boolean, check, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, check, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-zod";
 import { z } from "zod";
 import { USER_ROLE_NAMES } from "../../../constants/roles";
@@ -34,6 +34,10 @@ export const userSchema = pgTable(
     // null for the default. Co-members see them (PUBLIC_PROFILE_FIELDS).
     avatarColor: text("avatar_color", { enum: AVATAR_COLORS }),
     avatarIcon: text("avatar_icon", { enum: AVATAR_ICONS }),
+    // This account's own cap on starting care groups (free-limits); null
+    // follows the `limits.groupsStarted` setting. Written only as the system
+    // (staff, through groupLimitService). Never synced, never self-writable.
+    groupLimit: integer("group_limit"),
     ...timestamps,
     ...audits,
   },
@@ -48,6 +52,7 @@ export const userSchema = pgTable(
       "user_avatar_icon_check",
       sql`${t.avatarIcon} IN (${sql.raw(AVATAR_ICONS.map((i) => `'${i}'`).join(", "))})`,
     ),
+    check("user_group_limit_check", sql`${t.groupLimit} BETWEEN 1 AND 1000`),
   ],
 );
 

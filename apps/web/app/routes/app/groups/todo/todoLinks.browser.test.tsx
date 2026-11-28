@@ -13,7 +13,7 @@ import { removeEntry } from "~/lib/timeline/timeline.sync";
 // (shared-displays slice 6): the provider's `ProviderCard` with its call and
 // map actions, the event as the timeline's row with its time (struck
 // through when cancelled), the medication's `MedicationCard`, each opening
-// its page; a deleted provider or medication greyed "(removed)"; a deleted
+// its page; a deleted provider or medication greyed "Removed item"; a deleted
 // event's link gone. Its events are link rows (planner-3): the fixtures are
 // a backfilled todo, its `event_id` with the row the migration made for it.
 
@@ -67,8 +67,9 @@ const open = (
 const row = (kind: string) => document.querySelector<HTMLElement>(`[data-todo-link="${kind}"]`);
 /** What a link row shows as its name: a provider's or medication's, an entry's heading or first line. */
 const shownName = (el: Element | null | undefined) =>
-  el?.querySelector("[data-provider-name], [data-medication-name]")?.textContent ??
-  el?.querySelector("time + div p")?.textContent?.split("\n")[0];
+  el?.querySelector("[data-provider-name], [data-medication-name], [data-removed-link-name]")?.textContent ??
+  // The body's first line (the time sits beside it, B-1015).
+  el?.querySelector("div.flex-1 p:not(time p)")?.textContent?.split("\n")[0];
 const nameIn = (kind: string) => shownName(row(kind));
 const TIME = / ?\d{1,2}:\d\d [AP]M$/;
 const timeIn = (kind: string) => row(kind)?.querySelector("time")?.textContent;
@@ -99,7 +100,7 @@ describe("the todo page's links", () => {
       .toHaveAttribute("href", `/app/groups/${TEST_GROUP.id}/medications/${METFORMIN.id}`);
   });
 
-  test("greys a removed provider and medication, and strikes a cancelled appointment through", async () => {
+  test("a deleted provider and medication read Removed item, greyed; a cancelled appointment is struck through", async () => {
     const gone = { deletedAt: when(-HOUR) };
     await open(LINKED.id, [
       lark(gone),
@@ -108,10 +109,19 @@ describe("the todo page's links", () => {
       LINKED,
       LINKED_ROW,
     ]);
-    await expect.poll(() => nameIn("provider")).toBe("Dr. Mira Lark (removed)");
-    expect(row("provider")?.querySelector("a")).toBeNull();
-    expect(nameIn("medication")).toBe("Metformin 500 mg (removed)");
-    expect(row("medication")?.querySelector("a")).toBeNull();
+    await expect.poll(() => nameIn("provider")).toBe("Removed item");
+    expect(nameIn("medication")).toBe("Removed item");
+    for (const kind of ["provider", "medication"]) {
+      expect(row(kind)?.querySelector("[data-removed-link-name]")?.classList.contains("text-faint")).toBe(
+        true,
+      );
+      expect(row(kind)?.querySelector("a")).toBeNull();
+      expect(row(kind)?.textContent).not.toMatch(/Lark|Metformin/);
+    }
+    // A writer's Remove names it the same way.
+    expect(
+      [...document.querySelectorAll("[data-todo-link-remove]")].map((b) => b.getAttribute("aria-label")),
+    ).toContain("Remove link to Removed item");
 
     expect(row("event")?.hasAttribute("data-cancelled")).toBe(true);
     expect(row("event")?.querySelector(".line-through")?.textContent).toContain("Cardiology follow-up");
@@ -260,6 +270,17 @@ describe("the todo page's linked entries", () => {
     await open(REFILL.id, [tokyo, REFILL, entryTodo(tokyo.id, REFILL.id)]);
     await expect.poll(() => row("event")?.querySelector("[data-row-day]")?.textContent).toBe("Jun 20");
     expect(timeIn("event")).toContain("All day");
+  });
+
+  test("a scrubbed provider and medication (no name left) still read Removed item", async () => {
+    const scrubbed = { deletedAt: when(-HOUR), name: "" };
+    await open(LINKED.id, [
+      lark({ ...scrubbed, address: null }),
+      metformin({ ...scrubbed, strength: null }),
+      LINKED,
+    ]);
+    await expect.poll(() => nameIn("provider")).toBe("Removed item");
+    expect(nameIn("medication")).toBe("Removed item");
   });
 
   test("a deleted entry drops out", async () => {

@@ -875,11 +875,17 @@ export const skip = (ctx: ServiceContext, id: string) =>
  * open row the chain was stopped since that tick, so it stays stopped and
  * null says nothing was written, for any role (B-1003). Returns the row as
  * it now is, or null.
+ *
+ * A deleted todo was scrubbed (data-rights), so it comes back with
+ * `content`, the device's columns from the upload: checked like an edit's
+ * (the merged todo valid, the assignee a member). Its links are the
+ * chain's, as `insertNext` makes them, and stay in the group by their
+ * composite keys. The rule isn't the device's to change here.
  */
 export const restoreOccurrence = (
   ctx: ServiceContext,
   id: string,
-  { fromTick = false }: { fromTick?: boolean } = {},
+  { fromTick = false, content = {} }: { fromTick?: boolean; content?: TodoUpdateInput } = {},
 ) =>
   withTransaction(async (tx) => {
     const visible = await lockVisible(ctx, tx, id, { includeDeleted: true });
@@ -902,7 +908,15 @@ export const restoreOccurrence = (
     const role = await roleIn(ctx, tx, visible.groupId);
     if (isError(role)) return role;
     if (!isTodoWriter(role)) return rejectError(ctx.authUser);
-    const restored = await todoModel.restore(id, {}, tx);
+    const parsed = todoUpdateZSchema.safeParse(content);
+    if (!parsed.success) return invalid(parsed.error);
+    const { repeatRule: _rule, ...given } = parsed.data;
+    const patch = Object.fromEntries(Object.entries(given).filter(([, v]) => v !== undefined));
+    const merged = todoContentZSchema.safeParse({ ...todoContentOf(visible), ...patch });
+    if (!merged.success) return invalid(merged.error);
+    const assignee = await checkAssignee(tx, visible.groupId, merged.data.assigneeId ?? null);
+    if (assignee) return assignee;
+    const restored = await todoModel.restore(id, patch, tx);
     if (isError(restored)) return restored;
     if (!restored) return visible;
     return (await enqueueCalendarPush(tx, { todoId: id }, "todo")) ?? restored;

@@ -1,7 +1,7 @@
 import { adminAuditService, isError } from "@caretook/data";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { createUser } from "../../../data/test/fixtures";
+import { createGroup, createUser } from "../../../data/test/fixtures";
 import { AUDIT_PAGE_SIZE } from "./auditAdmin";
 import { clientFor } from "../testing";
 
@@ -62,5 +62,28 @@ describe("admin.audit.list for the pages", () => {
     expect(second.entries).toHaveLength(3);
     const ids = new Set(first.entries.map((e) => e.id));
     expect(second.entries.some((e) => ids.has(e.id))).toBe(false);
+  });
+});
+
+describe("staff views on the log", () => {
+  it("lists a page view and a search as soon as the call returns, the search with its text", async () => {
+    const support = await createUser("audit-views-support", "support");
+    const tag = randomUUID().slice(0, 8);
+    const owner = await createUser(`audit-viewed-${tag}`);
+    const { group } = await createGroup(owner, []);
+    const api = clientFor(support.ctx.authUser);
+
+    await api.admin.users.get({ userId: owner.user.id });
+    await api.admin.groups.get({ id: group.id });
+    await api.admin.users.search({ q: `viewed-${tag}` });
+
+    const listed = await api.admin.audit.list({ actorId: support.user.id });
+    expect(listed.entries.map((e) => e.action).sort()).toEqual(["group.view", "user.search", "user.view"]);
+    expect(listed.entries.find((e) => e.action === "user.view")?.targetUser?.id).toBe(owner.user.id);
+    expect(listed.entries.find((e) => e.action === "group.view")?.targetGroup?.id).toBe(group.id);
+    expect(listed.entries.find((e) => e.action === "user.search")?.changes).toEqual({
+      query: [`viewed-${tag}`, `viewed-${tag}`],
+    });
+    expect((await api.admin.audit.list({ action: "user.search", actorId: support.user.id })).count).toBe(1);
   });
 });

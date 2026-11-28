@@ -114,6 +114,20 @@ describe("the plan job's outputs", () => {
     expect(planOutputs("ci/release/x", ["scripts/ci/tiers.test.mjs"])).toContain("release=false");
   });
 
+  it("plan all four component shards on a components run, and only the first on a narrowed one", () => {
+    const shards = ["components-1", "components-2", "components-3", "components-4"];
+    expect(tiers.TIER_JOBS.components).toEqual(shards);
+    expect(tiers.jobsFor("components").jobs).toEqual(expect.arrayContaining(shards));
+    // The first shard has its own switch; the other three share components2.
+    expect(planOutputs("ci/components/x")).toEqual(
+      expect.arrayContaining(["components=true", "components2=true"]),
+    );
+    expect(tiers.narrowedJobs(["apps/web/app/x.browser.test.tsx"])).toEqual(["components-1"]);
+    expect(planOutputs("ci/components/x", ["apps/web/app/x.browser.test.tsx"])).toEqual(
+      expect.arrayContaining(["components=true", "components2=false"]),
+    );
+  });
+
   it("start only a narrowed run's files' jobs, the components in one", () => {
     expect(planOutputs("ci/full/x", ["a.int.test.ts"])).toEqual([
       "tier=full",

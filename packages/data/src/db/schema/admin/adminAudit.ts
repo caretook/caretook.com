@@ -3,16 +3,16 @@ import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { check, index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { z } from "zod";
-import { careGroupSchema } from "../care-groups/careGroup";
 import { id } from "../core/columns";
 import { STAFF_REASON_MAX } from "./staffRules";
-import { userSchema } from "../auth/user";
 
-// The staff audit log (admin PRD): every staff write, and every time staff
-// open an account's or a group's page. Append-only: written only by
+// The staff audit log (admin PRD): every staff write, every time staff
+// open an account's or a group's page, and every account search (with its
+// text). Append-only: written only by
 // adminAuditService.record (as the system, inside the action's own
 // transaction), read by staff, never updated or deleted by anyone through
-// the app (see PERMISSIONS). It never holds care data: `changes` keeps only
+// the app (see PERMISSIONS; the roles SQL also revokes UPDATE and DELETE on
+// it from the app role). It never holds care data: `changes` keeps only
 // the fields each action names (`auditChanges`).
 
 /**
@@ -24,6 +24,7 @@ export const AUDIT_ACTIONS = [
   "accessCode.revoke",
   "staffGroup.create",
   "user.view",
+  "user.search",
   "user.resendVerification",
   "user.sendReset",
   "user.revokeSession",
@@ -41,6 +42,7 @@ export const AUDIT_ACTIONS = [
   "db.accessRevoked",
   "mail.suppressionCleared",
   "auth.jwksRotated",
+  "user.setGroupLimit",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
@@ -52,6 +54,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "accessCode.revoke": "Revoked an access code",
   "staffGroup.create": "Set up a group with an owner invite",
   "user.view": "Opened an account",
+  "user.search": "Searched accounts",
   "user.resendVerification": "Resent the verification email",
   "user.sendReset": "Sent a password reset",
   "user.revokeSession": "Signed a session out",
@@ -69,6 +72,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "db.accessRevoked": "Revoked personal database access",
   "mail.suppressionCleared": "Cleared an email suppression",
   "auth.jwksRotated": "Rotated the JWT signing keys",
+  "user.setGroupLimit": "Changed the care group limit",
 };
 
 /** A JSON value as `changes` stores it. */
@@ -88,8 +92,10 @@ export const adminAuditLogSchema = pgTable(
     // keeps who acted even if their account is deleted later.
     actorId: uuid("actor_id"),
     action: text("action", { enum: AUDIT_ACTIONS }).notNull(),
-    targetUserId: uuid("target_user_id").references(() => userSchema.id, { onDelete: "set null" }),
-    targetGroupId: uuid("target_group_id").references(() => careGroupSchema.id, { onDelete: "set null" }),
+    // No FKs either (data-rights PRD): an entry keeps its target's id after
+    // the account or group is deleted.
+    targetUserId: uuid("target_user_id"),
+    targetGroupId: uuid("target_group_id"),
     reason: text("reason"),
     changes: jsonb("changes").$type<AuditChanges>().notNull().default({}),
     createdAt: timestampColumn("created_at").defaultNow().notNull(),

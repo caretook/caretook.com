@@ -17,6 +17,8 @@ packages/auth/src/                       sign-in first-sync session-end invites
 # Better Auth's and the public forms' limits in Postgres.
 packages/data/src/db/schema/core/rateLimit.ts sign-in marketing
 packages/data/src/services/rateLimitService.ts sign-in marketing
+# Our limiter itself (moved from @caretook/api so @caretook/auth uses it too).
+packages/data/src/services/rateLimiter.ts sign-in marketing
 # Legal acceptance (onboarding): recorded at sign-up, which invites walks.
 packages/data/src/db/schema/auth/legalAcceptance.ts invites
 packages/data/src/domain/auth/legalRules.ts invites

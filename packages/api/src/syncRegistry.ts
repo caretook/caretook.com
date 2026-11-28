@@ -238,7 +238,7 @@ const softDelete = (spec: SoftDeleteSpec): UploadEntry => {
         if (res === null || !res.created) return applied;
         if (data.deleted_at) return remove(inTx, op.id);
         return spec.afterPut ? spec.afterPut(inTx, op) : applied;
-      });
+      }, ctx);
     }
 
     // PATCH: only the columns that changed.
@@ -439,16 +439,16 @@ const todo = softDelete({
       return outcome(await todoService.removeUndoneNext(ctx, op.id));
     if (data.deleted_at) return remove(ctx, op.id);
     // A repeating todo's later occurrence brought back (a tick or skip remade
-    // one an Undo took away); its content follows as an ordinary edit. A
-    // tick's (flagged) never restores a chain stopped since: nothing is
-    // written, and the op is applied so the queue drains (B-1003).
+    // one an Undo took away), with its content: the delete scrubbed it
+    // (data-rights). A tick's (flagged) never restores a chain stopped
+    // since: nothing is written, and the op is applied so the queue drains (B-1003).
+    const content = mapped(TODO_CONTENT, data);
     if ("deleted_at" in data) {
       const fromTick = op.metadata === TICK_NEXT_METADATA;
-      const res = await todoService.restoreOccurrence(ctx, op.id, { fromTick });
+      const res = await todoService.restoreOccurrence(ctx, op.id, { fromTick, content });
       if (isError(res)) return res;
       if (res === null) return applied;
     }
-    const content = mapped(TODO_CONTENT, data);
     // A tick or reopen decides the repeat on the server (a reopen whose next
     // was edited stops repeating there too), so a device's copy of it is ignored.
     if ("done_at" in data) delete content.repeatRule;

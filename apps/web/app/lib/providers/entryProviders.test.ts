@@ -4,11 +4,14 @@ import { chipLabel, groupLinksByEntry, withSummary, withText } from "./entryProv
 const patel = { id: "p1", name: "Dr. Samuel Patel", deletedAt: null };
 const lee = { id: "p2", name: "Dr. Ana Lee", deletedAt: null };
 const gone = { id: "p3", name: "Dr. Gone", deletedAt: "2026-11-01T00:00:00.000Z" };
+// Deleted since the scrub: no name left.
+const scrubbed = { id: "p5", name: "", deletedAt: "2026-11-02T00:00:00.000Z" };
 
 describe("chipLabel", () => {
-  it("marks a deleted provider removed", () => {
+  it("names a live provider, and a deleted one (scrubbed or not) only as removed", () => {
     expect(chipLabel(patel)).toBe("Dr. Samuel Patel");
-    expect(chipLabel(gone)).toBe("Dr. Gone (removed)");
+    expect(chipLabel(gone)).toBe("Removed provider");
+    expect(chipLabel(scrubbed)).toBe("Removed provider");
   });
 });
 
@@ -25,19 +28,21 @@ describe("withText", () => {
   it("reads the line as a sentence", () => {
     expect(withText([])).toBe("");
     expect(withText([patel])).toBe("with Dr. Samuel Patel");
-    expect(withText([gone, patel])).toBe("with Dr. Gone (removed), Dr. Samuel Patel");
+    expect(withText([gone, patel])).toBe("with Removed provider, Dr. Samuel Patel");
+    expect(withText([scrubbed])).toBe("with Removed provider");
     expect(withText([patel, lee, gone])).toBe("with Dr. Samuel Patel, Dr. Ana Lee and 1 more");
   });
 });
 
 describe("groupLinksByEntry", () => {
-  it("groups rows by entry in their order, skipping nameless ones", () => {
+  it("groups rows by entry in their order, skipping nameless live ones but keeping scrubbed ones", () => {
     const byEntry = groupLinksByEntry(
       [
         { entry_id: "e1", provider_id: "p1", name: "Dr. Samuel Patel", deleted_at: null },
         { entry_id: "e2", provider_id: "p2", name: "Dr. Ana Lee", deleted_at: null },
         { entry_id: "e1", provider_id: "p3", name: "Dr. Gone", deleted_at: "2026-11-01 00:00:00Z" },
         { entry_id: "e1", provider_id: "p4", name: null, deleted_at: null },
+        { entry_id: "e2", provider_id: "p5", name: "", deleted_at: "2026-11-02 00:00:00Z" },
       ],
       (v) => `iso:${v}`,
     );
@@ -45,7 +50,7 @@ describe("groupLinksByEntry", () => {
       patel,
       { id: "p3", name: "Dr. Gone", deletedAt: "iso:2026-11-01 00:00:00Z" },
     ]);
-    expect(byEntry.get("e2")).toEqual([lee]);
+    expect(byEntry.get("e2")).toEqual([lee, { ...scrubbed, deletedAt: "iso:2026-11-02 00:00:00Z" }]);
     expect(byEntry.get("e3")).toBeUndefined();
   });
 });

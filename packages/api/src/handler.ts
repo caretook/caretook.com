@@ -1,7 +1,8 @@
 import type { AuthUserLookup } from "./procedures";
+import type { UserLimits } from "./rateLimit";
 
 import { RPCHandler } from "@orpc/server/fetch";
-import { CORSPlugin, SimpleCsrfProtectionHandlerPlugin } from "@orpc/server/plugins";
+import { CORSPlugin, ResponseHeadersPlugin, SimpleCsrfProtectionHandlerPlugin } from "@orpc/server/plugins";
 import { lazyAuthUser } from "./procedures";
 import { router } from "./router";
 
@@ -10,6 +11,8 @@ export type RpcHandlerOptions = {
   prefix: `/${string}`;
   /** Cross-origin callers allowed with credentials (Capacitor's WebView, etc.). */
   allowedOrigins?: readonly string[];
+  /** The per-user limits, for a test (otherwise the process's, procedures.ts). */
+  userLimits?: UserLimits;
 };
 
 /**
@@ -22,8 +25,10 @@ export type RpcHandlerOptions = {
  *   it). A cross-site form or <img> can't set custom headers, and setting
  *   one cross-origin needs a CORS preflight, which only `allowedOrigins` pass.
  * - GET is rejected unless a procedure opts in (oRPC's strict GET default).
+ * - Signed-in procedures are limited per user (procedures.ts): a 429 with
+ *   `retry-after`.
  */
-export const createRpcHandler = ({ prefix, allowedOrigins = [] }: RpcHandlerOptions) => {
+export const createRpcHandler = ({ prefix, allowedOrigins = [], userLimits }: RpcHandlerOptions) => {
   const handler = new RPCHandler(router, {
     plugins: [
       new CORSPlugin({
@@ -32,6 +37,8 @@ export const createRpcHandler = ({ prefix, allowedOrigins = [] }: RpcHandlerOpti
         allowHeaders: ["content-type", "authorization", "x-csrf-token"],
       }),
       new SimpleCsrfProtectionHandlerPlugin(),
+      // A 429's `retry-after` (procedures.ts's per-user limits).
+      new ResponseHeadersPlugin(),
     ],
   });
 
@@ -43,7 +50,7 @@ export const createRpcHandler = ({ prefix, allowedOrigins = [] }: RpcHandlerOpti
   ) => {
     const { matched, response } = await handler.handle(request, {
       prefix,
-      context: { getAuthUser: lazyAuthUser(lookup), clientIp },
+      context: { getAuthUser: lazyAuthUser(lookup), clientIp, ...(userLimits ? { userLimits } : {}) },
     });
     return matched ? response : new Response("Not found", { status: 404 });
   };

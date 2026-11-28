@@ -73,6 +73,10 @@ export const revokeForMember = (groupId: string, userId: string, actorId: string
     tx,
   );
 
+/** Every live grant of an account, every group and client (its sessions ended everywhere). */
+export const revokeForUser = (userId: string, actorId: string, tx: Tx) =>
+  revokeWhere(and(eq(connectorGrantSchema.userId, userId)), actorId, tx);
+
 /** Every live grant for a group (the switch turned off). */
 export const revokeForGroup = (groupId: string, actorId: string, tx: Tx) =>
   revokeWhere(and(eq(connectorGrantSchema.groupId, groupId)), actorId, tx);

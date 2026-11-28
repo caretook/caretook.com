@@ -1,5 +1,6 @@
 import type { TimelineEntry, Tx } from "../../db";
-import type { Filter, QuerySelectArgs } from "../base/queryHelpers";
+import type { QuerySelectArgs } from "../base/queryHelpers";
+import type { IncludeDeleted } from "../base/softDeleteModel";
 
 import { and, desc, isNotNull, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -9,34 +10,31 @@ import { timelineEntrySchema } from "../../db/schema";
 import { isError, newError } from "../../errors";
 import { isSystemUser, rejectError } from "../../permissions";
 import * as baseModel from "../base";
-import { generateQueryWhere, isFilterEmpty } from "../base/queryHelpers";
+import { generateQueryWhere } from "../base/queryHelpers";
+import { softDeleteFunctions } from "../base/softDeleteModel";
+
+export type { IncludeDeleted } from "../base/softDeleteModel";
 
 export const schemaName = "timelineEntrySchema";
 type K = typeof schemaName;
 
 export const dbToModel = (row: TimelineEntry) => row;
 
-const base = baseModel.getFunctions({ schemaName, dbToModel });
+// Soft-deleted entries are hidden unless a read asks for them, and can't be
+// edited; `remove` sets `deletedAt`, checked against the table's **delete**
+// permission (not update, where `deletedAt` is system-only), so the deletion
+// syncs to other devices. `list` returns every matching row, unpaged unless
+// asked, in no set order (a series' visits by id or day: B-755). Writes go
+// through timelineEntryService, which validates content.
+const { live, get, getById, list, create, update, remove } = softDeleteFunctions({ schemaName, dbToModel });
+export { get, getById, list, create, update, remove };
 
-/** Soft-deleted rows are hidden unless a read asks for them. */
-export type IncludeDeleted = { includeDeleted?: boolean };
-
-const live = (filter: Filter<K> | undefined, opts: IncludeDeleted = {}): Filter<K> | undefined =>
-  opts.includeDeleted ? filter : { ...filter, deletedAt: { type: "isNull" } };
+/** The hard delete behind `purge`. */
+const { remove: hardRemove } = baseModel.getFunctions({ schemaName, dbToModel });
 
 // ---------------------------------------------------------------------------
 // Reads
 // ---------------------------------------------------------------------------
-
-export const get = (args: QuerySelectArgs<K> & IncludeDeleted) =>
-  base.get({ ...args, filter: live(args.filter, args) });
-
-export const getById = (id: string, args: Omit<QuerySelectArgs<K>, "filter"> & IncludeDeleted) =>
-  get({ ...args, filter: { id: { type: "eq", value: id } } });
-
-/** Every matching row, unpaged unless asked (a series' visits by id or day: B-755). */
-export const list = (args: QuerySelectArgs<K> & IncludeDeleted) =>
-  base.list({ ...args, filter: live(args.filter, args) });
 
 export type TimelineCursor = { occurredAt: string; id: string };
 
@@ -159,44 +157,11 @@ export const mayChange = async (
 };
 
 // ---------------------------------------------------------------------------
-// Writes. Writes go through timelineEntryService, which validates content.
+// Writes
 // ---------------------------------------------------------------------------
-
-export const { create } = base;
 
 /** Many entries in one INSERT (a series' visits: B-755). */
 export const createMany = baseModel.createMany({ schemaName, dbToModel });
-
-/** Deleted entries can't be edited. */
-export const update = (args: Parameters<typeof base.update>[0]) =>
-  base.update({ ...args, filter: live(args.filter) });
-
-/**
- * Soft delete: sets `deletedAt`, checked against the table's **delete**
- * permission (not update, where `deletedAt` is system-only). The row stays
- * so the deletion syncs to other devices.
- */
-export const remove = async (args: QuerySelectArgs<K>) => {
-  if (isFilterEmpty(args.filter)) return newError({ code: "baseModel:noFilter" });
-
-  const where = generateQueryWhere(schemaName, "delete", { ...args, filter: live(args.filter) });
-  if (isError(where)) return where;
-
-  const t = timelineEntrySchema;
-  const res = await dbMayFail(
-    () =>
-      txOrDb(args.tx)
-        .update(t)
-        .set({ deletedAt: sql`now()`, updatedBy: args.authUser?.id ?? SYSTEM_USER.id })
-        .where(where)
-        .returning({ id: t.id }),
-    "timelineEntryModel:remove",
-  );
-  if (isError(res)) return res;
-  if (!res.length) return newError({ code: "baseModel:remove:nothingRemoved" });
-
-  return { ids: res.map((r) => r.id) };
-};
 
 /**
  * Bring a soft-deleted entry back as the actor's own, with `content`: a dose
@@ -262,6 +227,24 @@ export const lockId = (id: string, tx: Tx) =>
   );
 
 /**
+ * `lockId` for many ids in one statement, taken in sorted order (as every
+ * caller locking several takes them), so a Given all's slots cost one round
+ * trip instead of one each (B-1051).
+ */
+export const lockIds = (ids: readonly string[], tx: Tx) => {
+  const keys = [...new Set(ids)].sort().map((id) => `timeline_entry:${id}`);
+  return dbMayFail(
+    () =>
+      tx.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(k.key, 0))
+              FROM json_array_elements_text(${JSON.stringify(keys)}::json) WITH ORDINALITY AS k(key, n)
+             ORDER BY k.n`,
+      ),
+    "timelineEntryModel:lock",
+  );
+};
+
+/**
  * Hold one dose slot (`medicationId:day:slot`, whatever the answer) until the
  * transaction ends, so a sheet's given and another's refused for it take
  * turns: a dose's id includes its answer, so `lockId` alone lets both in (B-984).
@@ -274,4 +257,4 @@ export const lockDoseSlot = (slotKey: string, tx: Tx) =>
 
 /** Hard delete, for retention jobs and data-deletion requests. System only. */
 export const purge = (args: QuerySelectArgs<K>) =>
-  isSystemUser(args.authUser) ? base.remove(args) : Promise.resolve(rejectError(args.authUser));
+  isSystemUser(args.authUser) ? hardRemove(args) : Promise.resolve(rejectError(args.authUser));

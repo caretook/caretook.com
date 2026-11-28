@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import { content as about } from "../about/content";
+import { content as contact } from "../contact/content";
 import { content as faq, faqItems } from "../faq/content";
 import { content as features } from "../features/content";
 import { homeContent } from "../home/content";
+import { layoutContent } from "../layout/content";
 import * as meta from "./meta";
+import { MARKETING_PAGES } from "./pages";
 import * as price from "./price";
 
 // Claims discipline (plans/marketing-prd.md, _Messaging update_): the words the
@@ -19,6 +22,21 @@ function strings(value: unknown): string[] {
   return [];
 }
 
+// Never name a competitor (plans/marketing-prd.md, _Messaging update_): show
+// the difference instead. A short list of the care apps a family might know;
+// any spacing or hyphen between a name's words still matches.
+const COMPETITORS = [
+  "Caring Village",
+  "CaringBridge",
+  "Lotsa Helping Hands",
+  "ianacare",
+  "CareZone",
+  "Carely",
+  "Medisafe",
+];
+
+const namePattern = (name: string) => new RegExp(`\\b${name.split(" ").join("[\\s-]*")}\\b`, "i");
+
 const BANNED: [name: string, pattern: RegExp][] = [
   ["early access", /early[\s-]*access/i],
   ["HIPAA", /hipaa/i],
@@ -28,6 +46,7 @@ const BANNED: [name: string, pattern: RegExp][] = [
   ["a bare secure", /\b(in)?secure(ly|d)?\b/i],
   // Until downloading all your data exists (B-52).
   ["export anytime", /export (it |your data )?(anytime|any time|whenever)/i],
+  ...COMPETITORS.map((name): [string, RegExp] => [`the competitor ${name}`, namePattern(name)]),
 ];
 
 const SOURCES: [name: string, value: unknown][] = [
@@ -35,6 +54,9 @@ const SOURCES: [name: string, value: unknown][] = [
   ["features", features],
   ["FAQ", faq],
   ["About", about],
+  ["Contact", contact],
+  ["the header and footer", layoutContent],
+  ["the page links", MARKETING_PAGES.map((page) => page.label)],
   ["the meta module", { ...meta }],
   ["the price module", { ...price }],
 ];
@@ -45,6 +67,9 @@ describe("claims discipline", () => {
     expect(strings(homeContent)).toContain(homeContent.hero.lead);
     expect(strings(faq)).toContain(faqItems.at(-1)!.answer.at(-1));
     expect(strings({ ...meta })).toContain(meta.DEFAULT_OG_IMAGE.alt);
+    expect(strings(contact)).toContain(contact.notes.at(-1)!.body);
+    expect(strings(layoutContent)).toContain(layoutContent.header.waitlist);
+    expect(strings(layoutContent)).toContain(layoutContent.footer.blurb);
   });
 
   for (const [source, value] of SOURCES) {
@@ -67,10 +92,20 @@ describe("claims discipline", () => {
       "Is our information secure?",
       "Stored securely",
       "Export anytime",
+      ...COMPETITORS,
+      "Unlike caring village, we print",
+      "Better than CaringBridge.",
+      "lotsa-helping-hands",
     ]) {
       expect(caught(text), text).toBe(true);
     }
-    for (const text of ["Privacy and security", "privacy-and-security", "free, always"]) {
+    for (const text of [
+      "Privacy and security",
+      "privacy-and-security",
+      "free, always",
+      "caring for a village of helpers",
+      "Carelyn's notes",
+    ]) {
       expect(caught(text), text).toBe(false);
     }
   });

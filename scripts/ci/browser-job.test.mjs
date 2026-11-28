@@ -75,6 +75,7 @@ const verdictOf = (/** @type {object} */ summary, result = "success") =>
       "components-1": ok,
       "components-2": ok,
       "components-3": ok,
+      "components-4": ok,
       build: ok,
       browser: { result, outputs: { started: "true", failures: JSON.stringify(summary) } },
     },

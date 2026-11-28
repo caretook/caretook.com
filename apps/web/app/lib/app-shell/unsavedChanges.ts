@@ -16,11 +16,19 @@ export type UnsavedRecord = {
   outcome: string;
   label: string | null;
   lineKey: string;
+  /** The write it was sent in (its local transaction id); null when it went without one. */
+  writeId: number | null;
+  /** Its place among the records written with it (a write's op order); null on older records. */
+  writeSeq: number | null;
 };
 
 export type Issue = { path: string; message: string };
 
-/** One line on the page: every record for one row (a note's document and its updates together), newest first. */
+/**
+ * One line on the page: every record for one row (a note's document and its
+ * updates together), or every record of one multi-op write (`line_key`
+ * `write:<id>`, B-294), newest first.
+ */
 export type UnsavedLine = {
   key: string;
   /** The records' ids, to dismiss them together. */
@@ -29,13 +37,14 @@ export type UnsavedLine = {
   count: number;
   /** The newest record's time. */
   recordedAt: string;
-  /** The newest record's table (a note's update reads as its note). */
+  /** The newest record's table (a note's update reads as its note); a write's: its first op's. */
   table: string;
   op: string;
+  /** Why: the newest record that doesn't only answer `sync:writeRefused` (in a write, the op refused). */
   code: string;
   issues: Issue[];
   outcome: string;
-  /** The newest label any of its records has. */
+  /** The newest label any of its records has; a write's: its first op's. */
   label: string | null;
 };
 
@@ -132,31 +141,53 @@ export const unsavedSentence = (r: {
 /** Whether a line can be sent again: its newest record was set aside (a server fault), not refused. */
 export const canTryAgain = (line: Pick<UnsavedLine, "outcome">) => line.outcome === "set_aside";
 
-/** The records as the page's lines, newest first: one line per `lineKey`, with a count. */
+/** A multi-op write's line (the uploader's `write:<id>`); any other line is one row's. */
+const isWriteLine = (key: string) => key.startsWith("write:");
+
+/** Oldest first, a write's ops in their order: one recording shares one `recorded_at`. */
+export const inWriteOrder = <R extends Pick<UnsavedRecord, "recordedAt" | "writeSeq" | "id">>(
+  records: readonly R[],
+): R[] =>
+  [...records].sort((a, b) =>
+    a.recordedAt !== b.recordedAt
+      ? a.recordedAt < b.recordedAt
+        ? -1
+        : 1
+      : (a.writeSeq ?? 0) - (b.writeSeq ?? 0) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+  );
+
+/** The table a line reads as: a note's update is its note. */
+const tableOf = (record: UnsavedRecord) =>
+  record.tableName === "note_update" ? "note_document" : record.tableName;
+
+/**
+ * The records as the page's lines, newest first: one line per `lineKey`, with
+ * a count. A write's line reads as its first op (its kind, label and op) and
+ * gives the reason of the op the server refused, not the `sync:writeRefused`
+ * its other ops answer.
+ */
 export const unsavedLines = (records: readonly UnsavedRecord[]): UnsavedLine[] => {
   const byKey = new Map<string, UnsavedRecord[]>();
-  const newestFirst = [...records].sort((a, b) =>
-    a.recordedAt === b.recordedAt ? 0 : a.recordedAt < b.recordedAt ? 1 : -1,
-  );
-  for (const record of newestFirst) {
+  for (const record of inWriteOrder(records).reverse()) {
     const list = byKey.get(record.lineKey);
     if (list) list.push(record);
     else byKey.set(record.lineKey, [record]);
   }
   return [...byKey.entries()].map(([key, list]) => {
     const newest = list[0]!;
-    const table = newest.tableName === "note_update" ? "note_document" : newest.tableName;
+    const why = list.find((r) => r.code !== "sync:writeRefused") ?? newest;
+    const write = isWriteLine(key) ? list.at(-1)! : null;
     return {
       key,
       ids: list.map((r) => r.id),
       count: list.length,
       recordedAt: newest.recordedAt,
-      table,
-      op: list.length > 1 ? "PATCH" : newest.op,
-      code: newest.code,
-      issues: parseIssues(newest.issues),
-      outcome: newest.outcome,
-      label: list.find((r) => r.label)?.label ?? null,
+      table: tableOf(write ?? newest),
+      op: write ? write.op : list.length > 1 ? "PATCH" : newest.op,
+      code: why.code,
+      issues: parseIssues(why.issues),
+      outcome: why.outcome,
+      label: write ? write.label : (list.find((r) => r.label)?.label ?? null),
     };
   });
 };

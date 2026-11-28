@@ -338,7 +338,8 @@ describe("providerService.upsert", () => {
 
     ok(await providerService.remove(u.caretaker.ctx, id));
     const late = ok(await providerService.upsert(u.caretaker.ctx, { ...input, name: "Too late" }));
-    expect(late.row).toMatchObject({ name: "Dr. Offline" });
+    // Scrubbed by the delete (`SCRUB_SPECS`), and the late edit isn't written.
+    expect(late.row).toMatchObject({ name: "" });
     expect(late.row?.deletedAt).toBeTruthy();
   });
 });

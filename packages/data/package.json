@@ -18,6 +18,7 @@
     "datastore:seed": "tsx scripts/seed.ts",
     "datastore:clear": "tsx scripts/clear.ts",
     "datastore:reset:staging": "tsx scripts/resetStaging.ts",
+    "datastore:reset:onboarding": "tsx scripts/resetOnboarding.ts",
     "datastore:powersync": "tsx scripts/powersync.ts",
     "datastore:studio": "drizzle-kit studio",
     "admin:grant": "tsx scripts/adminGrant.ts",

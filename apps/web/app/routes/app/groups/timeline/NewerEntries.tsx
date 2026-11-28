@@ -6,6 +6,8 @@ import { Button } from "~/components/ui";
 import { LANDING_GAP, landingHeld } from "./useJumpLanding";
 
 const NOTICE = "[data-jump-notice]";
+/** The timeline's list (`TimelineEntryList`'s section). */
+const LIST = "section[aria-labelledby='timeline-heading']";
 
 /**
  * What to hold still: the first row on screen, else the jump's notice, with
@@ -82,8 +84,15 @@ export function NewerEntries({
     hold.current = null;
     const target = el.isConnected ? el : list.current?.querySelector(NOTICE);
     if (!target) return;
+    // The page reaching today ends the bounded window, which turns the browser's scroll anchoring
+    // back on in this same commit (B-785): it would move the page for the new rows first, at the
+    // measure below, and this would move it again. Off for the measure and the move.
+    const section = document.querySelector<HTMLElement>(LIST);
+    const anchoring = section?.style.overflowAnchor ?? "";
+    if (section) section.style.overflowAnchor = "none";
     const moved = target.getBoundingClientRect().top - (was - (window.scrollY - y));
     if (moved) window.scrollBy({ top: moved, behavior: "instant" });
+    if (section) section.style.overflowAnchor = anchoring;
   });
 
   if (!newer.has) return null;

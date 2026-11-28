@@ -221,7 +221,8 @@ describe("sync.upload: a stale tick's restore of a stopped chain's next (B-1003)
     expect(await todoService.getById(a.ctx, tuesday)).toBeNull();
     const kept = ok(await todoService.getById(a.ctx, tuesday, { includeDeleted: true }));
     expect(kept?.deletedAt).not.toBeNull();
-    expect(kept?.title).toBe("Check the blood pressure cuff");
+    // Scrubbed by B's delete, and the stale restore's title isn't written.
+    expect(kept?.title).toBe("");
     expect(await openIn(world, id)).toEqual([]);
   });
 

@@ -74,7 +74,8 @@ describe("recipientConditionService", () => {
 
     ok(await recipientConditionService.remove(u.caretaker.ctx, condition!.id));
     expect(await names()).toEqual([]);
-    expect(await names(true)).toEqual(["Type 2 diabetes"]);
+    // Still there, its name scrubbed (`SCRUB_SPECS`).
+    expect(await names(true)).toEqual([""]);
     // A deleted condition can't be edited or resolved.
     expect(codeOf(await recipientConditionService.resolve(u.owner.ctx, condition!.id))).toBe(
       "recipientConditionService:notFound",

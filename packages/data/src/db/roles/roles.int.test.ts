@@ -91,6 +91,38 @@ describe("applyRoles", () => {
     expect(await failsWith(app, `DROP TABLE "account"`)).toBe(MUST_BE_OWNER);
   });
 
+  it("lets the app role add to and read the audit log, never change or delete a row", async () => {
+    const app = await connectAs(names.app);
+    const userId = randomUUID();
+    await app.query(
+      `INSERT INTO "user" (id, email, name, created_by, updated_by) VALUES ($1, $2, 'Audited', $1, $1)`,
+      [userId, `roles-audit-${run}@example.com`],
+    );
+    const inserted = await app.query<{ id: string }>(
+      `INSERT INTO admin_audit_log (actor_id, action, target_user_id) VALUES ($1, 'user.view', $1) RETURNING id`,
+      [userId],
+    );
+    const entryId = inserted.rows[0]?.id;
+    expect(entryId).toBeTruthy();
+    const read = await app.query(`SELECT action FROM admin_audit_log WHERE id = $1`, [entryId]);
+    expect(read.rows).toEqual([{ action: "user.view" }]);
+
+    expect(
+      await failsWith(app, `UPDATE admin_audit_log SET reason = 'changed' WHERE id = '${entryId}'`),
+    ).toBe(INSUFFICIENT_PRIVILEGE);
+    expect(await failsWith(app, `DELETE FROM admin_audit_log WHERE id = '${entryId}'`)).toBe(
+      INSUFFICIENT_PRIVILEGE,
+    );
+
+    // Deleting the audited account still works, and the entry stays with
+    // the bare id (no foreign key: data-rights PRD).
+    await app.query(`DELETE FROM "user" WHERE id = $1`, [userId]);
+    const kept = await app.query(`SELECT actor_id, target_user_id FROM admin_audit_log WHERE id = $1`, [
+      entryId,
+    ]);
+    expect(kept.rows).toEqual([{ actor_id: userId, target_user_id: userId }]);
+  });
+
   it("gives the app role tables the migrations role creates later", async () => {
     const table = `ct${run}_later`;
     const migrations = await connectAs(names.migrations);

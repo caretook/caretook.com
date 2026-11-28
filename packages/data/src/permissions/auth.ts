@@ -46,6 +46,8 @@ export const AUTH_PERMISSIONS = {
         disabledAt: SYSTEM_ONLY,
         disabledBy: SYSTEM_ONLY,
         disabledReason: SYSTEM_ONLY,
+        // The account's own group limit (free-limits): staff set it as the system.
+        groupLimit: SYSTEM_ONLY,
       },
     },
     // Members can delete their own account (a consumer-health-data requirement).

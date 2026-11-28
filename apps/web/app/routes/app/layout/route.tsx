@@ -1,8 +1,11 @@
 import type { Route } from "./+types/route";
 
-import { isRouteErrorResponse, Link, Outlet, useLocation, useParams } from "react-router";
-import { Search } from "lucide-react";
+import type { GroupContext } from "~/lib/app-shell/groupContext";
+
+import { isRouteErrorResponse, Link, Outlet, useLocation, useParams, useRouteLoaderData } from "react-router";
+import { MessageSquarePlus, Search } from "lucide-react";
 import { FullLogo } from "~/components/brand";
+import { openQuickEntry, useOfferQuickEntry } from "~/components/quick-entry";
 import { FirstSyncPending } from "~/components/shell";
 import { Button, IconButton, ToastRegion } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -45,7 +48,10 @@ export function clientLoader({ context }: Route.ClientLoaderArgs) {
  *
  * - header `group` (left): the Caretook link, then `GroupMenu` on group routes;
  * - header `sections` (wide screens): `SectionNav` on group routes;
- * - header `search`: the magnifier that opens the group's search, on group routes;
+ * - header `search`: the magnifier that opens the group's search, on group routes,
+ *   and before it the quick entry button (`openQuickEntry`: the group layout's
+ *   sheet), on group routes but not in the easy frame, where its shortcut
+ *   works too (`useOfferQuickEntry`);
  * - header `status`: `SyncIndicator`;
  * - header `user`: `UserMenu`;
  * - `announcement`: staff's banner (`Announcement`), when there is one;
@@ -67,9 +73,14 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
   const easy = useEasyFrame(user.id, groupId, pathname);
   const groupFrame = groupId && !easy ? groupId : undefined;
   const severalGroups = useSeveralGroups(user.id);
+  // Quick entry's sheet lives in the group layout: only a group that loaded has one.
+  const quickEntry = !!useRouteLoaderData<GroupContext>("group") && !!groupFrame;
+  // Its shortcut (`/`, Cmd/Ctrl+K) works where the button shows.
+  useOfferQuickEntry(quickEntry);
   return (
     <>
-      <header className="navbar h-16 min-h-16 gap-2 border-b border-base-300 bg-base-100/95 px-4 backdrop-blur sm:px-6 print:hidden">
+      {/* The phone's 16px gutter up to `lg`: at 640 the section links, search and quick entry need the room (headerFit). */}
+      <header className="navbar h-16 min-h-16 gap-2 border-b border-base-300 bg-base-100/95 px-4 backdrop-blur lg:px-6 print:hidden">
         <div data-region="group" className="flex min-w-0 flex-1 items-center gap-2">
           <Link to={appUrls.home()} className="shrink-0 rounded-field">
             <FullLogo wordHiddenBelow={groupId ? "sm" : undefined} />
@@ -80,7 +91,15 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
           {groupFrame && <SectionNav groupId={groupFrame} pathname={pathname} />}
         </div>
         {groupId && (
-          <div data-region="search" className="flex items-center">
+          <div data-region="search" className="flex items-center gap-1">
+            {quickEntry && (
+              <IconButton
+                onPress={openQuickEntry}
+                icon={MessageSquarePlus}
+                label="Quick entry"
+                haspopup="dialog"
+              />
+            )}
             <IconButton to={appUrls.search(groupId)} icon={Search} label="Search this care group" />
           </div>
         )}

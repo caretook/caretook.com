@@ -5,6 +5,7 @@ import type { LocalTodo } from "~/lib/todos/todos.sync";
 import { ListTodo, UserRound } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import { QuickTags } from "~/components/tags";
+import { TodoMenu } from "./TodoMenu";
 import { TodoRepeatMark } from "./TodoRepeatMark";
 import { TodoTick } from "./TodoTick";
 import { TodoPartOf, TodoProgressMark } from "./TodoTreeMarks";
@@ -39,7 +40,11 @@ import {
  * Upcoming) no row has a tick. Search's rows (`list`, no tick) pass `search`
  * (the title's matches marked) and a `footer` (its notes snippet, under the
  * due line); `tagsReadOnly` shows chips only, and `data-*` props go on the
- * row's `<li>`.
+ * row's `<li>`. A writer's `list` row ends with the shared ⋯ (`TodoMenu`:
+ * Edit, Reopen, Delete; B-1022), right of the add-subtask button with the
+ * row's gap between them. Not on a `context` row (it only places a branch),
+ * nor the `card` and `easy` looks: a card is the Planner's Upcoming, whose
+ * events open their own pages to change, and easy roles don't edit.
  */
 /**
  * How a row looks per place: `list` (the Todos and todo pages), `card` (a
@@ -306,6 +311,12 @@ export function TodoRow({
           <TodoPartOf groupId={group.id} parent={parent} className="text-muted mt-0.5 block text-sm" />
           {tags("mt-1")}
         </div>
+        {!context && group.canWrite && (
+          // `-my-1` keeps it to the title's line, like the add-subtask button beside it.
+          <div className="-my-1 flex shrink-0 flex-col items-end" data-todo-actions="">
+            <TodoMenu todo={todo} />
+          </div>
+        )}
       </div>
       {children}
     </li>

@@ -30,3 +30,13 @@ Each is a command in `hooks`, run by the core from the project checkout's top; a
 - **`scripts/ci/`** is all Caretook's: the GitHub jobs (`browser-job`, `test-job`, `env`, `zones`, `verdict`, `quarantine-setup`, `progress-reporter`: a per-file watchdog, 300 s or `CARETOOK_CI_FILE_LIMIT`, so a hung file is named in the verdict's `failed.hung`; its output goes to the git-ignored `ci-results/`), `tiers.mjs`, `lists.mjs`, `release-jobs.mjs`, the tier data and the two lists. `risa ci` (runs, gates, candidates, promotion, filing) is the core's.
 - **The verdict is a file contract:** the core reads it with its own reader (`ci/ci-runs.mjs`), never importing `verdict.mjs`. `VERDICT_VERSION` is in both; `verdict.test.mjs` ties them, and checks `buildVerdict` against Risa's `ci/verdict.fixtures/`, both reached by file URL from `risa/ci/tier-data.mjs`. Optional fields (a failed test's `message`, `hung`) keep version 1. `lists.test.mjs` fails on a brake or quarantine entry that names no test.
 - **Tests** (`vitest.config.ts`): Caretook's tooling tests are `project:unit` and `project:tooling` (`pnpm test:project`) and `tooling:browser`; the core's run in Risa's repo. `pnpm test:tooling` runs the core's tooling lint and tests on Caretook's config. Run tooling tests with `RISA_*` and `CLAUDE*` unset (B-932).
+
+## Updating Risa
+
+The `risa` command runs the machine's release (`~/.risa/releases/<tag>`); the repo pins its own copy in `package.json` for the tooling tests and `pnpm` scripts. Keep the two on one release: a machine on a newer release than the pin runs prompts and docs no test checked.
+
+1. Pin the release's commit (the tag's `^{}` sha, `git ls-remote https://github.com/interrobangc/risa 'refs/tags/<tag>^{}'`) in `package.json`; `pnpm install`.
+2. Regenerate `scripts/project/prompt-golden.txt` (`renderPrompts` from `risa/loops/prompt-render.mjs` on `risa.json`) and read the diff: only the release's intended changes.
+3. Read the release's `CHANGELOG.md` for changed role-doc headings: an additions `## <Heading>` naming a generic `##` heading ends that section (2026-11-28: v0.2.1 added orchestrator's _Rules across PRDs_ and _The check gate_, so ours became their continuations).
+4. Run `pnpm test:tooling` and see the test files run and pass (35 on 2026-11-28). It calls the runner by its real path: through the `node_modules` symlink the runner does nothing and exits 0 (RISA-1048, since Risa v0.1.0). Once that fix is pinned, the script may go back to the plain path.
+5. Commit as `build(tooling): pin Risa vX.Y.Z`, naming what the release brings.

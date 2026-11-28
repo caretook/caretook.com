@@ -15,3 +15,11 @@ apps/web/app/lib/todos/                  -
 # device module; a link reaching a second device is roundtrip's sync matrix (6b).
 packages/data/src/db/schema/todos/entryTodo.ts roundtrip
 apps/web/app/lib/todos/entryTodos.sync.ts roundtrip
+# The todo writer the sync matrix calls (sync-writers.mjs): roundtrip's 6b.
+apps/web/app/lib/todos/todos.sync.ts     roundtrip
+# The services and models the upload switch writes these tables through
+# (packages/api/src/syncRegistry.ts): roundtrip's sync matrix (6b) uploads each.
+packages/data/src/services/todoService.ts roundtrip
+packages/data/src/services/entryTodoService.ts roundtrip
+packages/data/src/models/todo/           roundtrip
+packages/data/src/models/timelineEntryTodo/ roundtrip

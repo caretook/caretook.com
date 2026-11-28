@@ -65,7 +65,9 @@ describe("Add > Todo from the Planner", () => {
     const t = todo({ id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f7d41", title: "Refill the pill box" });
     const pageUrl = `${TODOS_URL}/${t.id}`;
     const device = await openPlanner({ role: "caretaker", url: pageUrl, extra: [t] });
-    await userEvent.click(page.getByRole("link", { name: "Edit" }));
+    // Edit lives in the header's ⋯ (B-1022).
+    await userEvent.click(page.getByRole("button", { name: "Actions for Refill the pill box" }));
+    await userEvent.click(page.getByRole("menuitem", { name: "Edit" }));
     const edit = page.getByRole("dialog", { name: "Edit todo" });
     await expect.element(edit).toBeInTheDocument();
     await userEvent.fill(edit.getByRole("textbox", { name: "Todo" }), "Refill the weekly pill box");

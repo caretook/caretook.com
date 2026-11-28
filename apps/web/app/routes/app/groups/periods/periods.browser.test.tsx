@@ -106,6 +106,20 @@ describe("the periods page", () => {
     expect(link.getAttribute("href")).toBe(`${PERIODS_URL}/${HOSPITAL.id}`);
   });
 
+  test("a period at a place deleted from the directory reads greyed Removed place, never its name", async () => {
+    const place = fx.provider({ name: "Hillcrest Clinic", type: "practice", deletedAt: at(daysAgo(1)) });
+    const stay = fx.period({
+      type: "rehab",
+      placeProviderId: place.id,
+      placeDetail: "Room 3",
+      startedAt: at(daysAgo(4)),
+    });
+    await open({ fixtures: [place, stay] });
+    await expect.poll(() => listRows().find((r) => r.id === stay.id)?.place).toBe("Removed place, Room 3");
+    const shown = document.querySelector(`[data-period="${stay.id}"] [data-period-place] > span`);
+    expect(shown?.classList.contains("text-faint")).toBe(true);
+  });
+
   test("a group with no periods says so, and a writer gets the header's +, Add period", async () => {
     await open({ fixtures: [] });
     await expect.element(page.getByText(/^No care periods yet\. Add where care is now/)).toBeVisible();

@@ -7,6 +7,7 @@ import {
   clockTime,
   FORM_LABELS,
   medicationTitle,
+  passLabel,
 } from "@caretook/data/schema";
 import { addDays, dayIn, printSheet } from "../printSheet";
 import type { SchedulePass } from "@caretook/data/schema";
@@ -193,7 +194,7 @@ export const weeklySheet = ({
       if (!group) {
         group = {
           key,
-          name: known ? known.pass.name : null,
+          name: known ? passLabel(known.pass) : null,
           time: clockTime(slot.time),
           rows: [],
           // Passes first in their order, then times of their own by time.

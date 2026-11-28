@@ -286,9 +286,10 @@ jobs:
           node scripts/ci/verdict.mjs summarize ci-results/integration.json
           ci-results/browser-tooling.json >> "$GITHUB_OUTPUT"
 
-  # Three shards: one job took 13 minutes, past the 10-minute limit, and two ran 12–15
-  # once the second zone joined them (B-372). Plain jobs, not a matrix, because a
-  # matrix's jobs share one set of outputs.
+  # Four shards: one job took 13 minutes, past the 10-minute limit, and two ran 12–15
+  # once the second zone joined them (B-372); three ran past the 300-second aim
+  # (test-time-gates-2). Plain jobs, not a matrix, because a matrix's jobs share one
+  # set of outputs.
   components-1:
     needs:
       - plan
@@ -312,9 +313,9 @@ jobs:
         name: Install Chromium
         run: pnpm exec playwright install --with-deps chromium
       - id: test
-        name: Component tests (shard 1 of 3)
+        name: Component tests (shard 1 of 4)
         run: >-
-          node scripts/ci/test-job.mjs --time-gate --project web:components --project web:components:ny --shard=1/3
+          node scripts/ci/test-job.mjs --time-gate --project web:components --project web:components:ny --shard=1/4
           --reporter=default --reporter=json --outputFile.json=ci-results/components-1.json
       - id: quarantine
         name: Quarantined tests (can't fail the run)
@@ -351,9 +352,9 @@ jobs:
         name: Install Chromium
         run: pnpm exec playwright install --with-deps chromium
       - id: test
-        name: Component tests (shard 2 of 3)
+        name: Component tests (shard 2 of 4)
         run: >-
-          node scripts/ci/test-job.mjs --time-gate --project web:components --project web:components:ny --shard=2/3
+          node scripts/ci/test-job.mjs --time-gate --project web:components --project web:components:ny --shard=2/4
           --reporter=default --reporter=json --outputFile.json=ci-results/components-2.json
       - id: report
         name: Report the failures
@@ -383,14 +384,46 @@ jobs:
         name: Install Chromium
         run: pnpm exec playwright install --with-deps chromium
       - id: test
-        name: Component tests (shard 3 of 3)
+        name: Component tests (shard 3 of 4)
         run: >-
-          node scripts/ci/test-job.mjs --time-gate --project web:components --project web:components:ny --shard=3/3
+          node scripts/ci/test-job.mjs --time-gate --project web:components --project web:components:ny --shard=3/4
           --reporter=default --reporter=json --outputFile.json=ci-results/components-3.json
       - id: report
         name: Report the failures
         if: ${{ !cancelled() }}
         run: node scripts/ci/verdict.mjs summarize ci-results/components-3.json >> "$GITHUB_OUTPUT"
+
+  components-4:
+    needs:
+      - plan
+    if: ${{ needs.plan.outputs.components2 == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      failures: ${{ steps.report.outputs.failures }}
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - id: setup
+        uses: ./.github/actions/setup
+      - id: env
+        name: Fictional env
+        run: node scripts/ci/env.mjs >> "$GITHUB_ENV"
+      - id: chromium
+        name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - id: test
+        name: Component tests (shard 4 of 4)
+        run: >-
+          node scripts/ci/test-job.mjs --time-gate --project web:components --project web:components:ny --shard=4/4
+          --reporter=default --reporter=json --outputFile.json=ci-results/components-4.json
+      - id: report
+        name: Report the failures
+        if: ${{ !cancelled() }}
+        run: node scripts/ci/verdict.mjs summarize ci-results/components-4.json >> "$GITHUB_OUTPUT"
 
   build:
     needs:
@@ -804,6 +837,7 @@ jobs:
       - components-1
       - components-2
       - components-3
+      - components-4
       - build
       - browser
       - browser-2

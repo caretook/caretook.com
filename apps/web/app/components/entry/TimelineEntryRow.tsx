@@ -25,7 +25,7 @@ import { ASIDE_CLASS } from "./layout";
 import { entryLinkPath } from "~/lib/timeline/timelineLinks";
 import type { ParsedSearch } from "@caretook/data/domain";
 
-/** What a row or card shows and does: the same for both. */
+/** What an entry's display shows and does, in either look (`TimelineEntryRow`). */
 export type EntryViewProps = {
   entry: TimelineEntry;
   authorName: string;
@@ -48,19 +48,19 @@ export type EntryViewProps = {
   liveLabel?: string;
   /** A note's or event's linked providers: the "with …" line. */
   providers?: LinkedProviderName[];
-  /** A note's or event's formatted text (cards only: rows keep the plain two-line clamp). */
+  /** A note's or event's formatted text (the Full look only: Condensed keeps the plain two-line clamp). */
   richText?: NoteBlock[] | null;
   /** The timeline's search (`?q=`, parsed): its matches are marked. */
   search?: ParsedSearch;
-  /** Easy mode: the kind icon and the author aren't filters (rows only). */
+  /** Easy mode: the kind icon and the author aren't filters. */
   easy?: boolean;
   /**
-   * Away from the timeline (a provider's linked entries; rows only): the kind
+   * Away from the timeline (search, a provider's or todo's links): the kind
    * icon and the author aren't filters (they'd point at the timeline's), and
    * the day shows over the time, since the rows aren't grouped by day.
    */
   elsewhere?: boolean;
-  /** How many open todos it links (planner-3): the "1 todo" mark (full view only). */
+  /** How many open todos it links (planner-3): the "1 todo" mark (not in easy mode). */
   openTodos?: number;
   /**
    * Its tags, from the list's one query (tags PRD): two chips, then "+N", for
@@ -76,7 +76,7 @@ const NO_TAGS: readonly { id: string; name: string }[] = [];
 type DataHooks = { [attr: `data-${string}`]: string | undefined };
 
 /**
- * A row's or card's tags (tags-2): `QuickTags` with two chips, then "+N",
+ * An entry's tags (tags-2): `QuickTags` with two chips, then "+N",
  * and "Add tag", from the list's query (never one per row). Its
  * taps sit above the stretched open target, so they never open the entry.
  * `readOnly` (the easy roles' Planner): the chips only.
@@ -101,13 +101,31 @@ export function RowTags({
   );
 }
 
+/** A timeline entry's two looks (the timeline's Full and Condensed views). */
+export type EntryLook = "full" | "condensed";
+
 /**
- * One entry as a dense row: kind icon, time, the entry's body (text clamped
- * to two lines, with "More"), then a right-hand column with the ⋯ menu
- * (Copy link for every role) and, under it, the author's avatar (a filter).
- * `tagsReadOnly` shows its tags as chips only (search's easy roles, as on
- * the Planner); `trailing` (a todo link's Remove) sits at the row's end,
- * above the open target; `data-*` props go on the row's `<li>`.
+ * Each look's `<li>`: Full is a card of its own, roomier and spaced apart
+ * (the list's `space-y-2`); Condensed sits close in the list's divided box.
+ * Everything inside is the same.
+ */
+const LOOK_CLASS: Record<EntryLook, string> = {
+  full: "rounded-box border-base-300 bg-base-100 gap-3 border p-3 shadow-sm",
+  condensed: "gap-2.5 px-3 py-2",
+};
+
+/**
+ * One timeline entry, the same display everywhere (shared-displays, B-1015):
+ * the kind icon, the entry's body with its first line beside the time (so
+ * the text gets the width; the day over it `elsewhere`), then a right-hand
+ * column with the ⋯ menu (Copy link for every role) and, under it, the
+ * author's avatar (a filter). `look` is the timeline's view: Full spaces
+ * entries apart and shows all the text (a note's or event's formatted, from
+ * `richText`); Condensed (the default, off the timeline too) sits closer and
+ * clamps the text to two lines, with "More". `tagsReadOnly` shows its tags
+ * as chips only (search's easy roles, as on the Planner); `trailing` (a todo
+ * link's Remove) sits at the row's end, above the open target; `data-*`
+ * props go on the row's `<li>`.
  */
 export function TimelineEntryRow({
   entry,
@@ -122,49 +140,51 @@ export function TimelineEntryRow({
   onRemind,
   liveLabel,
   providers,
+  richText,
   search,
   easy,
   elsewhere,
   openTodos,
   tags,
+  look = "condensed",
   tagsReadOnly,
   trailing,
   ...data
-}: EntryViewProps & { tagsReadOnly?: boolean; trailing?: ReactNode } & DataHooks) {
+}: EntryViewProps & {
+  look?: EntryLook;
+  tagsReadOnly?: boolean;
+  trailing?: ReactNode;
+} & DataHooks) {
   const otherZone = formatTimeInZone(entry.occurredAt, entry.timeZone);
   // Plain icon and author: easy mode, and away from the timeline.
   const plain = easy || elsewhere;
+  const full = look === "full";
   const cancelled = cancelledLabel(entry);
+  const size = full ? "md" : "sm";
   return (
     <li
       {...data}
-      className={`relative isolate flex items-start gap-2.5 px-3 py-2 ${removing ? "opacity-50" : ""}`}
+      className={`relative isolate flex items-start ${LOOK_CLASS[look]} ${removing ? "opacity-50" : ""}`}
+      data-look={look}
       data-easy={easy ? "" : undefined}
       data-cancelled={cancelled ? "" : undefined}
     >
       {open && <EntryOpenTarget open={open} entry={entry} />}
-      {plain ? <KindIcon kind={entry.kind} size="sm" /> : <KindFilterLink kind={entry.kind} size="sm" />}
-      <time
-        dateTime={entry.occurredAt}
-        className={`text-muted ${elsewhere ? "w-[5.5rem]" : "w-[4.1rem]"} shrink-0 pt-0.5 text-sm whitespace-nowrap tabular-nums`}
-      >
-        {elsewhere && (
-          <span className="block" data-row-day="">
-            {/* An all-day entry's day is its own zone's date, not the device's. */}
-            {rowDayLabel(entry.occurredAt, entry.allDay ? entry.timeZone : localTimeZone(), new Date())}
-          </span>
-        )}
-        {entry.allDay ? "All day" : formatTime(entry.occurredAt)}
-        {/* A series visit: the mark under its time, so the text column stays aligned. */}
-        {entry.seriesId && <RepeatMark seriesId={entry.seriesId} className="flex" />}
-      </time>
+      {plain ? <KindIcon kind={entry.kind} size={size} /> : <KindFilterLink kind={entry.kind} size={size} />}
       <EntryBody
         entry={entry}
         units={units}
-        clamp
+        clamp={!full}
         providers={providers}
+        richText={full ? richText : undefined}
         search={search}
-        className={`pt-0.5 ${cancelled ? CANCELLED_TEXT : ""}`}
+        className={`${full ? "space-y-0.5" : "pt-0.5"} ${cancelled ? CANCELLED_TEXT : ""}`}
+        aside={
+          <>
+            {liveLabel && <LiveDot label={liveLabel} />}
+            <EntryTime entry={entry} elsewhere={elsewhere} />
+          </>
+        }
         footer={
           <>
             {otherZone && <p className="text-faint text-xs">{otherZone}</p>}
@@ -179,7 +199,6 @@ export function TimelineEntryRow({
           </>
         }
       />
-      {liveLabel && <LiveDot label={liveLabel} className="mt-2" />}
       {/* The right column: the ⋯ menu, the author under it, so the text gets the width. */}
       <div className={`${ASIDE_CLASS} w-8`} data-entry-aside>
         <EntryMenu entry={entry} onEdit={onEdit} cancel={cancel} onRemind={onRemind} onDelete={onDelete} />
@@ -204,7 +223,32 @@ export function TimelineEntryRow({
 }
 
 /**
- * An entry's ⋯ menu on rows and cards, with Copy link for every role (its
+ * An entry's time, beside its first line: "All day" or the time, a series
+ * visit's repeat mark after it, and `elsewhere` (rows not grouped by day)
+ * the day over it.
+ */
+function EntryTime({ entry, elsewhere }: { entry: TimelineEntry; elsewhere?: boolean }) {
+  return (
+    <>
+      <time
+        dateTime={entry.occurredAt}
+        className="text-muted text-right text-sm whitespace-nowrap tabular-nums"
+      >
+        {elsewhere && (
+          <span className="block" data-row-day="">
+            {/* An all-day entry's day is its own zone's date, not the device's. */}
+            {rowDayLabel(entry.occurredAt, entry.allDay ? entry.timeZone : localTimeZone(), new Date())}
+          </span>
+        )}
+        {entry.allDay ? "All day" : formatTime(entry.occurredAt)}
+      </time>
+      <RepeatMark seriesId={entry.seriesId} className="text-muted" />
+    </>
+  );
+}
+
+/**
+ * An entry's ⋯ menu on its rows and the Planner's cards, with Copy link for every role (its
  * page, or its day for a kind without one: `entryLinkPath`) and "Link copied"
  * under it. It sits above the row's stretched open target (`relative z-10`).
  * `label` names it for screen readers (default "Actions for <kind> at <time>";
@@ -242,7 +286,7 @@ export function EntryMenu({
   );
 }
 
-/** A cancelled event's text, struck through and muted (rows and cards). */
+/** A cancelled event's text, struck through and muted (both looks and the Planner's cards). */
 export const CANCELLED_TEXT = "text-faint line-through";
 
 /** "Cancelled", below a cancelled event's text. An inline block, so the line through its text skips it. */

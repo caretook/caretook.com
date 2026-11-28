@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import pg from "pg";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { createGroup, createWorld, ok, system } from "../../test/fixtures";
+import { createGroup, createUser, createWorld, ok, system } from "../../test/fixtures";
 import { appointmentSeriesSchema, getDb, noteDocumentSchema, timelineEntryProviderSchema } from "../db";
 import { entryProviderId } from "../db/schema";
 import { isError } from "../errors";
@@ -43,9 +43,13 @@ afterEach(async () => {
     );
 });
 
-/** Another group, owned by `owner`. */
-const otherGroup = async (owner: Parameters<typeof createGroup>[0]) => {
-  const other = await createGroup(owner);
+/**
+ * Another group, owned by `owner` too. A fresh account starts it and `owner`
+ * joins as an owner, so a shared world's owner never reaches the free plan's
+ * cap on starting groups (free-limits).
+ */
+const otherGroup = async (owner: { user: { id: string } }) => {
+  const other = await createGroup(await createUser("other-owner"), [{ user: owner.user, role: "owner" }]);
   groups.add(other.group.id);
   return other;
 };
@@ -507,7 +511,8 @@ describe("appointmentSeriesService: visits", { timeout: VISITS_TIMEOUT }, () => 
     const { row: replay } = ok(
       await appointmentSeriesService.upsert(u.owner.ctx, { ...input({ title: "Late edit" }), id }),
     );
-    expect(replay).toMatchObject({ title: "Dialysis" });
+    // Scrubbed by the delete (`SCRUB_SPECS`), and the late edit isn't written.
+    expect(replay).toMatchObject({ title: null, kind: "event" });
     expect(replay.deletedAt).not.toBeNull();
   });
 });

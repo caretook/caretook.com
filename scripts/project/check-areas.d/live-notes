@@ -8,3 +8,12 @@ apps/web/app/components/notes/           live-notes
 apps/web/app/lib/live-notes/             live-notes
 packages/data/src/db/schema/live-notes/  live-notes
 packages/data/src/domain/live-notes/     live-notes
+# The writers the sync matrix calls (sync-writers.mjs: the note and its live
+# document, a burst of typing): roundtrip's 6b too.
+apps/web/app/lib/live-notes/liveEntry.sync.ts live-notes roundtrip
+apps/web/app/lib/live-notes/notes.sync.ts live-notes roundtrip
+# The services and models the upload switch writes notes through
+# (packages/api/src/syncRegistry.ts): the live-notes check and roundtrip's sync matrix (6b).
+packages/data/src/services/noteDocumentService.ts live-notes roundtrip
+packages/data/src/models/noteDocument/   live-notes roundtrip
+packages/data/src/models/noteUpdate/     live-notes roundtrip

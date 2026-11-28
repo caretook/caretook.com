@@ -2,14 +2,25 @@
 // sync.upload as a device's queue posts it. Never imported by app code.
 // The /mcp helpers are in connectors/testing.ts.
 import type { AuthUser } from "@caretook/data";
+import type { UserLimits } from "./rateLimit";
 import type { CrudOp } from "./sync";
 
 import { createRouterClient, ORPCError } from "@orpc/server";
 import { router } from "./router";
 
-/** The router as `authUser` (null: signed out), in process. `clientIp` for the public forms' rate limit. */
-export const clientFor = (authUser: AuthUser | null, clientIp?: string) =>
-  createRouterClient(router, { context: { authUser, ...(clientIp ? { clientIp } : {}) } });
+/**
+ * The router as `authUser` (null: signed out), in process. `clientIp` for
+ * the per-IP limits; `userLimits` turns the per-user limits on (they're off
+ * outside production).
+ */
+export const clientFor = (
+  authUser: AuthUser | null,
+  clientIp?: string,
+  opts: { userLimits?: UserLimits } = {},
+) =>
+  createRouterClient(router, {
+    context: { authUser, ...(clientIp ? { clientIp } : {}), ...opts },
+  });
 export type Api = ReturnType<typeof clientFor>;
 
 /** The ORPCError a call fails with; throws when it succeeds or fails otherwise. */
@@ -53,12 +64,13 @@ export const codesOf = async (call: Promise<unknown>) => {
 /** A time `ms` from now, as PowerSync's SQLite text ("…T10:00:00.000000Z"). */
 export const sqliteTime = (ms = 0) => new Date(Date.now() + ms).toISOString().replace(/Z$/, "000Z");
 
-/** A device's CRUD ops, as PowerSync queues them. */
-export const putOp = (table: string, id: string, data: Record<string, unknown>) =>
-  ({ op: "PUT", table, id, data }) as const;
-export const patchOp = (table: string, id: string, data: Record<string, unknown>) =>
-  ({ op: "PATCH", table, id, data }) as const;
-export const deleteOp = (table: string, id: string) => ({ op: "DELETE", table, id }) as const;
+/** A device's CRUD ops, as PowerSync queues them; `write` is the local transaction they're part of. */
+export const putOp = (table: string, id: string, data: Record<string, unknown>, write?: number) =>
+  ({ op: "PUT", table, id, data, ...(write === undefined ? {} : { write }) }) as const;
+export const patchOp = (table: string, id: string, data: Record<string, unknown>, write?: number) =>
+  ({ op: "PATCH", table, id, data, ...(write === undefined ? {} : { write }) }) as const;
+export const deleteOp = (table: string, id: string, write?: number) =>
+  ({ op: "DELETE", table, id, ...(write === undefined ? {} : { write }) }) as const;
 
 /** Upload one batch as `api`'s device: each op's result, in order. */
 export const upload = async (api: Api, ops: CrudOp[]) => (await api.sync.upload({ ops })).results;

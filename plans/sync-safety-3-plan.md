@@ -4,13 +4,21 @@
 
 ## Status
 
-| Slice | Wave | State   | Merge into `prd/sync-safety-3` (slice commits) |
-| ----- | ---- | ------- | ---------------------------------------------- |
-| 1     | 1    | planned |                                                |
-| 2     | 2    | planned |                                                |
-| 3     | 3    | planned |                                                |
-| 4     | 1    | planned |                                                |
-| 5     | 4    | planned |                                                |
+| Slice | Wave | State          | Merge into `prd/sync-safety-3` (slice commits) |
+| ----- | ---- | -------------- | ---------------------------------------------- |
+| 1     | 1    | landed (opus)  | 98f9114db (e46c7c7c7, 96dc47533)               |
+| 2     | 2    | landed (opus)  | c3121383a (a0b109cfe)                          |
+| 3     | 3    | landed (opus)  | b7155cd89 (54aed68c0)                          |
+| 4     | 1    | landed (opus)  | 95b947f22 (0aa0e004d, fe68fed3e)               |
+| 5     | 4    | started (opus) |                                                |
+
+**Landing mode: run everything through** (dispatcher start, 2026-11-28): start every ready slice, land each green wave, ask only real questions.
+
+- **Waves 1-3 landed** in dev 2026-11-28: wave 1 (slices 1, 4) PR #322, dev 26eb8f0; wave 2 (slice 2) PR #325, dev cefab09; wave 3 (slice 3, merged b7155cd89) PR #326, dev 4b2a7f5, tier components, run 46150457904 green, Codex clean on 76c31fe, browser 3/3. To-test files `2026-11-28-0803`, `-0825`, `-0901-sync-safety-3.md`. Sync and data-layer docs folded per wave. Codex's 2 P2s on #326 are slice 5's work, noted on B-294 and replied.
+- Slice 3's uploader: `nextBatch` reads one past the batch; a first write over 100 is read alone up to `SYNC_WRITE_LIMIT`; over it, 100 go without `write`. A 400 resends write by write (`uploadWriteByWrite`).
+- **Wave 4 started 2026-11-28:** sync skipped (dev shares no file), B-294 claimed, worktree `sync-safety-3-5` made, one opus agent spawned with the brief below.
+- **Slice 5 merged** 49e1d41ca; B-294 done. It added a local-only `write_seq` column on `unsaved_change` (a write's op order; `uploader.ts` `recordUnsaved` sets it, one `recorded_at` per recording) — fold into sync _Device_ at landing. Wave run 46153418825 green (components); slice worktree removed; `risa sync` merged dev (no migration or seed); browser 3/3 (phase2, roundtrip, live-notes); sync doc folded (_Device_: `write_seq`, one line per write). Recheck on the synced tip d33f099d: run 46154094746 green. PR #328 open; Codex review pending.
+- **Wave 4 brief:** `risa backlog ingest` and `list`, `risa sync`, then `risa slice sync-safety-3 5` and one opus agent on `risa prompt slice sync-safety-3 5`. Tell it: group by `line_key` (single-op writes carry `write_id` but keep their row's key; multi-op writes share `write:<id>`); `unsavedLines` takes code/issues from the record not answering `sync:writeRefused` (never the newest: `recorded_at` within a write is arbitrary); `retryUnsaved` sends a line's records as one write with their stored `write_id` (else a 101-1000-op set-aside write is over the 100-op cap and unretryable). Both are Codex findings on PR #326. When slice 5 merges, `risa backlog done B-294`. At landing, fold sync _Device_ ("Changes not saved": one line per write). Last wave: `risa rm sync-safety-3` at the end.
 
 ## Durable decisions
 
@@ -100,7 +108,7 @@ Stack: no · Reads: docs/domain/sync.md, docs/domain/appointments.md · Tests: c
 
 Covers B-294 (the device's half of what a write is). US 1.
 
-**What to build.** As the PRD's _The write audit_: go through the device's `lib/<area>/*.sync.ts` saves that write more than one row and list each, with whether it already writes in one `db.drizzle.transaction`. Wrap the ones that don't. Add the write limit (1000) as a client-safe constant in a new `domain/sync/` part (`packages/data/src/domain/sync/`, exported from the domain index and `DOMAIN_EXPORTS`). The list goes in the hand-off and, at landing, the sync doc. If more than about six files need wrapping, wrap the riskiest (those that touch two tables) and file the rest as one fixes-bug item.
+**What to build.** As the PRD's _The write audit_: go through the device's `lib/<area>/*.sync.ts` saves that write more than one row and list each, with whether it already writes in one `db.drizzle.transaction`. Wrap the ones that don't. Add the write limit (1000) as a client-safe constant in a new `domain/sync/` part (`packages/data/src/domain/sync/` (new), exported from the domain index and `DOMAIN_EXPORTS`). The list goes in the hand-off and, at landing, the sync doc. If more than about six files need wrapping, wrap the riskiest (those that touch two tables) and file the rest as one fixes-bug item.
 
 **Acceptance criteria**
 

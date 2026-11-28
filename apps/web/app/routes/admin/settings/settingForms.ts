@@ -20,6 +20,7 @@ export const SETTING_FORMS: Record<AppSettingKey, SettingForm> = {
   "invites.linkMaxDays": "number",
   "invites.linkMaxUses": "number",
   "publicForms.perMinute": "number",
+  "limits.groupsStarted": "number",
 };
 
 export type Parsed =
