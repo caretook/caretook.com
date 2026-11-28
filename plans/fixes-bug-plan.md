@@ -962,7 +962,7 @@ Three sync-safety follow-ups, run in parallel (90 and 91 both touch the repeatin
 
 Stack: no · Reads: plans/fixes-rules.md, docs/domain/todos.md, docs/domain/sync.md · Tests: integration, component
 
-Repeating todos ticked before sync-safety-2 (B-383) took `done_at` from the app clock after the transaction's `now()`, so their successor's `created_at` can sit slightly before the predecessor's `done_at`. The successor rule in `laterInChain` (server `packages/data/src/services/todoService.ts`, about line 211; device `apps/web/app/lib/todos/todos.sync.ts`, about line 845) then misses it, and reopen leaves both open and repeating.
+Repeating todos ticked before sync-safety-2 (B-383) took `done_at` from the app clock after the transaction's `now()`, so their successor's `created_at` can sit slightly before the predecessor's `done_at`. The successor rule in `laterInChain` (server `packages/data/src/services/todoService.ts`, about line 222; device `apps/web/app/lib/todos/todos.sync.ts`, about line 896) then misses it, and reopen leaves both open and repeating.
 
 - Fix without touching data: when the current rule finds no successor, fall back to the old `dueOn` rule (the next row in the chain by `due_on`), on both server and device, the same way in each. Say in the hand-off why the fallback can't pick a wrong row for chains written after B-383.
 - Integration test: a fictional chain whose successor's `created_at` is a few milliseconds before the predecessor's `done_at`; reopening the predecessor removes or reopens it as the current rule does for new chains (one open row, still repeating). Component (device) test: the same chain in the local database through `reopenTodo`.
