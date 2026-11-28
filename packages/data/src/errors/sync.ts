@@ -14,6 +14,11 @@ export const SYNC_ERRORS = {
     message: "This change has a character that can't be saved",
     statusCode: 400,
   },
+  // Another op of the same write (one save) was refused, so none of it was applied.
+  "sync:writeRefused": {
+    message: "This change was part of a save that wasn't accepted",
+    statusCode: 409,
+  },
   // The server couldn't process this one op (an `upload` result, not a response).
   "sync:failed": {
     message: "The server couldn't save this change",
