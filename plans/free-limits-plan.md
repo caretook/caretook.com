@@ -12,11 +12,11 @@
 
 **Models:** slices 1 to 4 on opus (real logic: locking, a migration, RBAC, a form).
 
-**Now (2026-11-28):** slice 1 handed off (check green on f04414fb5) and merged (e66e2fecf); wave 1's CI run next. B-1012 is the umbrella item: done only after slice 4. Slice 1 also touched `settingForms.ts` (typed per key) and `appointmentSeries.int.test.ts` (its world owner would pass 3 groups). Backlog: only B-1012 for this topic.
+**Now (2026-11-28):** wave 1 landed in dev through PR #334 (CI green, components, run 46160525942; Codex clean after one P2 filed as B-1036). care-groups.md took the cap rule. **Next: wave 2 (slice 2), with B-1036 folded in** (read the limit before `careGroupService.create`'s transaction, so a cold settings cache doesn't take a second pool connection while the user row is locked). B-1012 is the umbrella item: done only after slice 4.
 
 | Slice | Wave | State   | Merge into `prd/free-limits` (slice commits) |
 | ----- | ---- | ------- | -------------------------------------------- |
-| 1     | 1    | merged  | e66e2fecf (f04414fb5)                        |
+| 1     | 1    | landed  | e66e2fecf (f04414fb5)                        |
 | 2     | 2    | planned | —                                            |
 | 3     | 3    | planned | —                                            |
 | 4     | 4    | planned | —                                            |
