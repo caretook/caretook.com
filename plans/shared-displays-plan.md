@@ -4,15 +4,25 @@
 
 ## Status
 
-| Slice | Wave | State   | Merge into `prd/shared-displays` (slice commits) |
-| ----- | ---- | ------- | ------------------------------------------------ |
-| 1     | 1    | planned |                                                  |
-| 2     | 2    | planned |                                                  |
-| 3     | 3    | planned |                                                  |
-| 4     | 3    | planned |                                                  |
-| 5     | 3    | planned |                                                  |
-| 6     | 4    | planned |                                                  |
-| 7     | 1    | planned |                                                  |
+| Slice | Wave | State                                              | Merge into `prd/shared-displays` (slice commits) |
+| ----- | ---- | -------------------------------------------------- | ------------------------------------------------ |
+| 1     | 1    | merged (sonnet), worktree removed                  | 8be180eb6 (4e7f6360e)                            |
+| 2     | 2    | merged (opus), wave 2 green, worktree removed      | 60103d25e (2925d1922)                            |
+| 3     | 3    | merged (opus), **wave 3 landed**, worktree removed | e3a2e0b2f (884f5fbad)                            |
+| 4     | 3    | merged (opus), **wave 3 landed**, worktree removed | ab5c8add5, 287fef459 (e105e67c9, 592f4842c)      |
+| 5     | 3    | merged (opus), **wave 3 landed**, worktree removed | 4bd9a65e3 (31452d5fd)                            |
+| 6     | 4    | merged (opus), **wave 4 landed**, worktree removed | 98cd6101c (aa38d69ba, 3962a2d52)                 |
+| 7     | 1    | merged (opus), fix merged, worktree removed        | efcf7177b, 21edf2e9e (453808b81)                 |
+
+- **Hand-over (rotated after wave 3's landing, context):** waves 1–3 are in dev; wave 3 **landed** through PR #316 (dev at 7e15518; components run 46119949020 green on synced 478a5fa3; Codex clean; a docs-only commit then landed `--no-review --by-user` per the user's standing rule; to-test/2026-11-28-0221-shared-displays.md; report filed). Wave 3's first run was red on `medications/medicationTags.browser.test.tsx` (slice 4's Prescriber/Pharmacy rows added Add tag buttons): fixed test-only, `pick()` scoped to `main header:has([data-medication-name])`. Dev sync conflict in `components/medications/index.ts`: kept `MedicationIcon` and onboarding-2's `MedicationForm`. Docs folded (components _Shared displays_ bullet, providers/medications _Rows elsewhere_, search) and trimmed under budget. All slice worktrees and branches gone.
+- **Wave 4 landed** (the last) through PR #317; dev at ea5a126; Codex clean on 055559f; to-test/2026-11-28-0258-shared-displays.md; report filed; PRD marked done. Next: `risa rm shared-displays`.
+- **Wave 4 started** 2026-11-28 (new session): backlog ingest/list: nothing new for this topic; `risa sync`: up to date. Slice 6 worktree made, opus agent spawned with the notes below; `risa watch` running.
+- Slice 6 handed off (quick check green on 3962a2d52) and merged as 98cd6101c; wave 4's components run 46121851915 on b4b8fb1c **green**; `risa sync`: up to date; PR #317. Codex P2 (thread PRRT_kwDOVx-WLM69Bg76): the shared row's `elsewhere` day label used the device zone for all-day entries (the old todo link row used the entry's); fixed in 24a919d63 (quick check green; a Tokyo all-day test). Docs folded (components, todos). Slice notes: a todo's entry links are now named by `openLabel`; `[data-todo-link-name]`/`-when` gone; `resultParts.tsx`' bits stay (`ConditionResultItem` uses them); `MEDICATION_GLYPH` exported for `LinkToBox`; the link's Remove keeps a bare X (a possible follow-up).
+- **Wave 4, slice 6 (opus), brief notes:** Tell it: `TimelineEntryRow` already has `...data` passthrough and `tagsReadOnly` (slice 5); it adds `trailing`. `MedicationCard`/`ProviderCard` have `title`/`open`/`removed`/`label`/`trailing` (and `removed` keeps `trailing`, for a removed link's Remove). `MedicationIcon` is exported from `components/medications`. `resultParts.tsx`' `ROW`/`STRETCHED`/`OpenName` may now be unused: delete what is. `loadSearch.ts`' `authorName` is unused (leave, or file a `fixes-nit`). After wave 4 lands: the last landing, then `risa rm shared-displays`.
+- **Landing mode: run everything through** (dispatcher start, 2026-11-28): start every ready slice, land each green wave, ask only real questions via `risa ask`.
+- **Waiting on onboarding-2 (B-670):** its slice 2 moves `ProviderForm`, `ProviderListItem`, `ProviderRowContact` to `components/providers/` (and `providerFormData.ts` to `lib/providers/`). Agreed 2026-11-28: it lands first; slice 4 starts only after it's in `dev` and `risa sync` (onboarding-2-c2 will message; also check `pnpm log dev`). After it, onboarding-2 won't edit those three; its slice 3 may add `MedicationForm` to `components/medications/index.ts` (they'll warn first; an additive export, merge both).
+- onboarding-2's provider move **landed in dev** (62b26b9): slice 4 builds on `components/providers/ProviderListItem.tsx` and `ProviderRowContact.tsx` (fix slice 4's paths in its brief; the plan names the old `routes/…/providers/` path). onboarding-2 wave 3 also adds exports to `components/medications/index.ts` (additive; keep both).
+- **Wave 1** started 2026-11-28: worktrees `.loops/shared-displays-1` and `-7`, agents spawned; `risa watch` running. Slice 1 merged; slice 2 started early (blocked only by 1; no overlap with 7). Slice 7 merged. Wave 1's components run 46112379760 on 58af8dbc: `file`: 3 slice-7 failures (visitPrep ×2 Planner ⋯, authorAvatars easy circle) sent back to slice 7, fixed (Copy link in visitPrep's expected menus; the easy avatar keeps its name as label and title) and merged again, wave 1 rerun 46113407528 on 21edf2e9: **green**. Then `risa sync` merged dev (2cecdd0f+; packages and seeds); recheck 46114051708 on 2cecdd0f **green**; `risa serve` :6173; browser: roundtrip pass (the lean `--suite` skipped: the user's rule is to ask first). PR #313, Codex clean on aaa98b4. **Wave 1 landed** in dev as 3cddd31cd (report a377, to-test/2026-11-28-0124-shared-displays.md); docs folded (components: `UpcomingEntryCard`; search: one file per kind); print.browser weekly chart a flake outside this PRD. Slice 7 notes: Planner row menus gain Copy link; `TodoRow.tsx:139` comment still says `UpcomingRow` (slice 5 to fix); components doc: `UpcomingEntryCard` is the Planner look. B-961 claimed. Backlog at start: nothing new for this topic (B-1004, a `linkToBox` flake, is `fixes-tooling`).
 
 ## Architectural decisions
 

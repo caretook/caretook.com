@@ -4,6 +4,7 @@ import type { LinkedProviderName } from "~/lib/providers/entryProviders";
 import type { EntryCancelActions } from "./EntryActions";
 import type { TimelineEntry } from "~/lib/core/rpc";
 import type { NoteBlock } from "~/lib/live-notes/noteRichText";
+import type { ReactNode } from "react";
 
 import { canHaveNoteDocument } from "@caretook/data/schema";
 import { AuthorCircle, AuthorFilterLink, KindFilterLink, KindIcon } from "./KindIcon";
@@ -71,16 +72,21 @@ export type EntryViewProps = {
 
 const NO_TAGS: readonly { id: string; name: string }[] = [];
 
+/** `data-*` attributes a caller puts on the row's `<li>` (search's `data-result`, …). */
+type DataHooks = { [attr: `data-${string}`]: string | undefined };
+
 /**
  * A row's or card's tags (tags-2): `QuickTags` with two chips, then "+N",
  * and "Add tag", from the list's query (never one per row). Its
  * taps sit above the stretched open target, so they never open the entry.
+ * `readOnly` (the easy roles' Planner): the chips only.
  */
 export function RowTags({
   entry,
   tags,
+  readOnly,
   className,
-}: Pick<EntryViewProps, "entry" | "tags"> & { className?: string }) {
+}: Pick<EntryViewProps, "entry" | "tags"> & { readOnly?: boolean; className?: string }) {
   return (
     <QuickTags
       target="entry"
@@ -89,6 +95,7 @@ export function RowTags({
       createdBy={entry.createdBy}
       max={2}
       tags={tags ?? NO_TAGS}
+      readOnly={readOnly}
       className={className}
     />
   );
@@ -98,6 +105,9 @@ export function RowTags({
  * One entry as a dense row: kind icon, time, the entry's body (text clamped
  * to two lines, with "More"), then a right-hand column with the ⋯ menu
  * (Copy link for every role) and, under it, the author's avatar (a filter).
+ * `tagsReadOnly` shows its tags as chips only (search's easy roles, as on
+ * the Planner); `trailing` (a todo link's Remove) sits at the row's end,
+ * above the open target; `data-*` props go on the row's `<li>`.
  */
 export function TimelineEntryRow({
   entry,
@@ -117,13 +127,17 @@ export function TimelineEntryRow({
   elsewhere,
   openTodos,
   tags,
-}: EntryViewProps) {
+  tagsReadOnly,
+  trailing,
+  ...data
+}: EntryViewProps & { tagsReadOnly?: boolean; trailing?: ReactNode } & DataHooks) {
   const otherZone = formatTimeInZone(entry.occurredAt, entry.timeZone);
   // Plain icon and author: easy mode, and away from the timeline.
   const plain = easy || elsewhere;
   const cancelled = cancelledLabel(entry);
   return (
     <li
+      {...data}
       className={`relative isolate flex items-start gap-2.5 px-3 py-2 ${removing ? "opacity-50" : ""}`}
       data-easy={easy ? "" : undefined}
       data-cancelled={cancelled ? "" : undefined}
@@ -136,7 +150,8 @@ export function TimelineEntryRow({
       >
         {elsewhere && (
           <span className="block" data-row-day="">
-            {rowDayLabel(entry.occurredAt, localTimeZone(), new Date())}
+            {/* An all-day entry's day is its own zone's date, not the device's. */}
+            {rowDayLabel(entry.occurredAt, entry.allDay ? entry.timeZone : localTimeZone(), new Date())}
           </span>
         )}
         {entry.allDay ? "All day" : formatTime(entry.occurredAt)}
@@ -160,7 +175,7 @@ export function TimelineEntryRow({
               </p>
             )}
             <OpenTodosMark count={openTodos} />
-            <RowTags entry={entry} tags={tags} className="mt-0.5" />
+            <RowTags entry={entry} tags={tags} readOnly={tagsReadOnly} className="mt-0.5" />
           </>
         }
       />
@@ -179,6 +194,11 @@ export function TimelineEntryRow({
           <AuthorFilterLink userId={entry.createdBy} name={authorName} image={authorImage} circle />
         )}
       </div>
+      {trailing && (
+        <div className="relative z-10 flex shrink-0 items-center gap-1 self-center" data-entry-trailing="">
+          {trailing}
+        </div>
+      )}
     </li>
   );
 }
@@ -187,22 +207,31 @@ export function TimelineEntryRow({
  * An entry's ⋯ menu on rows and cards, with Copy link for every role (its
  * page, or its day for a kind without one: `entryLinkPath`) and "Link copied"
  * under it. It sits above the row's stretched open target (`relative z-10`).
+ * `label` names it for screen readers (default "Actions for <kind> at <time>";
+ * the Planner's cards say "Actions for <title>"); `onPrepare` is the
+ * Planner's Prepare.
  */
 export function EntryMenu({
   entry,
+  label,
   onEdit,
   cancel,
+  onPrepare,
   onRemind,
   onDelete,
-}: Pick<EntryViewProps, "entry" | "onEdit" | "cancel" | "onRemind" | "onDelete">) {
+}: Pick<EntryViewProps, "entry" | "onEdit" | "cancel" | "onRemind" | "onDelete"> & {
+  label?: string;
+  onPrepare?: () => void;
+}) {
   const link = useCopyLink(entryLinkPath(entry, localTimeZone()));
   return (
     <div className="relative z-10 flex shrink-0" data-copy-link="">
       <EntryActions
         kind={entry.kind}
-        label={actionsLabel(entry)}
+        label={label ?? actionsLabel(entry)}
         onEdit={onEdit}
         cancel={cancel}
+        onPrepare={onPrepare}
         onRemind={onRemind}
         printHref={canHaveNoteDocument(entry.kind) ? appUrls.printEntry(entry.groupId, entry.id) : undefined}
         onCopyLink={link.copy}

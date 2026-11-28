@@ -10,6 +10,7 @@ apps/web/app/components/entry/           roundtrip
 # The timeline row and its parts (moved from the timeline, B-950): component
 # tests, as they were there.
 apps/web/app/components/entry/TimelineEntryRow.tsx -
+apps/web/app/components/entry/UpcomingEntryCard.tsx -
 apps/web/app/components/entry/useOpenTodoCounts.ts -
 apps/web/app/components/entry/OpenTodosMark.tsx -
 apps/web/app/components/entry/CopyLinkButton.tsx -

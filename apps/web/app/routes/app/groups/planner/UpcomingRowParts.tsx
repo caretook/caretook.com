@@ -1,6 +1,5 @@
 import type { ContactAction } from "~/lib/providers/contactActions";
 
-import { AuthorCircle, AuthorFilterLink } from "~/components/entry";
 import { ACTION_ICONS, actionLinkProps } from "~/components/providers";
 import { Button } from "~/components/ui";
 
@@ -30,25 +29,4 @@ export function UpcomingRowActions({ actions }: { actions: ContactAction[] }) {
       ))}
     </ul>
   );
-}
-
-/**
- * A Planner card's author avatar: a filter link, or for `readOnly` (the easy
- * roles) the plain avatar, so a tap on it opens the row.
- */
-export function UpcomingRowAuthor({
-  userId,
-  name,
-  image,
-  readOnly,
-}: {
-  userId: string;
-  name: string;
-  image: string | null;
-  readOnly: boolean;
-}) {
-  if (!readOnly) {
-    return <AuthorFilterLink userId={userId} name={name} image={image} circle />;
-  }
-  return <AuthorCircle userId={userId} name={name} image={image} label={name} title={name} />;
 }
