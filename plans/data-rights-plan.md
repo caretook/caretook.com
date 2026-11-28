@@ -4,7 +4,13 @@
 
 ## Status
 
-**Where it stands:** planned (2026-11-25), not started, **on hold** (two plan send-backs; the user chose the carve-out, a243). Lift with `pnpm backlog prd set data-rights flags-=hold`.
+### From the user
+
+- (none yet; started run-through by the dispatcher, 2026-11-28)
+
+**Landing mode:** run everything through (start every ready slice, land each green wave, ask only real questions via `risa ask`).
+
+**Where it stands:** hold lifted; wave 1 (slices 1 to 4) starting 2026-11-28. Hot-file check: `fixes-ui` idle, `tags`/`todo-subtasks` done, so no wave waits. Models: slices 1 to 4 on opus.
 
 | Slice | Wave | State       | Merge into `prd/data-rights` (slice commits) |
 | ----- | ---- | ----------- | -------------------------------------------- |
