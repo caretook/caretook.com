@@ -4,18 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State                  | Merge into `prd/connectors-5` (slice commits) |
-| ----- | ---- | ---------------------- | --------------------------------------------- |
-| 1     | 1    | running                |                                               |
-| 2     | 1    | handed off (b8c2c3f97) |                                               |
-| 3     | 2    | planned                |                                               |
-| 4     | 2    | planned                |                                               |
+| Slice | Wave | State   | Merge into `prd/connectors-5` (slice commits) |
+| ----- | ---- | ------- | --------------------------------------------- |
+| 1     | 1    | merged  | 29d34f5fb (512c7c211, 58b08840f)              |
+| 2     | 1    | merged  | 204b120de (b8c2c3f97)                         |
+| 3     | 2    | running |                                               |
+| 4     | 2    | running |                                               |
 
 **Landing mode:** run everything through (dispatcher start; land each green wave without asking; real questions via `risa ask`).
 
 **Backlog:** B-861 claimed 2026-11-27 (prd/connectors-5); `risa backlog done B-861` when the last slice merges. No other items for this topic.
 
-**Now (2026-11-27):** wave 1 started: slice 1 (opus) in `.loops/connectors-5-1`, slice 2 (opus: consent version and tests) in `.loops/connectors-5-2`. Added `Check:` fields to every slice (anchors warned). Slice 2 handed off b8c2c3f97 (reviewed; consent version 2026-11-27); merges after slice 1, in plan order. Wave 2 (slices 3, 4, opus) waits on slice 1's merge.
+**Now (2026-11-27):** wave 1 merged (slices 1, 2 on opus); its CI gate (`components`) is out. Wave 2 started: slices 3 and 4 (opus) in `.loops/connectors-5-3`, `-4`. Hold wave-2 merges until wave 1 lands. B-861 stays open until slice 4 merges. Slice 1 notes: use `tagsSuffix` for text lines; tool prose never says "pass" (B-695) except "pass nextCursor".
 
 ## Architectural decisions
 
