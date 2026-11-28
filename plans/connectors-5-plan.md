@@ -4,18 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State   | Merge into `prd/connectors-5` (slice commits) |
-| ----- | ---- | ------- | --------------------------------------------- |
-| 1     | 1    | running |                                               |
-| 2     | 1    | running |                                               |
-| 3     | 2    | planned |                                               |
-| 4     | 2    | planned |                                               |
+| Slice | Wave | State                  | Merge into `prd/connectors-5` (slice commits) |
+| ----- | ---- | ---------------------- | --------------------------------------------- |
+| 1     | 1    | running                |                                               |
+| 2     | 1    | handed off (b8c2c3f97) |                                               |
+| 3     | 2    | planned                |                                               |
+| 4     | 2    | planned                |                                               |
 
 **Landing mode:** run everything through (dispatcher start; land each green wave without asking; real questions via `risa ask`).
 
 **Backlog:** B-861 claimed 2026-11-27 (prd/connectors-5); `risa backlog done B-861` when the last slice merges. No other items for this topic.
 
-**Now (2026-11-27):** wave 1 started: slice 1 (opus) in `.loops/connectors-5-1`, slice 2 (opus: consent version and tests) in `.loops/connectors-5-2`. Added `Check:` fields to every slice (anchors warned). Wave 2 (slices 3, 4, opus) waits on slice 1's merge.
+**Now (2026-11-27):** wave 1 started: slice 1 (opus) in `.loops/connectors-5-1`, slice 2 (opus: consent version and tests) in `.loops/connectors-5-2`. Added `Check:` fields to every slice (anchors warned). Slice 2 handed off b8c2c3f97 (reviewed; consent version 2026-11-27); merges after slice 1, in plan order. Wave 2 (slices 3, 4, opus) waits on slice 1's merge.
 
 ## Architectural decisions
 
