@@ -187,8 +187,11 @@ describe("the Tags page", () => {
     expect(DIALOG()?.textContent).toContain("Merge “Urgent” into “Knee”?");
     expect(DIALOG()?.textContent).toContain("“Knee” goes on the 3 records tagged “Urgent”");
     await userEvent.click(confirm);
-    await device.settle();
+    // The merge reads (plain reads, which settle doesn't track) before its one write, so a settle
+    // right after the click can go quiet before the write lands. The dialog closes once the write
+    // is done: settle after that, so every live query (the list's and the note's chips) has rerun.
     await expect.poll(DIALOG).toBeNull();
+    await device.settle();
 
     await expect.poll(listed).toEqual(["Bills - 0 items", "Knee jade 3 items"]);
     // The note carried both: one Knee link. The symptom and the todo gain one; the deleted note's link goes.
@@ -198,7 +201,7 @@ describe("the Tags page", () => {
     expect(await linksTo("entry_id", SYMPTOM.id)).toEqual([{ tag_id: KNEE.id }]);
     expect(await linksTo("todo_id", CALL.id)).toEqual([{ tag_id: KNEE.id }]);
     expect(await device.query("SELECT id FROM tag WHERE id = ?", [URGENT.id])).toEqual([]);
-    expect(noteChips()).toEqual(["Knee"]);
+    await expect.poll(noteChips).toEqual(["Knee"]);
 
     // The picker no longer offers it.
     await userEvent.click(page.getByRole("button", { name: "Add tag" }));
