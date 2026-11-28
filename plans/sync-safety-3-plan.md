@@ -23,6 +23,8 @@
 
 - Codex clean on 743f385. Wave 1 docs folded: data-layer's `withTransaction` line (savepoint), sync _Device_ "one save, one transaction" (the full audit list stays here, too long for the 10 KB doc); both trimmed to stay at budget. Next: browser check result, push, re-review, `risa land sync-safety-3 --tier components`, then rotate (wave 2: slice 2, opus).
 
+- 11:40Z: blocked on Docker. The daemon is unresponsive machine-wide (`docker info` times out; test Postgres :5436 down), so `risa rm sync-safety-3-1` hung in `test-db.sh drop` and no browser check ever ran. Asked the backlog session (caretook-com-cb) who runs `risa recover`. Pushed f9313cb7e to PR #322; Codex re-review waiting. After Docker: rm slices 1 and 4, `risa serve --restart`, `risa browser --changed --base dev`, land.
+
 ## Durable decisions
 
 - **A write is a device transaction:** the op's `write` is PowerSync's transaction id; consecutive ops with the same one are applied together or not at all. An op with no `write` is its own write.
