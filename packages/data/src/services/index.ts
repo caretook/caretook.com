@@ -108,6 +108,8 @@ export { authKeysService };
 // Not in `services`: no model behind it (shared rate limits, hosting PRD).
 import * as rateLimitService from "./rateLimitService";
 export { rateLimitService };
+export type { RateLimiter, RateLimitStore } from "./rateLimiter";
+export { createRateLimiter, defaultStore, memoryStore, postgresStore } from "./rateLimiter";
 // Not in `services`: no model behind it (suppressed addresses, hosting PRD).
 import * as emailSuppressionService from "./emailSuppressionService";
 export { emailSuppressionService };

@@ -1,6 +1,6 @@
 import type { CareGroupMember, Tx } from "../../db";
 
-import { and, eq, exists, inArray, max, sql } from "drizzle-orm";
+import { and, eq, exists, inArray, max, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { GROUP_MANAGER_ROLES } from "../../constants";
 import { dbMayFail, txOrDb } from "../../db";
@@ -55,6 +55,39 @@ export const lockOwners = async (groupId: string, tx: Tx) => {
   );
   if (isError(res)) return res;
   return res.length;
+};
+
+/**
+ * Lock membership `id` and its group's owner rows `FOR UPDATE`, in id order
+ * (so two role changes in one group can't deadlock), before a service reads
+ * the target's role. Returns nothing: the service re-reads the target in the
+ * actor's scope once the locks are held, so it sees the committed role.
+ */
+export const lockForChange = async (id: string, tx: Tx) => {
+  const m = careGroupMemberSchema;
+  const target = alias(careGroupMemberSchema, "change_target");
+  const res = await dbMayFail(
+    () =>
+      tx
+        .select({ id: m.id })
+        .from(m)
+        .where(
+          or(
+            eq(m.id, id),
+            and(
+              eq(m.role, "owner"),
+              inArray(
+                m.groupId,
+                tx.select({ groupId: target.groupId }).from(target).where(eq(target.id, id)),
+              ),
+            ),
+          ),
+        )
+        .orderBy(m.id)
+        .for("update"),
+    "careGroupMemberModel:lockForChange",
+  );
+  return isError(res) ? res : null;
 };
 
 /**
