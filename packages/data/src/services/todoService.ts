@@ -204,19 +204,26 @@ const insertNext = async (tx: Tx, todo: Todo, today: string) => {
   return (await enqueueCalendarPush(tx, { todoId: id }, "todo")) ?? next.id;
 };
 
-/** The next live row of `todo`'s chain after its due day, if any (what ticking it made). */
+/**
+ * What ticking `todo` made (its successor): the live row of its chain, other
+ * than it, made at or after its `done_at`, the earliest first (then id),
+ * whatever its due day now, so one moved to the same day or earlier is still
+ * found (B-383). As the device's `laterInChain` in `reopenTodo`. Relies on
+ * `complete` clamping `done_at` to at most the transaction's now (`tickTime`),
+ * and on a restored next being made again (`todoModel.restore`).
+ */
 const laterInChain = async (tx: Tx, todo: Todo) => {
-  if (!todo.repeatId || !todo.dueOn) return null;
+  if (!todo.repeatId || !todo.doneAt) return null;
   const rows = await todoModel.list({
     ...system(tx),
     filter: {
       groupId: { type: "eq", value: todo.groupId },
       repeatId: { type: "eq", value: todo.repeatId },
       id: { type: "ne", value: todo.id },
-      dueOn: { type: "gt", value: todo.dueOn },
+      createdAt: { type: "gte", value: todo.doneAt },
     },
     orderBy: [
-      { field: "dueOn", direction: "asc" },
+      { field: "createdAt", direction: "asc" },
       { field: "id", direction: "asc" },
     ],
     paginate: { limit: 1, page: 1 },
@@ -416,11 +423,26 @@ export const rollUp = async (tx: Tx, parentId: string | null, actorId: string, a
 
 const actorIdOf = (ctx: ServiceContext) => ctx.authUser?.id ?? SYSTEM_USER.id;
 
-/** When a tick happened: a device's time (offline), else now, and never in the future. */
-const tickTime = (doneAt?: string | null) => {
-  const at = doneAt && Number.isFinite(new Date(doneAt).getTime()) ? new Date(doneAt) : new Date();
+/** When a tick happened: a device's time (offline), else `now`, and never after `now`. */
+const tickTime = (doneAt?: string | null, now: Date = new Date()) => {
+  const at = doneAt && Number.isFinite(new Date(doneAt).getTime()) ? new Date(doneAt) : now;
   // A device clock ahead of the server's.
-  return at.getTime() > Date.now() ? new Date() : at;
+  return at.getTime() > now.getTime() ? now : at;
+};
+
+/**
+ * Lock the todo (`todoModel.lockById`) and return the locked row when the
+ * actor can see it, else null; a deleted one only with `includeDeleted`.
+ * The tick, reopen, skip, Undo and restore take it first and decide from
+ * it, so two at once on one todo run one after the other (B-384).
+ */
+const lockVisible = async (ctx: ServiceContext, tx: Tx, id: string, opts: IncludeDeleted = {}) => {
+  const locked = await todoModel.lockById(id, tx);
+  if (isError(locked) || !locked) return locked;
+  const visible = await todoModel.getById(id, { ...ctx, tx, includeDeleted: true });
+  if (isError(visible)) return visible;
+  if (!visible || (locked.deletedAt && !opts.includeDeleted)) return null;
+  return locked;
 };
 
 /**
@@ -638,7 +660,7 @@ export const update = (ctx: ServiceContext, id: string, input: TodoUpdateInput) 
  */
 export const complete = (ctx: ServiceContext, id: string, { doneAt }: { doneAt?: string | null } = {}) =>
   withTransaction(async (tx) => {
-    const existing = await todoModel.getById(id, { ...ctx, tx });
+    const existing = await lockVisible(ctx, tx, id);
     if (isError(existing)) return existing;
     if (!existing) return notFound();
 
@@ -652,7 +674,13 @@ export const complete = (ctx: ServiceContext, id: string, { doneAt }: { doneAt?:
     if (isError(open)) return open;
     if (open) return openSubtasks();
 
-    const when = tickTime(doneAt);
+    const now = await todoModel.transactionNow(tx);
+    if (isError(now)) return now;
+    // Never after the transaction's now, which the next occurrence's
+    // `created_at` is: `reopen` finds the successor as the row made at or
+    // after `done_at` (`laterInChain`), so this clamp keeps that true. (On
+    // the device, both times come from its clock.)
+    const when = tickTime(doneAt, now);
     const done = await write(ctx, tx, id, { doneAt: when.toISOString(), doneBy: actorIdOf(ctx) });
     if (isError(done)) return done;
     if (existing.parentId) {
@@ -672,7 +700,7 @@ export const complete = (ctx: ServiceContext, id: string, { doneAt }: { doneAt?:
 /** Reopen a done todo: clears who finished it and when. The same people as `complete`. */
 export const reopen = (ctx: ServiceContext, id: string) =>
   withTransaction(async (tx) => {
-    const existing = await todoModel.getById(id, { ...ctx, tx });
+    const existing = await lockVisible(ctx, tx, id);
     if (isError(existing)) return existing;
     if (!existing) return notFound();
 
@@ -742,7 +770,7 @@ const openBeforeInChain = async (tx: Tx, next: Todo) => {
  */
 export const removeUndoneNext = (ctx: ServiceContext, id: string) =>
   withTransaction(async (tx) => {
-    const next = await todoModel.getById(id, { ...ctx, tx, includeDeleted: true });
+    const next = await lockVisible(ctx, tx, id, { includeDeleted: true });
     if (isError(next)) return next;
     if (!next) return notFound();
 
@@ -777,7 +805,7 @@ export const removeUndoneNext = (ctx: ServiceContext, id: string) =>
  */
 export const skip = (ctx: ServiceContext, id: string) =>
   withTransaction(async (tx) => {
-    const existing = await todoModel.getById(id, { ...ctx, tx });
+    const existing = await lockVisible(ctx, tx, id);
     if (isError(existing)) return existing;
     if (!existing) return notFound();
 
@@ -807,7 +835,7 @@ export const skip = (ctx: ServiceContext, id: string) =>
  */
 export const restoreOccurrence = (ctx: ServiceContext, id: string) =>
   withTransaction(async (tx) => {
-    const visible = await todoModel.getById(id, { ...ctx, tx, includeDeleted: true });
+    const visible = await lockVisible(ctx, tx, id, { includeDeleted: true });
     if (isError(visible)) return visible;
     if (!visible) return notFound();
     if (!visible.deletedAt || !visible.repeatId || visible.repeatId === id) return visible;
