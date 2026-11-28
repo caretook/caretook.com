@@ -4,6 +4,14 @@ PRD: [test-time-gates-2-prd.md](test-time-gates-2-prd.md). Items B-859, B-837, B
 
 ## Status
 
+**From the user:** none yet in this topic.
+
+**Landing mode:** run everything through (started run-through by the dispatcher, 2026-11-28).
+
+**Plan fix (2026-11-28):** the plan predates the Risa move; `ci`, `recover`, `rotate`, `dispatch`, `time-gate` and `tier-data` tests now live in ~/git/risa. Slice 1 drops `ci.test.mjs`. Slices 2 and 3's anchors wait on the backlog session's advice (asked 2026-11-28): the quiet rule is a Risa change (loops/time-gate.mjs still needs a quiet start and end).
+
+**Models:** slice 1 opus.
+
 | Slice                                        | Wave | State   | Merge |
 | -------------------------------------------- | ---- | ------- | ----- |
 | 1. Four component shards                     | 1    | planned | —     |
@@ -36,7 +44,7 @@ User stories 1.
 
 **Acceptance criteria:**
 
-- `tiers.test.mjs`, `ci.test.mjs` and the workflows' test pass with four component jobs: a `components` tier plans all four, and a narrowed one only the first.
+- `tiers.test.mjs` and the workflows' test pass with four component jobs: a `components` tier plans all four, and a narrowed one only the first.
 - `verdict.test.mjs` and `browser-job.test.mjs` pass with fixtures naming `components-1` to `-4`.
 - `shards.test.mjs`: a four-shard split from a durations table differs by at most the largest file, and the same input gives the same shards.
 - One requested `components` run from the branch: every shard's test-step seconds and its run id in _Status_ (slice 3 refreshes from it), and the component test count across the four shards equals the three-shard count from test-time-gates' last `full` run (both numbers in the hand-off).
