@@ -1,8 +1,10 @@
-import { eq } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { eq, sql } from "drizzle-orm";
+import { describe, expect, it, vi } from "vitest";
+import type { Tx } from "../db";
+
 import { createWorld, ok } from "../../test/fixtures";
 import { SYSTEM_USER } from "../constants";
-import { getDb } from "../db";
+import { getDb, withTransaction } from "../db";
 import {
   careGroupSchema,
   careRecipientSchema,
@@ -310,5 +312,90 @@ describe("writing a deleted symptom's name", () => {
     await tombstone(groupId);
     const row = ok(await symptomTypeService.ensure(u.owner.ctx, groupId, "Nauseous"));
     expect(row).toMatchObject({ id: symptomTypeId(groupId, "Nausea"), name: "Nausea", replacedById: null });
+  });
+});
+
+describe("a symptom write racing a replace (B-992)", () => {
+  /** Sessions in this test database waiting on a lock (an advisory lock, or a row another transaction holds). */
+  const lockWaiters = async () => {
+    const res = await getDb().execute<{ n: number }>(
+      sql`SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'`,
+    );
+    return res.rows[0]?.n ?? 0;
+  };
+
+  /**
+   * The interleaving: `replace` runs in a transaction held open; `write`
+   * starts then, so its reads see the catalog and entries from before the
+   * replace (it hasn't committed); once `write` waits on a lock in this
+   * database, the replace commits and the write finishes after it.
+   */
+  const racingReplace = async <T>(replace: (tx: Tx) => Promise<unknown>, write: () => Promise<T>) => {
+    let release = () => {};
+    const held = new Promise<void>((resolve) => (release = resolve));
+    let ran = () => {};
+    const replaced = new Promise<void>((resolve) => (ran = resolve));
+    const committed = withTransaction(async (tx) => {
+      const res = await replace(tx);
+      ran();
+      if (!isError(res)) await held;
+      return res;
+    });
+    try {
+      await replaced;
+      const written = write();
+      await vi.waitFor(async () => expect(await lockWaiters()).toBeGreaterThan(0), {
+        timeout: 10_000,
+        interval: 10,
+      });
+      release();
+      return { replaced: await committed, written: await written };
+    } finally {
+      release();
+    }
+  };
+
+  it("lands an edit read before a replace and committed after it on the replacement", async () => {
+    const { u, groupId } = await createWorld({ members: ["caretaker"] });
+    const entry = ok(await timelineEntryService.create(u.caretaker.ctx, symptom(groupId, "Nauseous")))!;
+    const nauseous = symptomTypeId(groupId, "Nauseous");
+    const nausea = symptomTypeId(groupId, "Nausea");
+    expect(entry.symptomTypeId).toBe(nauseous);
+
+    const { replaced, written } = await racingReplace(
+      (tx) =>
+        symptomTypeService.replace({ ...u.owner.ctx, tx }, { groupId, id: nauseous, replacementId: nausea }),
+      () =>
+        timelineEntryService.update(u.caretaker.ctx, entry.id, {
+          details: { name: "Nauseous", severity: 5 },
+        }),
+    );
+    expect(ok(replaced)).toEqual({ moved: 1 });
+    ok(written);
+    const after = await rowOf(entry.id);
+    expect(after.symptomTypeId).toBe(nausea);
+    expect(after.details).toMatchObject({ name: "Nausea", severity: 5 });
+  });
+
+  it("lands a create naming an older tombstone on the replacement of the row a replace retires", async () => {
+    const { u, groupId } = await createWorld({ members: ["caretaker"] });
+    // Queasy (A) was deleted into Nauseous (B); B is now deleted into Nausea (C).
+    ok(await symptomTypeService.ensure(u.owner.ctx, groupId, "Nauseous"));
+    await tombstone(groupId, "Queasy", "Nauseous");
+    const nausea = symptomTypeId(groupId, "Nausea");
+
+    const { replaced, written } = await racingReplace(
+      (tx) =>
+        symptomTypeService.replace(
+          { ...u.owner.ctx, tx },
+          { groupId, id: symptomTypeId(groupId, "Nauseous"), replacementId: nausea },
+        ),
+      () => timelineEntryService.create(u.caretaker.ctx, symptom(groupId, "Queasy")),
+    );
+    ok(replaced);
+    const created = ok(written)!;
+    const after = await rowOf(created.id);
+    expect(after.symptomTypeId).toBe(nausea);
+    expect(after.details).toMatchObject({ name: "Nausea", severity: 3 });
   });
 });

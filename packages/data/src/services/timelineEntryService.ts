@@ -48,7 +48,11 @@ import {
 import { isSystemUser, rejectError } from "../permissions";
 import { asCreated, unchanged } from "./upserted";
 import { enqueue as enqueueCalendarPush } from "./calendarSyncService";
-import { ensure as ensureSymptomType } from "./symptomTypeService";
+import {
+  ensure as ensureSymptomType,
+  getById as getSymptomType,
+  lockCatalog as lockSymptomCatalog,
+} from "./symptomTypeService";
 import { releaseEvent } from "./todoService";
 export const serviceName = "timelineEntry";
 export const schemaName = timelineEntryModel.schemaName;
@@ -130,9 +134,12 @@ const checkDoseMedication = async (
  * (as the actor, a logger) when the group has none. A deleted name (a
  * tombstone) resolves to its replacement (symptom-catalog-3): its id, and
  * its name for `details.name`; otherwise the name stays as written. `current`
- * is the stored pointer: when it's already the derived one, nothing is read
- * or added (a delete moves every entry off a tombstone, so it's never one).
- * Null for every other kind, and then `details` is as given.
+ * is the stored pointer: when it's already the derived one and that row isn't
+ * a tombstone, it's kept and nothing is added. Holds the group's catalog lock
+ * shared first (B-992), so a write read before a `replace` and landing after
+ * it sees the tombstone the replace made and follows it, rather than putting
+ * the old name and pointer back. Null for every other kind, which takes no
+ * lock, and then `details` is as given.
  */
 const symptomTypeFor = async (
   ctx: ServiceContext,
@@ -143,11 +150,23 @@ const symptomTypeFor = async (
   current?: string | null,
 ) => {
   if (kind !== "symptom" || !isSymptomDetails(details)) return { id: null, details };
+  const locked = await lockSymptomCatalog(tx, groupId, "shared");
+  if (isError(locked)) return locked;
   const derived = symptomTypeId(groupId, details.name);
-  if (current && current === derived) return { id: current, details };
-  const row = await ensureSymptomType({ ...ctx, tx }, groupId, details.name);
+  if (current && current === derived) {
+    const stored = await getSymptomType({ ...ctx, tx }, current);
+    if (isError(stored)) return stored;
+    if (stored && !stored.replacedById) return { id: current, details };
+  }
+  let row = await ensureSymptomType({ ...ctx, tx }, groupId, details.name);
   if (isError(row)) return row;
   if (!row) return rejectError(ctx.authUser);
+  // Never a tombstone under the lock (a replace repoints older ones); followed if it is.
+  if (row.replacedById) {
+    const next = await getSymptomType({ ...ctx, tx }, row.replacedById);
+    if (isError(next)) return next;
+    if (next) row = next;
+  }
   return { id: row.id, details: row.id === derived ? details : { ...details, name: row.name } };
 };
 
