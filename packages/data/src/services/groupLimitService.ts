@@ -9,27 +9,41 @@ import { getSetting } from "./appSettingService";
 
 // The free plan's cap on starting care groups (free-limits PRD). One rule,
 // one place: this service owns the count, the limit and the refusal, and
-// `careGroupService.create` only calls `refusal`. What counts is a group the
+// `careGroupService.create` only calls `defaultLimit` and `refusal`. What counts is a group the
 // user started (`created_by`) and still owns; groups they were invited to,
 // made owner of, or that staff or an access code started (the system or
 // staff as creator) don't.
 
 /**
- * `groupLimitService:atLimit` when `userId` has started as many groups as
- * they may (`limits.groupsStarted`), else null. Inside the caller's
- * transaction: the user's row is locked `FOR UPDATE` first, so two creates
- * at once queue up and can't both take the last slot.
+ * The setting's cap (`limits.groupsStarted`), for `refusal`. Read before the
+ * caller's transaction opens (B-1036): a cold settings cache reads through
+ * its own pool connection, which mustn't wait while the user's row is locked.
  */
-export const refusal = async (tx: Tx, userId: string) => {
+export const defaultLimit = () => getSetting("limits.groupsStarted");
+
+/**
+ * `groupLimitService:atLimit` when `userId` has started as many groups as
+ * they may, else null. Their limit is their own `group_limit` when set, else
+ * `fallback` (the setting, from `defaultLimit`, read before the transaction).
+ * Inside the caller's transaction, and only on it: the user's row is locked
+ * `FOR UPDATE` first, so two creates at once queue up and can't both take the
+ * last slot.
+ */
+export const refusal = async (tx: Tx, userId: string, fallback: number) => {
   const locked = await dbMayFail(
-    () => tx.select({ id: userSchema.id }).from(userSchema).where(eq(userSchema.id, userId)).for("update"),
+    () =>
+      tx
+        .select({ groupLimit: userSchema.groupLimit })
+        .from(userSchema)
+        .where(eq(userSchema.id, userId))
+        .for("update"),
     "db:transaction",
   );
   if (isError(locked)) return locked;
 
   const started = await startedCount(tx, userId);
   if (isError(started)) return started;
-  const limit = await getSetting("limits.groupsStarted");
+  const limit = locked[0]?.groupLimit ?? fallback;
   return started >= limit ? newError({ code: "groupLimitService:atLimit" }) : null;
 };
 
