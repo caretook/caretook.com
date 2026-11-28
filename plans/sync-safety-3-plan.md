@@ -4,13 +4,17 @@
 
 ## Status
 
-| Slice | Wave | State   | Merge into `prd/sync-safety-3` (slice commits) |
-| ----- | ---- | ------- | ---------------------------------------------- |
-| 1     | 1    | planned |                                                |
-| 2     | 2    | planned |                                                |
-| 3     | 3    | planned |                                                |
-| 4     | 1    | planned |                                                |
-| 5     | 4    | planned |                                                |
+| Slice | Wave | State          | Merge into `prd/sync-safety-3` (slice commits) |
+| ----- | ---- | -------------- | ---------------------------------------------- |
+| 1     | 1    | running (opus) |                                                |
+| 2     | 2    | planned        |                                                |
+| 3     | 3    | planned        |                                                |
+| 4     | 1    | running (opus) |                                                |
+| 5     | 4    | planned        |                                                |
+
+**Landing mode: run everything through** (dispatcher start, 2026-11-28): start every ready slice, land each green wave, ask only real questions.
+
+- 2026-11-28: wave 1 started. B-294 claimed. Worktrees `sync-safety-3-1` and `sync-safety-3-4` made from prd at the plan's anchor fix; one opus agent each. Start conditions clear (onboarding-2 and code-health-2 not running).
 
 ## Durable decisions
 
@@ -100,7 +104,7 @@ Stack: no · Reads: docs/domain/sync.md, docs/domain/appointments.md · Tests: c
 
 Covers B-294 (the device's half of what a write is). US 1.
 
-**What to build.** As the PRD's _The write audit_: go through the device's `lib/<area>/*.sync.ts` saves that write more than one row and list each, with whether it already writes in one `db.drizzle.transaction`. Wrap the ones that don't. Add the write limit (1000) as a client-safe constant in a new `domain/sync/` part (`packages/data/src/domain/sync/`, exported from the domain index and `DOMAIN_EXPORTS`). The list goes in the hand-off and, at landing, the sync doc. If more than about six files need wrapping, wrap the riskiest (those that touch two tables) and file the rest as one fixes-bug item.
+**What to build.** As the PRD's _The write audit_: go through the device's `lib/<area>/*.sync.ts` saves that write more than one row and list each, with whether it already writes in one `db.drizzle.transaction`. Wrap the ones that don't. Add the write limit (1000) as a client-safe constant in a new `domain/sync/` part (`packages/data/src/domain/sync/` (new), exported from the domain index and `DOMAIN_EXPORTS`). The list goes in the hand-off and, at landing, the sync doc. If more than about six files need wrapping, wrap the riskiest (those that touch two tables) and file the rest as one fixes-bug item.
 
 **Acceptance criteria**
 
