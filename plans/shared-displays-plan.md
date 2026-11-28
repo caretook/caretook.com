@@ -12,10 +12,10 @@
 | 4     | 3    | planned         |                                                  |
 | 5     | 3    | planned         |                                                  |
 | 6     | 4    | planned         |                                                  |
-| 7     | 1    | running (opus)  |                                                  |
+| 7     | 1    | merged (opus)   | efcf7177b (c67da6147)                            |
 
 - **Landing mode: run everything through** (dispatcher start, 2026-11-28): start every ready slice, land each green wave, ask only real questions via `risa ask`.
-- **Wave 1** started 2026-11-28: worktrees `.loops/shared-displays-1` and `-7`, agents spawned; `risa watch` running. Slice 1 merged; slice 2 started early (blocked only by 1; no overlap with 7). Slice 1's search component tests weren't in its quick check: the wave's CI run is their gate. B-961 claimed. Backlog at start: nothing new for this topic (B-1004, a `linkToBox` flake, is `fixes-tooling`).
+- **Wave 1** started 2026-11-28: worktrees `.loops/shared-displays-1` and `-7`, agents spawned; `risa watch` running. Slice 1 merged; slice 2 started early (blocked only by 1; no overlap with 7). Slice 7 merged. Wave 1's CI run (components) requested on efcf7177b+. Slice 7 notes: Planner row menus gain Copy link; `TodoRow.tsx:139` comment still says `UpcomingRow` (slice 5 to fix); components doc: `UpcomingEntryCard` is the Planner look. B-961 claimed. Backlog at start: nothing new for this topic (B-1004, a `linkToBox` flake, is `fixes-tooling`).
 
 ## Architectural decisions
 
