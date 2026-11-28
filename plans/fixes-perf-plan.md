@@ -12,10 +12,14 @@ Small performance fixes: speed and load. There is no PRD: this plan is the whole
 
 **Wave 1** landed acc69573 (PR #253, 2026-11-27, `--no-review`: Codex out of credits; report a309).
 
-**Wave 2 landed 82a12072** (PR #254, 2026-11-27, `--no-review`: Codex out of credits; full CI green, run 46005700354; changed browser checks 10/11, layout-offline predates the wave: B-967). Slices 8-12 (B-956, B-958, B-959, B-960, B-963), all Opus, merged; worktrees removed. **Topic closed on the user's word** (`pnpm prd rm fixes-perf`). Next run: B-965 (group the small helper chunks), B-966 (the icons chunk on marketing and sign-in); measure behind a link shaper (CDP throttling skips SharedWorker requests).
+**Wave 2 landed 82a12072** (PR #254, 2026-11-27, `--no-review`: Codex out of credits; full CI green, run 46005700354; changed browser checks 10/11, layout-offline predates the wave: B-967). Slices 8-12 (B-956, B-958, B-959, B-960, B-963), all Opus, merged; worktrees removed.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+**Wave 3** (2026-11-27, reopened run-through by the dispatcher): slice 13 (B-966, public pages without the app icons chunk) then slice 14 (B-965, group the tiny helper chunks); both edit `apps/web/vite.config.ts`, so in turn. Models: both Opus.
+
+| Slice | Item  | State               | Merge |
+| ----- | ----- | ------------------- | ----- |
+| 13    | B-966 | starting (Opus)     |       |
+| 14    | B-965 | waits for 13 (Opus) |       |
 
 ## Wave 1
 
@@ -210,3 +214,39 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/appointments.md, docs/doma
 - [ ] `pnpm prd check --quick "slice hand-off"` passes.
 
 **Blocks:** none. **Blocked by:** none.
+
+## Wave 3
+
+As before: each item's notes (`pnpm backlog show B-<n>`) carry the findings from slice 11 (B-960); **first measure** (the slice-11 bench: chunk counts and bytes, `pnpm build:budget`, HTTP/1.1 and a throttled profile behind a link shaper, since CDP throttling skips SharedWorker requests). If it doesn't pay, say so with the numbers and change no app code. Behaviour never changes. Both slices edit `apps/web/vite.config.ts`, so they run in turn.
+
+### Slice 13: public pages don't load the app's icons chunk (B-966)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/marketing.md, docs/domain/app-shell.md · Tests: unit
+
+**Problem.** Slice 11's `icons` codeSplitting group (`apps/web/vite.config.ts`) puts every `lucide-react` icon in one chunk (40 KB raw, 13.2 KB gz). Sign-in and the marketing pages, which use one or two icons, now fetch all of it: ~10.5 KB gz more on sign-in, ~5 KB on home, FAQ, about and features. Every KB there counts for Lighthouse and SEO.
+
+**Build.** Keep the icons group to what `/app` routes reach (for example a group test scoped to modules imported from `app/routes/app/`, or a second small group for the public pages' icons), so a public page fetches only the icons it uses; the `/app` load keeps its one icons chunk. Both build targets. Scope the budget's `together: [lucide-react]` rule (`scripts/build/budget.json`) to the app group if it needs it, and record the new shape only.
+
+**Acceptance criteria.**
+
+- [ ] The hand-off has, before and after: JS bytes (gz) and chunk count on `/`, `/sign-in` and the first `/app` timeline load, the `pnpm build:budget` output, and a Lighthouse performance score on `/` and `/sign-in`.
+- [ ] Unit test (beside the build config or the budget script): no public route's chunks include the app icons chunk; `/app` icons still land in one shared chunk.
+- [ ] `pnpm prd check --quick "slice hand-off"` passes.
+
+**Blocks:** slice 14. **Blocked by:** none.
+
+### Slice 14: the tiny shared app helper chunks are grouped (B-965)
+
+Stack: yes · Reads: plans/fixes-rules.md, docs/domain/app-shell.md · Tests: unit
+
+**Problem.** After the icons group, the first `/app` load still fetches ~74 shared app chunks under 2 KB (`lib/`, `components/`, `packages/data` schema helpers) plus ~22 tiny React Router route-chunk stubs. A plain codeSplitting group over app code fails: a group takes its modules' dependencies, so an entries-aware group dragged rrule and yjs into the `/app` shell (entry 209 KB gz); `includeDependenciesRecursively: false` needs `preserveEntrySignatures` `allow-extension` or `false`, which React Router's client build overrides to `exports-only` (INVALID_OPTION).
+
+**Build.** Measure first. Then try, in this order: a small Vite plugin hook that sets `preserveEntrySignatures` for the client build (check React Router's route exports still hold, with `strictExecutionOrder`) so a group over small app helpers can skip dependencies; else Rolldown's `experimentalInlineCommonChunks`. Keep route chunks lazy and heavy libraries (rrule, yjs, Tiptap, PowerSync) out of the entry. No new dependency. Within a config change, a plugin hook and a test; if it needs more, or neither pays (fewer chunks without a bigger entry, and a faster throttled HTTP/1.1 load), change no app code and file what you found with `pnpm backlog note B-965 …`.
+
+**Acceptance criteria.**
+
+- [ ] The hand-off has before and after chunk counts, bytes and the throttled HTTP/1.1 time to the first timeline row, and `pnpm build:budget` output.
+- [ ] Unit test: the small helpers land in the group, no route's own chunk is merged into the entry, and rrule and yjs stay out of the entry.
+- [ ] `pnpm prd check --quick "slice hand-off"` passes.
+
+**Blocks:** none. **Blocked by:** slice 13.
