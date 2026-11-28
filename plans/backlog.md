@@ -302,6 +302,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1065 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/todayCard.browser.test.tsx: the Today card's rows every row but vital… |
 | B-1066 | bug | triaged | data-rights-2 |  | Deleting a care group leaves a pending joinDeclined email unskipped: its key is joinDeclined:<requestId>:<userId> and it links only to /app, so skipGroupMail misses it |
 | B-1067 | chore | triaged | fixes-nit |  | careGroupService.remove and the Details route compare group roles as strings ('owner'), against care-groups' rule to use isOwnerRole; also the connectors check at careGroupService.ts:102 |
+| B-1068 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineTagEdit.browser.test.tsx: deleting a tag an owner deletes a tag after a dialog naming its records |
 
 ## Items
 
@@ -1866,3 +1867,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (prd/data-rights): Seen at data-rights wave 3's dev sync: dev added GROUP_ROLE_CAPABILITIES and isOwnerRole; slice 6's ownerOnly check and the Delete card's owner gate use === 'owner', like the older lines beside them.
+
+### B-1068 · bug · CI flake: apps/web/app/routes/app/groups/timeline/timelineTagEdit.browser.test.tsx: deleting a tag an owner deletes a tag after a dialog naming its records
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-28 (prd/code-health-4): Flaked in components-4 on prd/code-health-4 run 46187226019 (049e799a); the branch didn't touch it; passed on the recheck run 46187839305.
