@@ -4,24 +4,26 @@
 
 ## Status
 
-| Slice | Wave | State          | Merge into `prd/onboarding-2` (slice commits) |
-| ----- | ---- | -------------- | --------------------------------------------- |
-| 1     | 1    | landed (opus)  | e6594062c (7844ff2e0)                         |
-| 2     | 2    | landed (opus)  | ab0722574 (f26ce5101)                         |
-| 3     | 3    | started (opus) |                                               |
-| 4     | 3    | merged (opus)  | 744b58204 (748f3b4c8)                         |
-| 5     | 4    | planned        |                                               |
-| 6     | 5    | planned        |                                               |
+| Slice | Wave | State         | Merge into `prd/onboarding-2` (slice commits)   |
+| ----- | ---- | ------------- | ----------------------------------------------- |
+| 1     | 1    | landed (opus) | e6594062c (7844ff2e0)                           |
+| 2     | 2    | landed (opus) | ab0722574 (f26ce5101)                           |
+| 3     | 3    | landed (opus) | 52d9b39e1 (51bcd45a6)                           |
+| 4     | 3    | landed (opus) | 744b58204, fix 4e8ee1a20 (748f3b4c8, 807e5b1ef) |
+| 5     | 4    | planned       |                                                 |
+| 6     | 5    | planned       |                                                 |
 
 **Landing mode:** run everything through (dispatcher run-through start): start every ready slice, land each green wave, ask only real questions via `risa ask`.
 
-**Wave 2 landed (2026-11-28)** in dev through PR #312 (tier components green, run 46112831998; Codex clean on 9bb46b9; landed unsynced over 1 dev commit sharing no file; dev now e88177c). Slice 2 on opus, merged ab0722574; worktree removed. Report filed (a376). Docs: setup pages in docs/domain/app-shell.md, the moved provider files in docs/layout.md.
+**Wave 3 landed (2026-11-28)** in dev through PR #314 as 5cc9811 (tier components: run 46116285448 green, then 46117505937 on the fix a flake (search perf test, brake list); Codex clean on 1154928 after one fix round; landed unsynced over 2 dev commits sharing no file). Slice worktrees removed. Report filed. Docs: setup + nudges in app-shell.md (trimmed to its 10 KB budget), ui-kit toast `secondAction`, new component folders in layout.md. shared-displays (now session shared-displays-9c) told about the `components/medications/index.ts` exports.
 
-**Overlap with shared-displays (settled):** slice 2 moved ProviderForm, ProviderListItem, ProviderRowContact to `components/providers/` (providerFormData to `lib/providers/`); `components/providers/` is now an onboarding-2 hot file. Backlog session advised keeping it; shared-displays (session shared-displays-6b) was told it landed and builds its ProviderCard (its slice 4) on the moved files. **Promise: onboarding-2 edits none of those three files again.** If slice 3 moves `MedicationForm` into `components/medications/` (its index.ts is a shared-displays hot file), tell shared-displays-6b before landing.
+**Codex follow-ups filed (prd=onboarding-2, triaged):** B-1008 (a setup nudge toast outlives its group or a setup page opening; Open goes to the old group) and B-1009 (Back from a medication opened on the setup medications step goes to the Medications list: add the setup route to `lib/medications/medicationOrigin.ts`). Either can ride with slice 5 or 6 if small, else a fixes slice.
 
-**Wave 3 started (2026-11-28):** dev sync was a no-op; worktrees onboarding-2-3 and onboarding-2-4 made, one opus agent each spawned with the orchestrator notes below. B-1007 claimed by slice/onboarding-2/3. Both merged; B-1007 done. Wave gate green (components, run 46116285448, 6acfc6c4); sync needed no merge. PR #314 open; Codex round 1: 3 P2s. Storage-failure nudge loop (r4725853679) fixed on slice 4 (807e5b1ef), merged 4e8ee1a20; B-1008 (nudge toast outlives its group) and B-1009 (setup medication Back) filed, replied, resolved. Codex clean on d5bf77e; components on d5bf77e: flake (search perf test, brake list). Docs folded (setup + nudges in app-shell, trimmed to budget; ui-kit `secondAction`; layout folders). Landing. Slice 3 touched 55 files (moved med/period/profile form pieces into `components/{medications,care-periods,profiles}/` and `lib/`), and added a `MedicationForm` export to `components/medications/index.ts` (shared-displays hot): shared-displays told. The moved forms' existing component tests run first in this CI tier. At landing fold in: layout.md + medications/care-periods/profiles/components docs (new folders); ui-kit toast `secondAction`, app-shell nudges (entry's Open goes to the new-note page `appUrls.newEntry(g, "note")`, not the PRD's nonexistent `timeline/new/note`). Wave 3 notes: For slice 3: `MedicationForm` lives in the medications route folder and must move to a shared folder the way ProviderForm did; add each step as a static child in `setup/routes.ts` and append it to `SETUP_PAGES` (`setup/layout/setupPages.ts`; `SETUP_STEP_META` already has headings). Also give slice 3 **B-1007** (setup providers rows show no tags: pass live tags as DirectoryResults does, in `setup/providers/route.tsx` only) and claim it. For slice 4: the setup pages render inside the group layout (the tab bar shows). For slice 5 later: `readSetupFacts` + `setupRedirectStep` + `settingsKnown`. Planning note: slice 2 touched 24 files (over 12).
+**Next: wave 4 = slice 5** (stack: yes, opus). Sync dev first. Builds on `readSetupFacts` + `setupRedirectStep` + `settingsKnown` (`lib/app-shell/groupSetup.ts`). The setup pages render inside the group layout. `useSetupNudges` shows nothing on a setup page. Entry nudge's Open goes to `appUrls.newEntry(g, "note")` (the PRD's `timeline/new/note` doesn't exist). Then wave 5 = slice 6 (check `fixes-ui`'s wave isn't on `routes/app/groups/timeline/` first).
 
-**Backlog:** `done` B-670 when slice 6 merges (B-670 replaces the setup card, which is slice 6's work).
+**Overlap with shared-displays:** onboarding-2 edits none of `components/providers/ProviderForm`, `ProviderListItem`, `ProviderRowContact` again (a promise). Planning note: slice 2 touched 24 files and slice 3 55 (it moved the medication, period and profile form pieces into `components/` and `lib/` so no route imports another's folder).
+
+**Backlog:** `done` B-670 when slice 6 merges (B-670 replaces the setup card, which is slice 6's work). B-1007 landed.
 
 ## Architectural decisions
 
