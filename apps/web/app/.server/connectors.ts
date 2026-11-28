@@ -13,6 +13,7 @@ import {
 } from "@caretook/api";
 import {
   allowedOrigins,
+  clientIpOf,
   connectorAuthServerMetadata,
   getAuthConfig,
   getAuthUser,
@@ -53,7 +54,7 @@ export const handleMcpRequest = (request: Request) => {
     validate: validateConnectorToken(),
     allowedOrigins: [origin(), ...allowedOrigins()],
   });
-  return mcp(request);
+  return mcp(request, { clientIp: clientIpOf(request.headers) });
 };
 
 // ---------------------------------------------------------------------------

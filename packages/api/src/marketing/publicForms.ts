@@ -7,6 +7,7 @@ import {
   waitlistJoinZSchema,
   waitlistService,
 } from "@caretook/data";
+import { clientIpKey } from "@caretook/auth";
 import { deliverSoon, getSupportEmail, notify } from "@caretook/notifications";
 import { ORPCError } from "@orpc/server";
 import { unwrap } from "../errors";
@@ -17,7 +18,8 @@ import { createRateLimiter, defaultStore } from "../rateLimit";
 // Each answers a person and a bot alike: `{ ok: true }`, whether the entry
 // was stored, updated, or dropped by a spam rule (the honeypot or the
 // minimum time on the page; see publicForms.ts in @caretook/data). Past the
-// per-IP rate limit a caller gets a 429. In production the counts are shared
+// per-IP rate limit (`clientIpKey`) a caller gets a 429; in production a
+// call without a client IP is a 400 (logged). In production the counts are shared
 // by every instance (rateLimit.ts's `postgresStore`): the table holds the
 // IP address for the window only, and the outbox cron purges it.
 
@@ -47,8 +49,10 @@ export const resetPublicFormLimits = async () => {
 };
 
 const limited = async (form: keyof typeof limiters, clientIp: string | null | undefined) => {
+  const ipKey = clientIpKey(clientIp, `public.${form}`);
+  if (ipKey === null) throw new ORPCError("BAD_REQUEST");
   const perMinute = await appSettingService.getSetting("publicForms.perMinute");
-  if (!(await limiters[form].hit(clientIp?.trim() || "unknown", Date.now(), perMinute))) {
+  if (!(await limiters[form].hit(ipKey, Date.now(), perMinute))) {
     throw new ORPCError("TOO_MANY_REQUESTS", { message: "Too many tries. Wait a minute and try again." });
   }
 };

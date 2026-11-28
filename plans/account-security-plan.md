@@ -4,30 +4,30 @@
 
 ## Status
 
-**From the user:** none yet.
+**From the user:**
+
+- 2026-11-28 (ask a397, on the five follow-ups B-1017, B-1018, B-1019, B-1020, B-1011): "Move them to account-security-2"
 
 **Landing mode:** run everything through (started run-through by the dispatcher, 2026-11-28): start every ready slice, land each green wave, ask only real questions via `risa ask`.
 
 **Now (2026-11-28, hand-over brief):**
 
-- **Wave 1 landed** in dev through PR #327 as 01e4921df (tier integration, run 46153406894 green, Codex clean after one fix round). Report filed. Its docs folded into care-groups.md, auth.md, admin.md, notifications.md. Worktrees 1, 2, 3 removed.
-- **Wave 2 merged** into `prd/account-security`, not yet gated: slice 4 as 515224cc9, slice 5 as fcf8a50d3, slice 6 as e75ed6950 (items marked done). Slice 6's merge conflicted with dev's sync-safety-3 in `sync.ts` (kept dev's upload input with `limitedProcedure("sync")`), `invites.ts` (imports both `limitedProcedure` and `optionalAuthUser`) and the `ApiContext` comment in `procedures.ts`; `@caretook/api` typechecks, eslint clean. Worktrees 4, 5, 6 kept until wave 2 is green; their agents ended with this session, so a failure goes to a fresh opus fix agent in that slice's worktree.
-- **Rotate was refused** (worktrees 4, 5, 6 exist and stay until wave 2 is green), so this session ran wave 2's gate: integration green (run 46154288491 on 1ee4989c), lean browser suite 11/11, Codex clean on PR #329; wave 2 docs folded (auth, connectors, admin, api, care-groups, ops/data-copies). Landing wave 2. Rotate after wave 2 lands and its worktrees are removed.
-- **Next session:** `risa backlog ingest`/`list`; wave 2's gate (`risa tier`, then `risa ci run <tier> --wait`); `risa sync`; `risa serve --restart`; the lean browser suite once (`caffeinate -i risa browser --suite`: slice 6's per-user limits are on in check builds and must clear it) plus `--changed`; `risa pr`, `risa review --wait`; land; then slice 7 (wave 3, B-337; ready once wave 2 is merged, it is). Slice 7 should replace slice 2's raw-`clientIp` link sign-up key (skipped when missing) with `clientIpKey`.
-- **Open follow-ups (account-security, triaged):** B-1017 approve doesn't recheck a revoked link; B-1018 re-ask answer carries the old request id; B-1019 staff notice reads role unlocked; B-1020 two membership lock orders can deadlock; B-1011 rate-limit audit (not in this plan: a planned wave 4 after slice 7, or account-security-2; the user to confirm).
-- Slice models: every slice and fix on opus; the doc fold on sonnet.
+- **Wave 1 landed** through PR #327 as 01e4921df; **wave 2 landed** through PR #329 (dev 35ef13f; integration green run 46154288491, lean browser suite 11/11, Codex clean). Both reports filed; both waves' docs folded. All slice worktrees (1 to 6) removed.
+- **Wave 3 (2026-11-28):** slice 7 merged as d678e2ed6 (B-337 done); gate: `risa ci run components` (apps/ touched). Slice 7 notes for the docs: `clientIpKey`/`DEV_CLIENT_IP_KEY` in `packages/auth/src/host.ts`, `CONNECTOR_IP_LIMIT` 600/min (shared by `/mcp` and `/oauth2/register`; revisit with real traffic, vendors share IPs), 400 in production with no IP, `createAuth({ limits })`; the `/mcp` IP limiter is always on (memory outside production). Earlier: dev sync skipped (no shared files); B-337 claimed; worktree account-security-7 made; opus agent spawned with `risa prompt slice account-security 7` plus these notes: slice 2's link sign-up keys on the raw `clientIp` (skipped when missing) in `packages/auth/src/tickets.ts`; switch it to `clientIpKey`. Slice 6's per-user block sits at the end of `packages/api/src/rateLimit.ts` (imports moved to the top); add `clientIpKey` after it. After slice 7 lands, `risa rm account-security` (the last wave).
+- **Open follow-ups (account-security, triaged):** B-1017 approve doesn't recheck a revoked link; B-1018 re-ask answer carries the old request id; B-1019 staff notice reads role unlocked; B-1020 two membership lock orders can deadlock; B-1011 rate-limit audit (not in this plan: a wave 4 after slice 7, or account-security-2; answered: moved to account-security-2 with the other four; nothing left open for `risa rm`).
+- Slice models: every slice and fix on opus; doc folds on sonnet.
 
 **Items:** slice 1 B-327, B-336 · slice 2 B-328, B-333, B-335 · slice 3 B-331 · slice 4 B-332 · slice 5 B-329, B-330, B-339 · slice 6 B-334 · slice 7 B-337.
 
-| Slice | Wave | State   | Merge into `prd/account-security` (slice commits)          |
-| ----- | ---- | ------- | ---------------------------------------------------------- |
-| 1     | 1    | landed  | 7dc6937a2 (d9a59529a)                                      |
-| 2     | 1    | landed  | 3ba59077b, fix 648aa0227 (aff560477, 68308a310, 1eff99e42) |
-| 3     | 1    | landed  | 25ab484aa, fix 555acc466 (28faf5d5e, 089a77ddd)            |
-| 4     | 2    | merged  | 515224cc9 (273ba77a0)                                      |
-| 5     | 2    | merged  | fcf8a50d3 (1a43a0197)                                      |
-| 6     | 2    | merged  | e75ed6950 (1e5f23269)                                      |
-| 7     | 3    | planned | —                                                          |
+| Slice | Wave | State  | Merge into `prd/account-security` (slice commits)          |
+| ----- | ---- | ------ | ---------------------------------------------------------- |
+| 1     | 1    | landed | 7dc6937a2 (d9a59529a)                                      |
+| 2     | 1    | landed | 3ba59077b, fix 648aa0227 (aff560477, 68308a310, 1eff99e42) |
+| 3     | 1    | landed | 25ab484aa, fix 555acc466 (28faf5d5e, 089a77ddd)            |
+| 4     | 2    | landed | 515224cc9 (273ba77a0)                                      |
+| 5     | 2    | landed | fcf8a50d3 (1a43a0197)                                      |
+| 6     | 2    | landed | e75ed6950 (1e5f23269)                                      |
+| 7     | 3    | merged | d678e2ed6 (7de389d29)                                      |
 
 ## Architectural decisions
 
