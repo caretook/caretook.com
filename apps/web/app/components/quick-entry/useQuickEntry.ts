@@ -35,7 +35,7 @@ import {
   withSymptomGates,
 } from "./quickEntryCards";
 import { commandTarget, GO_TO_AHEAD, IN_NEW_TAB, READER_REFUSAL } from "./quickEntryCopy";
-import { closeQuickEntry } from "./QuickEntrySheet";
+import { closeQuickEntry } from "~/lib/assistant/quickEntryOpen";
 import { useQuickEntryData } from "./useQuickEntryData";
 import { useQuickEntryPasses } from "./useQuickEntryPasses";
 import { pageContextFor, readCommand } from "@caretook/data/domain";

@@ -4,7 +4,7 @@ import { renderWithDevice } from "../../../test/device";
 import { waitUntil } from "../../../test/found";
 import { TEST_GROUP } from "../../../test/fixtures";
 import { PROBE } from "../../../test/probe";
-import { closeQuickEntry } from "./QuickEntrySheet";
+import { closeQuickEntry } from "~/lib/assistant/quickEntryOpen";
 
 // The quick entry keys (quick-entry-3, slice 2): `/` outside a text field and
 // Cmd/Ctrl+K from anywhere open the group layout's sheet with the box

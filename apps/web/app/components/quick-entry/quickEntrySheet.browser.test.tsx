@@ -9,7 +9,7 @@ import { renderWithDevice } from "../../../test/device";
 import { found, waitUntil } from "../../../test/found";
 import { fx, TEST_GROUP } from "../../../test/fixtures";
 import { PROBE } from "../../../test/probe";
-import { closeQuickEntry } from "./QuickEntrySheet";
+import { closeQuickEntry } from "~/lib/assistant/quickEntryOpen";
 import { READER_REFUSAL } from "./quickEntryCopy";
 
 // Quick entry from any group page (quick-entry-3, slice 1): the frame's
