@@ -1,8 +1,8 @@
 import type { TimelineEntryKind } from "@caretook/data/schema";
 
 import { canHaveNoteDocument } from "@caretook/data/schema";
-import { appUrls } from "../../../../lib/app-shell/appUrls";
-import { setDay } from "../../../../lib/timeline/timelineFilters";
+import { appUrls } from "../app-shell/appUrls";
+import { setDay } from "./timelineFilters";
 import { dayKeyIn } from "./timelineDays";
 
 // The paths the timeline copies (a day header's copy-link button, an entry's
