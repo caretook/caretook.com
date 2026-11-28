@@ -14,7 +14,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | --- | ----- | ----- | --------- | ------------- |
 | `fixes-bug` | standing | — | `apps/web/app/routes/app/groups/timeline/offscreenRows`, `apps/web/app/routes/app/groups/timeline/TimelineEntryList.tsx`, `apps/web/app/routes/app/groups/timeline/timelineBlank.browser.test.tsx`, `apps/web/app/routes/app/groups/timeline/timelineScroll.browser.test.tsx` | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
 | `fixes-ui` | standing | — | — | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
-| `marketing-3` | hold | — | `apps/web/app/routes/marketing/sections/`, `apps/web/app/routes/marketing/home/`, `apps/web/app/routes/marketing/features/`, `apps/web/app/routes/marketing/layout/`, `apps/web/app/routes/marketing/accessibility/`, `apps/web/app/routes/marketing/contact/route.tsx`, `apps/web/app/routes/marketing/site/pages.ts`, `apps/web/app/routes/marketing/routes.ts`, `scripts/browser-checks/marketing.spec.mjs`, `docs/research/` | to write: marketing copy and site refresh (B-887, B-888, B-855, B-836, B-563, B-829); split from the held marketing topic 2026-11-28 by the user |
+| `marketing-3` | — | — | `apps/web/app/routes/marketing/sections/`, `apps/web/app/routes/marketing/home/`, `apps/web/app/routes/marketing/features/`, `apps/web/app/routes/marketing/layout/`, `apps/web/app/routes/marketing/accessibility/`, `apps/web/app/routes/marketing/contact/route.tsx`, `apps/web/app/routes/marketing/site/pages.ts`, `apps/web/app/routes/marketing/routes.ts`, `scripts/browser-checks/marketing.spec.mjs`, `docs/research/` | to write: marketing copy and site refresh (B-887, B-888, B-855, B-836, B-563, B-829); split from the held marketing topic 2026-11-28 by the user |
 | `account-security` | done | — | `packages/auth/`, `packages/api/src/rateLimit.ts`, `packages/api/src/procedures.ts`, `packages/api/src/connectors/http.ts`, `packages/api/src/calendars/feed.ts`, `packages/api/src/marketing/publicForms.ts`, `packages/data/src/services/careGroupMemberService.ts`, `packages/data/src/services/careGroupInviteService.ts`, `packages/data/src/services/joinRequestService.ts`, `packages/data/src/services/connectorGrantService.ts`, `packages/data/src/services/groupAdminService.ts`, `packages/data/src/services/accountAdminService.ts`, `packages/data/src/services/adminAuditService.ts`, `packages/data/src/db/roles/`, `packages/notifications/`, `scripts/browser-checks/session-end.spec.mjs`, `scripts/browser-checks/roundtrip.spec.mjs` | to write (B-85: two-factor required for owners, admins and staff; breached-password check) · Depends on: `invites` (done); B-80 (the Devices page) first (soft) · Hot files: `packages/auth`, account settings, group settings Members, `careGroupService` and the access-code and invite flows (owners must enrol) |
 | `free-limits` | done | — | `packages/data/src/services/careGroupService.ts`, `packages/data/src/services/groupLimitService.ts`, `packages/data/src/db/schema/admin/appSettings.ts`, `packages/data/src/db/schema/admin/staffRules.ts`, `packages/data/src/db/schema/admin/adminAudit.ts`, `packages/data/src/db/schema/auth/user.ts`, `packages/data/src/db/migrations/`, `packages/data/src/permissions/auth.ts`, `packages/api/src/admin/usersAdmin.ts`, `apps/web/app/routes/admin/user/` | — |
 | `onboarding-2` | done | — | `apps/web/app/routes/app/groups/setup/`, `apps/web/app/lib/app-shell/groupSetup`, `apps/web/app/lib/app-shell/setupNudges`, `apps/web/app/lib/app-shell/gettingStarted`, `apps/web/app/lib/app-shell/me.ts`, `apps/web/app/routes/app/groups/layout/`, `apps/web/app/components/ui/toastQueue.ts`, `apps/web/app/routes/app/groups/timeline/GettingStartedCard.tsx`, `apps/web/app/routes/app/groups/timeline/WelcomeCard.tsx`, `apps/web/test/device.tsx`, `packages/data/src/db/schema/app-shell/userPreferences.ts`, `packages/data/src/services/userService.ts`, `packages/data/src/db/seeds/setupDismissed`, `packages/api/src/app-shell/me.ts`, `scripts/browser-checks/first-sync.spec.mjs`, `scripts/browser-checks/invites.spec.mjs`, `apps/web/app/components/providers/` | — |
@@ -301,6 +301,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1064 | change | triaged | fixes-nit |  | The group invite, join request and staff group change emails each write out role labels ('an owner', 'a caretaker'…) by hand: one label per role from the role module |
 | B-1065 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/todayCard.browser.test.tsx: the Today card's rows every row but vital… |
 | B-1066 | bug | triaged | data-rights-2 |  | Deleting a care group leaves a pending joinDeclined email unskipped: its key is joinDeclined:<requestId>:<userId> and it links only to /app, so skipGroupMail misses it |
+| B-1067 | chore | triaged | fixes-nit |  | careGroupService.remove and the Details route compare group roles as strings ('owner'), against care-groups' rule to use isOwnerRole; also the connectors check at careGroupService.ts:102 |
+| B-1068 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineTagEdit.browser.test.tsx: deleting a tag an owner deletes a tag after a dialog naming its records |
 
 ## Items
 
@@ -1661,6 +1663,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-28 (Robert Bo Davis): Third report, same tester, Safari (not only the PWA): (1) a filtered timeline with several filter categories at once showed Today's header and nothing else; (2) after closing and reopening Safari, day headers rendered (Today, Yesterday, Thu Nov 26, each with its care-period chip and + button) but every day's entries were empty; a page refresh fixed it. So the day list loads but the entries query returns nothing or never re-renders: suspect the entries query/subscription (filters combined, or the local database not ready on resume) rather than layout. Repro to try: iOS Safari, combine several filter categories; background Safari and resume.
 - 2026-11-28 (slice/fixes-bug/96): Slice 96: none of the three data paths reproduces in Chromium component tests (timelineBlank.browser.test.tsx). Lead: WebKit painting content-visibility:auto rows (offscreenRows.ts, B-139, 2026-11-20) once Today's day is settled (after paging, Back, or the logo on a long window); needs a WebKit repro. The no-vitals report looks like the local database on resume (e2e).
 - 2026-11-28 (prd/fixes-bug): wave 28 slice 96 (2e7ac9335): 6 component tests, no repro in Chromium. Decided (skeptic s105, for the user's veto): wave 29 slice stops content-visibility: auto on WebKit or the newest days (offscreenRows.ts). Report 2 (empty after logo, reopen fixed it) looks like the local DB not answering after an iOS resume: stays open here.
+- 2026-11-28 (prd/fixes-bug): wave 29 slice 99 (e51817358): Today and later days never contained; no content-visibility on WebKit. Stays open for report 2 (empty after logo, reopen fixed it).
 
 ### B-1047 · feature · Pull down to refresh in the installed PWA (no browser reload control there; a tester had to close…
 
@@ -1855,3 +1858,21 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (prd/data-rights): Codex on PR #353 (careGroupService.ts:145, skipGroupMail). Fix: collect the group's join-request ids before the cascade and match joinDeclined:<id>:% (and any other join-request keys) in the skip. data-rights-2 reuses deleteGroup, so it fits there.
+
+### B-1067 · chore · careGroupService.remove and the Details route compare group roles as strings ('owner'), against care-groups' rule to use isOwnerRole; also the connectors check at careGroupService.ts:102
+
+- status: triaged
+- prd: fixes-nit
+- owner:
+- commit:
+
+- 2026-11-28 (prd/data-rights): Seen at data-rights wave 3's dev sync: dev added GROUP_ROLE_CAPABILITIES and isOwnerRole; slice 6's ownerOnly check and the Delete card's owner gate use === 'owner', like the older lines beside them.
+
+### B-1068 · bug · CI flake: apps/web/app/routes/app/groups/timeline/timelineTagEdit.browser.test.tsx: deleting a tag an owner deletes a tag after a dialog naming its records
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-28 (prd/code-health-4): Flaked in components-4 on prd/code-health-4 run 46187226019 (049e799a); the branch didn't touch it; passed on the recheck run 46187839305.

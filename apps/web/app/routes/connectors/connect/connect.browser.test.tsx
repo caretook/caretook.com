@@ -116,6 +116,8 @@ describe("/connect", () => {
     await open(consent);
     await expect.element(radio("Read only")).toBeChecked();
     await expect.element(radio("Read and add entries")).toBeVisible();
+    // A caretaker may write, so no read-only line.
+    expect(document.querySelector("[data-read-only]")).toBeNull();
 
     await userEvent.click(radio("Read and add entries"));
     await userEvent.click(radio("Lee household (Uncle Lee)"));
@@ -262,7 +264,8 @@ describe("/connect with no group that allows assistants", () => {
     // A viewer who asked yesterday: Asked on, no button.
     expect(viewerRow.querySelector("[data-asked-on]")?.textContent).toBe(askedOn(ASKED_AT));
     expect(viewerRow.querySelector("button")).toBeNull();
-    // An owner: no button, a link to turn it on.
+    // An owner: the owner's wording, no button, a link to turn it on.
+    expect(ownerRow.textContent).toContain("You’re an owner:");
     expect(ownerRow.querySelector("button")).toBeNull();
     expect(ownerRow.querySelector("a")?.getAttribute("href")).toBe("/app/groups/g-3/settings/assistants");
 
