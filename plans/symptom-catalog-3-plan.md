@@ -12,8 +12,8 @@
 | 4     | 3    | landed | 692385602 (75e0681fa); wave 3 landed via PR #291    |
 
 - **Landing mode: run everything through** (started run-through; land each green wave, ask only real questions via `risa ask`).
-- 2026-11-27, session 3: slice 4 (opus) merged as 692385602; CI green at components (run 46084805349); no dev sync needed; timeline and care-groups docs folded and trimmed under budget; Codex clean. **Wave 3 landed** through PR #291 (dev at e94e0be, an unsynced tip, typecheck only); to-test/2026-11-27-1904-symptom-catalog-3.md. Slice worktree removed. **All waves landed**; the PRD isn't marked done only because B-992 is still triaged here (see below).
-- **B-992** (triaged under this topic, for the user's review): Codex's two P2 races on PR #289, a server entry edit or an alias create concurrent with `replace` can leave an entry on a tombstone. Proposed fix: one per-group lock taken by `replace` and every symptom entry write. Not started (build only what's asked).
+- 2026-11-27, session 3: slice 4 (opus) merged as 692385602; CI green at components (run 46084805349); no dev sync needed; timeline and care-groups docs folded and trimmed under budget; Codex clean. **Wave 3 landed** through PR #291 (dev at e94e0be, an unsynced tip, typecheck only); to-test/2026-11-27-1904-symptom-catalog-3.md. Slice worktree removed. **All waves landed**; B-992 re-homed (below).
+- **B-992** re-homed to `fixes-bug` (triaged; decided for you, ask a353, skeptic s80). The PRD is done; `risa rm symptom-catalog-3` is the last step.
 - 2026-11-27, session 2: wave 2 slices 2 and 3 (both opus) merged as 3ca82c624 and 82766a2a1; CI green at components (run 46082505274); no dev sync needed; timeline doc folded; Codex: 2 findings, both tracked as B-992, then clean. **Wave 2 landed** through PR #289 (dev pushed to 6dbbbd9); to-test/2026-11-27-1842-symptom-catalog-3.md. Slice worktrees removed.
 
 ## Architectural decisions
