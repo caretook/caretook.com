@@ -418,6 +418,7 @@ describe("in the Planner", () => {
       "Cancel event",
       "Remind me",
       "Print",
+      "Copy link",
       "Delete",
     ]);
     await userEvent.click(menuItem("Prepare for this visit"));
@@ -429,13 +430,14 @@ describe("in the Planner", () => {
     await expect.poll(() => device.location()).toBe(`/app/groups/${GROUP}/planner`);
   });
 
-  test("a viewer's ⋯ is Remind me and Print", async () => {
+  test("a viewer's ⋯ is Remind me, Print and Copy link", async () => {
     await open(`/app/groups/${GROUP}/planner`, { role: "viewer" });
     await userEvent.click(actionsOf(APPT.id));
     await expect.element(menuItem("Print")).toBeInTheDocument();
     expect([...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent?.trim())).toEqual([
       "Remind me",
       "Print",
+      "Copy link",
     ]);
   });
 });

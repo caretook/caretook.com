@@ -75,12 +75,14 @@ const NO_TAGS: readonly { id: string; name: string }[] = [];
  * A row's or card's tags (tags-2): `QuickTags` with two chips, then "+N",
  * and "Add tag", from the list's query (never one per row). Its
  * taps sit above the stretched open target, so they never open the entry.
+ * `readOnly` (the easy roles' Planner): the chips only.
  */
 export function RowTags({
   entry,
   tags,
+  readOnly,
   className,
-}: Pick<EntryViewProps, "entry" | "tags"> & { className?: string }) {
+}: Pick<EntryViewProps, "entry" | "tags"> & { readOnly?: boolean; className?: string }) {
   return (
     <QuickTags
       target="entry"
@@ -89,6 +91,7 @@ export function RowTags({
       createdBy={entry.createdBy}
       max={2}
       tags={tags ?? NO_TAGS}
+      readOnly={readOnly}
       className={className}
     />
   );
@@ -187,22 +190,31 @@ export function TimelineEntryRow({
  * An entry's ⋯ menu on rows and cards, with Copy link for every role (its
  * page, or its day for a kind without one: `entryLinkPath`) and "Link copied"
  * under it. It sits above the row's stretched open target (`relative z-10`).
+ * `label` names it for screen readers (default "Actions for <kind> at <time>";
+ * the Planner's cards say "Actions for <title>"); `onPrepare` is the
+ * Planner's Prepare.
  */
 export function EntryMenu({
   entry,
+  label,
   onEdit,
   cancel,
+  onPrepare,
   onRemind,
   onDelete,
-}: Pick<EntryViewProps, "entry" | "onEdit" | "cancel" | "onRemind" | "onDelete">) {
+}: Pick<EntryViewProps, "entry" | "onEdit" | "cancel" | "onRemind" | "onDelete"> & {
+  label?: string;
+  onPrepare?: () => void;
+}) {
   const link = useCopyLink(entryLinkPath(entry, localTimeZone()));
   return (
     <div className="relative z-10 flex shrink-0" data-copy-link="">
       <EntryActions
         kind={entry.kind}
-        label={actionsLabel(entry)}
+        label={label ?? actionsLabel(entry)}
         onEdit={onEdit}
         cancel={cancel}
+        onPrepare={onPrepare}
         onRemind={onRemind}
         printHref={canHaveNoteDocument(entry.kind) ? appUrls.printEntry(entry.groupId, entry.id) : undefined}
         onCopyLink={link.copy}

@@ -4,15 +4,19 @@
 
 ## Status
 
-| Slice | Wave | State   | Merge into `prd/shared-displays` (slice commits) |
-| ----- | ---- | ------- | ------------------------------------------------ |
-| 1     | 1    | planned |                                                  |
-| 2     | 2    | planned |                                                  |
-| 3     | 3    | planned |                                                  |
-| 4     | 3    | planned |                                                  |
-| 5     | 3    | planned |                                                  |
-| 6     | 4    | planned |                                                  |
-| 7     | 1    | planned |                                                  |
+| Slice | Wave | State                                            | Merge into `prd/shared-displays` (slice commits) |
+| ----- | ---- | ------------------------------------------------ | ------------------------------------------------ |
+| 1     | 1    | merged (sonnet), worktree removed                | 8be180eb6 (4e7f6360e)                            |
+| 2     | 2    | handed off (opus), merge held until wave 1 lands | (2925d1922)                                      |
+| 3     | 3    | planned                                          |                                                  |
+| 4     | 3    | planned                                          |                                                  |
+| 5     | 3    | planned                                          |                                                  |
+| 6     | 4    | planned                                          |                                                  |
+| 7     | 1    | merged (opus), fix merged, worktree removed      | efcf7177b, 21edf2e9e (453808b81)                 |
+
+- **Landing mode: run everything through** (dispatcher start, 2026-11-28): start every ready slice, land each green wave, ask only real questions via `risa ask`.
+- **Waiting on onboarding-2 (B-670):** its slice 2 moves `ProviderForm`, `ProviderListItem`, `ProviderRowContact` to `components/providers/` (and `providerFormData.ts` to `lib/providers/`). Agreed 2026-11-28: it lands first; slice 4 starts only after it's in `dev` and `risa sync` (onboarding-2-c2 will message; also check `pnpm log dev`). After it, onboarding-2 won't edit those three; its slice 3 may add `MedicationForm` to `components/medications/index.ts` (they'll warn first; an additive export, merge both).
+- **Wave 1** started 2026-11-28: worktrees `.loops/shared-displays-1` and `-7`, agents spawned; `risa watch` running. Slice 1 merged; slice 2 started early (blocked only by 1; no overlap with 7). Slice 7 merged. Wave 1's components run 46112379760 on 58af8dbc: `file`: 3 slice-7 failures (visitPrep ×2 Planner ⋯, authorAvatars easy circle) sent back to slice 7, fixed (Copy link in visitPrep's expected menus; the easy avatar keeps its name as label and title) and merged again, wave 1 rerun 46113407528 on 21edf2e9: **green**. Then `risa sync` merged dev (2cecdd0f+; packages and seeds); recheck 46114051708 on 2cecdd0f **green**; `risa serve` :6173; browser: roundtrip pass (the lean `--suite` skipped: the user's rule is to ask first). PR #313 open, Codex review out. Next: triage, ready, land, then merge slice 2; print.browser weekly chart a flake outside this PRD. Slice 7 notes: Planner row menus gain Copy link; `TodoRow.tsx:139` comment still says `UpcomingRow` (slice 5 to fix); components doc: `UpcomingEntryCard` is the Planner look. B-961 claimed. Backlog at start: nothing new for this topic (B-1004, a `linkToBox` flake, is `fixes-tooling`).
 
 ## Architectural decisions
 

@@ -134,6 +134,7 @@ describe("cancel and undo", () => {
       "Cancel event",
       "Remind me",
       "Print",
+      "Copy link",
       "Delete",
     ]);
     await confirmCancel("Office called, doctor out sick");
@@ -303,7 +304,7 @@ describe("reschedule", () => {
     await device.screen.unmount();
 
     await openPlanner({ extra: [NOTED_OLD] });
-    expect(await openMenu(rowActions(EYES_OLD.id))).toEqual(["Undo cancel", "Print", "Delete"]);
+    expect(await openMenu(rowActions(EYES_OLD.id))).toEqual(["Undo cancel", "Print", "Copy link", "Delete"]);
     await userEvent.keyboard("{Escape}");
   });
 

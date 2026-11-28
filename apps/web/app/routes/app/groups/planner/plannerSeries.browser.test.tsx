@@ -146,13 +146,14 @@ describe("the scope dialog in Upcoming", () => {
       "Cancel event",
       "Remind me",
       "Print",
+      "Copy link",
       "Delete",
     ]);
     await userEvent.keyboard("{Escape}");
     await device.screen.unmount();
 
     await openPlanner({ extra: SERIES, role: "viewer" });
-    expect(await rowMenu(FRI_20.id)).toEqual(["Remind me", "Print"]);
+    expect(await rowMenu(FRI_20.id)).toEqual(["Remind me", "Print", "Copy link"]);
     expect(SCOPE()).toBeNull();
   });
 
