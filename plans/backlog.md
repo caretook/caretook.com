@@ -287,6 +287,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1033 | feature | triaged | care-booklet |  | Care booklet cover page: what each sheet is for, how to mark it, and how to photograph it so a connected agent brings it back |
 | B-1034 | feature | triaged | care-booklet-2 |  | Connector: a member's AI reads photos of the booklet's write-in sheets (Timeline sheet, as-needed dose log, visit notes, medication changes) and applies them, adding only what isn't already there; medication changes wait for a member to confirm |
 | B-1035 | feature | triaged | marketing-4 |  | Marketing: the printed care booklet where it fits (features page, home, how-it-works): Caretook is designed for non-technical caregivers who prefer pen and paper, with two-way communication when a connector is used |
+| B-1036 | bug | triaged | free-limits |  | Group limit: read limits.groupsStarted before careGroupService.create opens its transaction, so a cold settings cache doesn't take a second pool connection while the user row is locked |
 
 ## Items
 
@@ -1793,3 +1794,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28: 'I want to approve/review the updates during planning for the marketing-4'. The planner shows each proposed page change and its draft copy in an ask that waits for the user, and writes the plan only from what the user approves.
 - 2026-11-28 (Robert Bo Davis): marketing-4 held 2026-11-28 so the dispatcher doesn't plan it unattended; when care-booklet lands, the backlog session offers to plan it inline with the user reviewing each page change and draft copy.
 - 2026-11-28 (Robert Bo Davis): User 2026-11-28: 'take marketing-4 off hold and let dispatch handle it. The planner should ask questions for approval'. Hold lifted; the dispatcher's planner files each proposed page change and its draft copy as an ask for the user's approval and writes the plan only from what is approved.
+
+### B-1036 · bug · Group limit: read limits.groupsStarted before careGroupService.create opens its transaction, so a cold settings cache doesn't take a second pool connection while the user row is locked
+
+- status: triaged
+- prd: free-limits
+- owner:
+- commit:
+
+- 2026-11-28 (prd/free-limits): Codex P2 on PR #334 (groupLimitService.ts:32): getSetting() on a cold cache calls appSettingModel.all() outside tx; with a small or busy pool it waits ~10 s and falls back to the defaults (3) instead of the staff value. Fix: read the setting (and later the override's fallback) before withTransaction, or pass the limit into refusal. Fits slice 2, which edits refusal anyway.
