@@ -237,7 +237,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-863 | chore | triaged | fixes-tooling |  | CI's unit shards balance by file count: widen shards.mjs's SHARD_JOB to the unit-N jobs and refresh component-durations.json from a unit run (predicted 344/288 s of file time against 316/316 balanced) |
 | B-887 | change | triaged | marketing-3 |  | Features page "Type it the way you'd say it" section should highlight more that users can just say… |
 | B-888 | change | triaged | marketing-3 |  | Features page should highlight easy mode |
-| B-896 | feature | triaged | quick-entry-3 |  | Quick entry cheat sheet and vocabulary pages, linked from quick entry (and onboarding), so people learn everything it understands without guessing; just before launch |
+| B-896 | feature | triaged | quick-entry-4 |  | Quick entry cheat sheet and vocabulary pages, linked from quick entry (and onboarding), so people learn everything it understands without guessing; just before launch |
 | B-901 | plan | triaged | onboarding-3 |  | Onboarding plan for invited users, based on their user type (we already have one for care group… |
 | B-907 | change | triaged | fixes-tooling |  | Tests: drop assertions that pin fixed UI copy word for word |
 | B-918 | feature | triaged | care-booklet |  | Printed care booklet: the profile (allergies, conditions) as the front page, then the medication list, weekly sheet and other sheets; print all of it or only the pages that changed |
@@ -1295,13 +1295,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-896 · feature · Quick entry cheat sheet and vocabulary pages, linked from quick entry (and onboarding), so people learn everything it understands without guessing; just before launch
 
 - status: triaged
-- prd: quick-entry-3
+- prd: quick-entry-4
 - owner:
 - commit:
 
 - 2026-11-26 (Robert Bo Davis): User's word 2026-11-26: two pages, an 'ez entry cheatsheet' (examples by kind: vitals, symptoms, doses, notes, events, passes, todos; times, units, several at once) and an 'ez entry vocabulary' (the words and units it knows). Link from quick entry itself and somewhere sensible (help, onboarding). Build from the parser's own tables (schema/quickEntry.ts) or test them against it, so the pages can't drift. Timing: just before launch, once the parser settles. Triage: onboarding-3 (held), with the other learn-the-app nudges.
 - 2026-11-28 (Robert Bo Davis): Moved to hosting, the held pre-launch topic, on the user's word (2026-11-28): the cheat sheet comes just before launch.
 - 2026-11-28 (Robert Bo Davis): 2026-11-28: moved to quick-entry-3 as its 'what can I say' help command plus the cheat sheet (user picked help into the quick entry plan).
+- 2026-11-28 (plan/quick-entry-3): 2026-11-28: moved to quick-entry-4's last slice (skeptic: help should list every command, so it lands after them). Keep: linked from the box and onboarding; built from and tested against the parser's tables (kinds, units, vocabulary, pages, commands).
 
 ### B-901 · plan · Onboarding plan for invited users, based on their user type (we already have one for care group…
 
