@@ -36,25 +36,27 @@ At every wave boundary: `risa backlog ingest`, `doctor` and `list`; propose new 
 - **`--force` and `--no-review`** need a fresh Fable land skeptic's `go` for this tip and action (`--skeptic <id>`) or the user's word (`--by-user`). A `no`: fix it or ask. On a brake or an unsynced tip, `--force` needs `--by-user`; so does a skeptic's `--force` when dev's brake state can't be read (GitHub, the origin/dev fetch, the board).
 - **Staging takes a candidate:** `risa ci candidate cut`, then `risa ci promote` (refuses a failing tip). Agents merge one no other way; the user's hand merge overrides. **Main:** only `risa ci release` writes `release-gate`.
 
-### The check gate
-
-`risa land` waits for a **CI verdict of its declared tier** (`gate.mjs`), after every other refusal, and requests the run when there is none (30 minutes; a timeout refuses).
-
-- **The tier:** `--tier <t>` (`pr` takes it too); the default is the minimum `check-plan.mjs` proposes. `full`: a migration, seeds, `sync-config.yaml`, the lockfile, a `package.json` beyond `scripts`, the Vitest config, the workflow, `scripts/ci/`, or a file no rule covers. `components`: `apps/`. `integration`: `packages/`, the browser harness. `none`: Markdown and tooling (still run `pnpm test:tooling`). Below the proposal needs `--why "<reason>"`, named in PR and report. `--tier none` over a real proposal is refused even with `--why`; only `--force` skips the gate.
-- **What counts:** a whole-tier verdict that ran this tier or higher, on the tip or on a first-parent ancestor with only docs, tooling or CI's two lists changed since; an ancestor's verdict carries only when green or a flake outside the branch's files (else rerun on the tip). Never a narrowed run. A browser-harness change or scripts-only `package.json` commit voids it.
-- **Behind a dev sync:** a recheck newer than it at the tier of what dev brought (`syncTier`: the harness counts as tooling unless the branch touched it), carrying the pre-sync one if it lands without blame; both runs' flakes are filed. Bringing the wave's tier or more needs it.
-- **How each kind lands:** a flake in a file the branch touched refuses, whatever the kind. `green` lands. `flake` lands, filed after the merge. `file` and `brake` go through blame against dev's tip, which files dev's failures even if refused: they land only when every failure is dev's and filed, and a dev brake needs `--fixes B-<n>` naming its item. The branch's failures refuse, named; `infra` and unknown refuse, with how to retry. `time` refuses, exit 6, unblamed.
-
 ### Docs at landing
 
 - Fold the wave's lasting decisions into the matching area doc (a new area: a doc and an _Area index_ entry), process changes into the role doc, and only rules every session needs into AGENTS.md. Keep in-flight status in your plan; loops never edit AGENTS.md or `docs/`.
 - **Byte budgets** (`scripts/project/doc-budget.config.mjs`): the core 8 KB, each role 15 KB (a split one's two halves share it), each `docs/domain/*.md` and `docs/layout.md` 10 KB. `pnpm check` warns. `risa land` refuses any branch (even `--force`) that makes an over-budget doc bigger than on `dev`: **trim at least what you fold in.**
 - A done PRD's decisions go to the area docs; mark it done.
 
+## The check gate
+
+Here `risa land` waits for a **CI verdict of its declared tier** (`gate.mjs`), after every other refusal, and requests the run when there is none (30 minutes; a timeout refuses).
+
+- **The tier:** `--tier <t>` (`pr` takes it too); the default is the minimum `check-plan.mjs` proposes. `full`: a migration, seeds, `sync-config.yaml`, the lockfile, a `package.json` beyond `scripts`, the Vitest config, the workflow, `scripts/ci/`, or a file no rule covers. `components`: `apps/`. `integration`: `packages/`, the browser harness. `none`: Markdown and tooling (still run `pnpm test:tooling`). Below the proposal needs `--why "<reason>"`, named in PR and report. `--tier none` over a real proposal is refused even with `--why`; only `--force` skips the gate.
+- **What counts:** a whole-tier verdict that ran this tier or higher, on the tip or on a first-parent ancestor with only docs, tooling or CI's two lists changed since; an ancestor's verdict carries only when green or a flake outside the branch's files (else rerun on the tip). Never a narrowed run. A browser-harness change or scripts-only `package.json` commit voids it.
+- **Behind a dev sync:** a recheck newer than it at the tier of what dev brought (`syncTier`: the harness counts as tooling unless the branch touched it), carrying the pre-sync one if it lands without blame; both runs' flakes are filed. Bringing the wave's tier or more needs it.
+- **How each kind lands:** a flake in a file the branch touched refuses, whatever the kind. `green` lands. `flake` lands, filed after the merge. `file` and `brake` go through blame against dev's tip, which files dev's failures even if refused: they land only when every failure is dev's and filed, and a dev brake needs `--fixes B-<n>` naming its item. The branch's failures refuse, named; `infra` and unknown refuse, with how to retry. `time` refuses, exit 6, unblamed.
+
 ## Rules across PRDs
 
-- **Migrations take the next number when they land.** A loop generates what's next on its base. When a sync brings another PRD's migration, keep `dev`'s, regenerate yours on top (`pnpm datastore:generate`) and reread its SQL order. One pending migration per PRD where you can.
-- **Seeds are append-only:** `timelineEntries.ts` ids follow position, so append, or give a feature its own seed file and ids.
+Caretook's specifics:
+
+- **Migrations:** a loop generates what's next on its base. When a sync brings another PRD's migration, keep `dev`'s, regenerate yours on top (`pnpm datastore:generate`) and reread its SQL order. One pending migration per PRD where you can.
+- **Seeds:** `timelineEntries.ts` ids follow position, so append, or give a feature its own seed file and ids.
 - **Registries are composed from area parts.** Add a route, URL, error, permission, table or procedure to your area's part (create it if missing): `routes/…/<area>/routes.ts`, `lib/<area>/urls.ts`, `errors/<area>.ts`, `permissions/<area>.ts`, `db/schema/<area>/`, `domain/<area>/`, `packages/api/src/<area>/`, and its rule in `scripts/project/check-areas.d/<area>`. The top indexes change only for a new area. Areas are the `docs/domain/` names plus `core` ([layout](../layout.md)).
 - **Additive edits to the registries still shared:** the `services/`, `models/` and `seeds/` indexes, `sync-config.yaml`, the device schema, the `sync.ts` upload switch, `KIND_META` and `GROUP_SECTIONS`. Add at the end of the group; never reorder or reformat.
-- **Hot files get regions first:** when two PRDs will change one screen (the backlog's PRD table lists hot files), a small slice first splits it into regions or components and lands before both.
+- **Hot files:** when two PRDs will change one screen, a small slice first splits it into regions or components and lands before both.
