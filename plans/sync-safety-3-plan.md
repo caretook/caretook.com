@@ -4,13 +4,28 @@
 
 ## Status
 
-| Slice | Wave | State   | Merge into `prd/sync-safety-3` (slice commits) |
-| ----- | ---- | ------- | ---------------------------------------------- |
-| 1     | 1    | planned |                                                |
-| 2     | 2    | planned |                                                |
-| 3     | 3    | planned |                                                |
-| 4     | 1    | planned |                                                |
-| 5     | 4    | planned |                                                |
+| Slice | Wave | State         | Merge into `prd/sync-safety-3` (slice commits) |
+| ----- | ---- | ------------- | ---------------------------------------------- |
+| 1     | 1    | merged (opus) | 98f9114db (e46c7c7c7, 96dc47533)               |
+| 2     | 2    | planned       |                                                |
+| 3     | 3    | planned       |                                                |
+| 4     | 1    | merged (opus) | 95b947f22 (0aa0e004d, fe68fed3e)               |
+| 5     | 4    | planned       |                                                |
+
+**Landing mode: run everything through** (dispatcher start, 2026-11-28): start every ready slice, land each green wave, ask only real questions.
+
+- 2026-11-28: wave 1 started. B-294 claimed. Worktrees `sync-safety-3-1` and `sync-safety-3-4` made from prd at the plan's anchor fix; one opus agent each. Start conditions clear (onboarding-2 and code-health-2 not running).
+
+- Slice 1 handed off (quick check green on 96dc47533), merged 98f9114db. No upload-path service needed changing; only the registry's softDelete PUT now passes `ctx`. For slice 2: PATCH/DELETE paths in the registry (softDelete remove/update, timeline_entry and todo PATCH) run without `tx` today; slice 2's whole-PUT `tx` makes them join. A nested throw now returns `db:transaction` instead of propagating. B-294 stays open until slice 5.
+
+- Slice 4 handed off (quick check green on fe68fed3e), merged 95b947f22. `SYNC_WRITE_LIMIT = 1000` in `@caretook/data/domain`. Audit: every multi-row `*.sync.ts` save already uses one `db.drizzle.transaction`; nothing wrapped. Largest write measured: the series split, 437 ops (pinned). Screens chaining several single-row saves were out of scope. Audit list for the sync doc at landing is in the slice's hand-off (multi-row saves: appointments, series, visitPrep, quickEntry, medicationPasses, passLogs, medications, allergies, liveEntry, providers, tags, carePeriods, todos, conditions, medicationConditions, timeline, symptomTypes).
+- Wave 1 gate: components run 46129518715 on 743f3859c: flake (only `search.sync.browser.test.tsx`'s 2,000-entry timing, on the brake list, outside our files): counts green. `risa sync`: up to date with dev. Slice worktrees 1 and 4 removed. PR #322 opened; Codex review waiting. Browser check (`risa browser --changed --base dev`) running.
+
+- Codex clean on 743f385. Wave 1 docs folded: data-layer's `withTransaction` line (savepoint), sync _Device_ "one save, one transaction" (the full audit list stays here, too long for the 10 KB doc); both trimmed to stay at budget. Next: browser check result, push, re-review, `risa land sync-safety-3 --tier components`, then rotate (wave 2: slice 2, opus).
+
+- 11:40Z: blocked on Docker. The daemon is unresponsive machine-wide (`docker info` times out; test Postgres :5436 down), so `risa rm sync-safety-3-1` hung in `test-db.sh drop` and no browser check ever ran. Asked the backlog session (caretook-com-cb) who runs `risa recover`. Pushed f9313cb7e to PR #322; Codex re-review waiting. After Docker: rm slices 1 and 4, `risa serve --restart`, `risa browser --changed --base dev`, land.
+
+- Cause (backlog session): the disk filled (ENOSPC) at about 09:13Z, hanging Docker and the dispatcher; about 7 GB freed; the user is rebooting. Codex clean on f9313cb. **Resume after reboot** (`risa recover` restarts Docker): `risa rm sync-safety-3-1`, `risa rm sync-safety-3-4`, `risa serve --restart`, `risa browser --changed --base dev`, `risa pr sync-safety-3` (pushes the Status commits), `risa review sync-safety-3 --wait` (or `--no-review` if only Markdown changed since the clean verdict), `risa land sync-safety-3 --tier components -m "feat(sync-safety-3): savepoint transactions and the shared write limit (wave 1, B-294)"`, the landing report, `risa status-trim`, then rotate (wave 2: slice 2, opus).
 
 ## Durable decisions
 
@@ -100,7 +115,7 @@ Stack: no · Reads: docs/domain/sync.md, docs/domain/appointments.md · Tests: c
 
 Covers B-294 (the device's half of what a write is). US 1.
 
-**What to build.** As the PRD's _The write audit_: go through the device's `lib/<area>/*.sync.ts` saves that write more than one row and list each, with whether it already writes in one `db.drizzle.transaction`. Wrap the ones that don't. Add the write limit (1000) as a client-safe constant in a new `domain/sync/` part (`packages/data/src/domain/sync/`, exported from the domain index and `DOMAIN_EXPORTS`). The list goes in the hand-off and, at landing, the sync doc. If more than about six files need wrapping, wrap the riskiest (those that touch two tables) and file the rest as one fixes-bug item.
+**What to build.** As the PRD's _The write audit_: go through the device's `lib/<area>/*.sync.ts` saves that write more than one row and list each, with whether it already writes in one `db.drizzle.transaction`. Wrap the ones that don't. Add the write limit (1000) as a client-safe constant in a new `domain/sync/` part (`packages/data/src/domain/sync/` (new), exported from the domain index and `DOMAIN_EXPORTS`). The list goes in the hand-off and, at landing, the sync doc. If more than about six files need wrapping, wrap the riskiest (those that touch two tables) and file the rest as one fixes-bug item.
 
 **Acceptance criteria**
 

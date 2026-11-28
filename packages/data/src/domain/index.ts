@@ -14,5 +14,6 @@ export * from "./marketing";
 export * from "./medications";
 export * from "./profiles";
 export * from "./search";
+export * from "./sync";
 export * from "./timeline";
 export * from "./todos";
