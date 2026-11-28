@@ -7,7 +7,6 @@ import { spamVerdict, waitlistJoinZSchema } from "../db/schema";
 import { isError, newError } from "../errors";
 import { waitlistEntryModel } from "../models";
 
-export const serviceName = "waitlist";
 export const schemaName = waitlistEntryModel.schemaName;
 
 type K = typeof schemaName;

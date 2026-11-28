@@ -19,7 +19,6 @@ import { actorRole, renumber } from "./emergencyContactService";
 // (read by those, written by owners and admins). Viewers get nothing. One
 // row per recipient, its id the recipient's, made on the first save.
 
-export const serviceName = "careRecipientDetails";
 export const schemaName = careRecipientDetailsModel.schemaName;
 
 const invalid = (error: z.ZodError) =>

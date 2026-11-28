@@ -50,7 +50,7 @@ import {
   userContactSchema,
   userSchema,
 } from "../schema";
-import { seriesVisits } from "../schema/appointments/seriesVisits";
+import { seriesVisits } from "../../domain/appointments/seriesVisits";
 import { seedProviderContent } from "./providers";
 import { occurredAtOf, seedContentOf } from "./timelineEntries";
 

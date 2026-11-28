@@ -1,4 +1,4 @@
-import { EASY_ROLE_NAMES, WRITER_ROLES, hasGroupRole } from "../../../constants/roles";
+import { EASY_ROLE_NAMES, WRITER_ROLES, hasGroupRole } from "../../constants/roles";
 import { repeatText } from "../appointments/repeatRule";
 import { localDate } from "../core/entryTiming";
 

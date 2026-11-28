@@ -23,7 +23,6 @@ import { asCreated, unchanged } from "./upserted";
 // this is where content is validated and the practice is checked (a
 // practice or pharmacy in the same group, not deleted).
 
-export const serviceName = "provider";
 export const schemaName = providerModel.schemaName;
 
 const invalid = (error: z.ZodError) =>

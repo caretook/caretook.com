@@ -13,7 +13,7 @@ import type {
 import type { PassLike } from "./medicationPass";
 import type { DoseSlot, DoseWarning } from "./dueDoses";
 
-import { timeInZone } from "../core/zonedDay";
+import { timeInZone } from "../../../domain/core/zonedDay";
 import { isPassSlot, slotKey } from "./medication";
 import { sortPasses } from "./medicationPass";
 

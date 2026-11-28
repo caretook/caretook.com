@@ -19,7 +19,6 @@ import { appSettingModel } from "../models";
 import * as adminAuditService from "./adminAuditService";
 import { auditActorId, staffRefusal } from "./staffAccess";
 
-export const serviceName = "appSetting";
 export const schemaName = appSettingModel.schemaName;
 
 // The app settings (admin PRD): what staff change without a deploy. Every

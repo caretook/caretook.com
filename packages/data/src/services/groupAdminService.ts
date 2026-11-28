@@ -21,7 +21,6 @@ import * as careGroupInviteService from "./careGroupInviteService";
 import * as careGroupMemberService from "./careGroupMemberService";
 import { auditActorId, staffRefusal } from "./staffAccess";
 
-export const serviceName = "groupAdmin";
 export const schemaName = groupDirectoryModel.schemaName;
 
 // Care groups for Caretook staff (admin slice 4). Reads (`groups.read`,

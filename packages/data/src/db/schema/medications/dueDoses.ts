@@ -2,8 +2,8 @@ import type { DoseDetails, MedicationSchedule, MedicationStatus } from "./medica
 import type { PassLike, TimedSlot } from "./medicationPass";
 import type { DoseSlotName, ScheduleChange } from "./scheduleHistory";
 
-import { addDays } from "../core/entryTiming";
-import { dayInZone, zonedInstant } from "../core/zonedDay";
+import { addDays } from "../../../domain/core/entryTiming";
+import { dayInZone, zonedInstant } from "../../../domain/core/zonedDay";
 import { slotAmount } from "./medication";
 import { scheduleHistory } from "./scheduleHistory";
 

@@ -13,7 +13,6 @@ import { careGroupMemberModel, reminderOverrideModel, timelineEntryModel } from 
 // the group and the entry is a live event or note there; the model's `owned`
 // scope keeps every row theirs.
 
-export const serviceName = "reminderOverride";
 export const schemaName = reminderOverrideModel.schemaName;
 
 export type ReminderChoice =

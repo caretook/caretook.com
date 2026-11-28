@@ -6,7 +6,7 @@ import { z } from "zod";
 import { careGroupSchema } from "../care-groups/careGroup";
 import { careRecipientSchema } from "../profiles/careRecipient";
 import { audits, enumCheck, id, timestamps } from "../core/columns";
-import { FUTURE_DATE_MESSAGE, isStartOfDay } from "../core/entryTiming";
+import { FUTURE_DATE_MESSAGE, isStartOfDay } from "../../../domain/core/entryTiming";
 import { toChangeTime } from "../medications/medication";
 import { providerSchema } from "../providers/provider";
 

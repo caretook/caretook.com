@@ -9,7 +9,6 @@ import { isError, newError } from "../errors";
 import { userModel } from "../models";
 import * as adminAuditService from "./adminAuditService";
 
-export const serviceName = "dbAccess";
 export const schemaName = userModel.schemaName;
 
 // Personal database access (hosting PRD, `pnpm db:access`): a staff member

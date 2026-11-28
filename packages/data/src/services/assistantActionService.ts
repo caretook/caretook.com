@@ -94,8 +94,6 @@ import * as timelineEntryService from "./timelineEntryService";
 // refusals and condition change entries; the change entry carries `via`).
 // Another group's condition id reads as not found.
 
-export const serviceName = "assistantAction";
-
 export type RunOptions = {
   /** The assistant the batch came through ("Claude"): stored on every entry and todo. */
   via: string;

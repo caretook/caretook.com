@@ -1,5 +1,5 @@
 import type { CalendarItem, CalendarItemKind } from "./calendarItems";
-import type { ShareLevel } from "./calendarRules";
+import type { ShareLevel } from "../../db/schema/calendars/calendarRules";
 
 import { localDate } from "../core/entryTiming";
 import { localTime } from "../todos/todoRules";

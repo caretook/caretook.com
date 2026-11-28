@@ -21,7 +21,6 @@ import { auditActorId, staffRefusal } from "./staffAccess";
 import { addDefaults as addDefaultPasses } from "./medicationPassService";
 import { addDefaults as addDefaultSymptoms } from "./symptomTypeService";
 
-export const serviceName = "accessCode";
 export const schemaName = accessCodeModel.schemaName;
 
 // Access codes (invites slice 5): staff make them, print them, and revoke

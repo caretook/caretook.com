@@ -21,7 +21,7 @@ import { careRecipientSchema } from "../profiles/careRecipient";
 import { audits, enumCheck, id, timestamps } from "../core/columns";
 import { scheduleTimeZSchema } from "../medications/medication";
 import { timeZoneZSchema } from "../core/timeZone";
-import { parseRule, SERIES_LIMITS } from "./repeatRule";
+import { parseRule, SERIES_LIMITS } from "../../../domain/appointments/repeatRule";
 
 // A repeating appointment or reminder (appointments-2, B-60): "dialysis,
 // Mon Wed Fri at 6:00". The series holds the rule and a template; each

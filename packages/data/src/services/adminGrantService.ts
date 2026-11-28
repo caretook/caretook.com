@@ -5,7 +5,6 @@ import { isError, newError } from "../errors";
 import { userModel } from "../models";
 import * as adminAuditService from "./adminAuditService";
 
-export const serviceName = "adminGrant";
 export const schemaName = userModel.schemaName;
 
 // `pnpm admin:grant <email> [--role admin|support]` (admin PRD): how a new

@@ -39,8 +39,6 @@ import { isError, newError } from "../errors";
 import * as adminAuditService from "./adminAuditService";
 import { auditActorId, staffRefusal } from "./staffAccess";
 
-export const serviceName = "accountAdmin";
-
 // Staff account help (admin PRD, slice 2): find an account, see how it signs
 // in, where it's signed in, its groups and the mail sent to it, and help:
 // resend the verification email, send a password reset, sign sessions out.

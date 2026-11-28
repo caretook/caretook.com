@@ -26,7 +26,6 @@ import { asCreated, unchanged } from "./upserted";
 // checked and starts in the future are refused. The track itself (ends,
 // ties, the current period) is derived, never stored: carePeriodTrack.ts.
 
-export const serviceName = "carePeriod";
 export const schemaName = carePeriodModel.schemaName;
 
 const issuesOf = (error: z.ZodError) =>

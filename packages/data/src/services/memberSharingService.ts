@@ -14,7 +14,6 @@ import { dropMember } from "./emergencyContactService";
 // `member_contact_share` projection the group reads. The projection is only
 // ever written here, in the same transaction as the change that moves it.
 
-export const serviceName = "memberSharing";
 export const schemaName = memberContactShareModel.schemaName;
 
 const system = (tx: Tx) => ({ authUser: SYSTEM_USER, tx });

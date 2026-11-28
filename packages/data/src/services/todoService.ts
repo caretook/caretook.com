@@ -56,7 +56,6 @@ import { copyLinks } from "./recordTagService";
 // them (the permissions map lets every member update; this narrows it).
 // State and order are derived, never stored: todoRules.ts.
 
-export const serviceName = "todo";
 export const schemaName = todoModel.schemaName;
 
 const issuesOf = (error: z.ZodError) =>

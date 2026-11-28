@@ -4,8 +4,8 @@ import type { ProviderType } from "../providers/provider";
 import { MEDICATION_LIMITS } from "../medications/medication";
 import { FORM_LABELS } from "../medications/medicationDisplay";
 import { PROVIDER_LIMITS } from "../providers/provider";
-import { foldSearchText } from "../search/search";
-import { openingNewItem, vocabularyWord } from "./quickEntryVocabulary";
+import { foldSearchText } from "../../../domain/search/search";
+import { openingNewItem, vocabularyWord } from "../../../domain/assistant/quickEntryVocabulary";
 
 // Quick entry's new medications and providers: a line opening with "new
 // med", "started" (with a strength or form), "add provider" and the like

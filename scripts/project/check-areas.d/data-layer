@@ -10,3 +10,5 @@ packages/data/src/db/seeds/              app-shell
 packages/data/src/db/seeds/guard.ts      -
 # A schema folder's index re-exports its tables: no check of its own.
 packages/data/src/db/schema/*/index.ts   -
+# So does a domain folder's index.
+packages/data/src/domain/*/index.ts      -

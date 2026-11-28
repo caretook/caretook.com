@@ -13,7 +13,6 @@ import { revokeForMember } from "./connectorGrantService";
 import { disconnectForMember as disconnectGoogle } from "./googleConnectionService";
 import { releaseAssignee } from "./todoService";
 
-export const serviceName = "careGroupMember";
 export const schemaName = careGroupMemberModel.schemaName;
 
 // Reads come straight from the model (RBAC: any member of the group).

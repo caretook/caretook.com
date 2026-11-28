@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { MEDICATION_TYPES } from "./medication";
 import {
   MEDICATION_TYPE_GROUPS,
+  MEDICATION_TYPES,
   TYPE_NOT_SET,
   medicationTypeBadge,
   medicationTypeDetail,

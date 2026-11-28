@@ -19,11 +19,16 @@
 
 import type { SeriesKind } from "./appointmentSeries";
 
-import { addDays, localDate } from "../core/entryTiming";
-import { dayInZone, startOfDay, timeInZone } from "../core/zonedDay";
+import { addDays, localDate } from "../../../domain/core/entryTiming";
+import { dayInZone, startOfDay, timeInZone } from "../../../domain/core/zonedDay";
 import { seriesCrossFieldIssues } from "./appointmentSeries";
-import { parseRule, ruleText, SERIES_AHEAD_DAYS, seriesVisitId } from "./repeatRule";
-import { seriesDays, visitOn } from "./seriesVisits";
+import {
+  parseRule,
+  ruleText,
+  SERIES_AHEAD_DAYS,
+  seriesVisitId,
+} from "../../../domain/appointments/repeatRule";
+import { seriesDays, visitOn } from "../../../domain/appointments/seriesVisits";
 
 export const SERIES_SCOPES = ["only", "later"] as const;
 export type SeriesScope = (typeof SERIES_SCOPES)[number];

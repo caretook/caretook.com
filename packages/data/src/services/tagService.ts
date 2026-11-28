@@ -27,7 +27,6 @@ import { isSystemUser, rejectError } from "../permissions";
 // of the same row; a delete is hard, and the links cascade while the
 // records stay.
 
-export const serviceName = "tag";
 export const schemaName = tagModel.schemaName;
 
 const invalid = (error: z.ZodError) =>
