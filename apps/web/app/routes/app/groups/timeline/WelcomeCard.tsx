@@ -2,7 +2,7 @@ import { X } from "lucide-react";
 import { Card, IconButton } from "~/components/ui";
 
 /**
- * A new viewer's or Easy role's welcome: what their role can do, in words.
+ * A member's welcome (`TimelineWelcome`): what their role can do, in words.
  * No links or actions but Dismiss, so it offers nothing they can't do.
  */
 export function WelcomeCard({
