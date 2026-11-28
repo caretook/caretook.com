@@ -39,12 +39,14 @@ export async function clientLoader({ request }: Route.ClientLoaderArgs) {
   const redirectTo = safeRedirect(params.get("redirectTo"));
   // A copy kept for its owner past its limit goes, even if nobody signs in (B-290).
   await expireKeptCopy().catch((e: unknown) => console.error("Couldn't expire the kept copy", e));
-  // A sign-out made offline is finished first: its session must not skip ahead.
-  const stillPending = await finishPendingSignOut();
+  // A sign-out made offline is finished first: its session must not skip ahead
+  // (a newer session, from a magic link or an invite, is kept: B-730).
+  const finished = await finishPendingSignOut();
   // Offline (the request throws), there's no session to skip ahead with.
-  const { data } = stillPending
-    ? { data: null }
-    : await authClient.getSession().catch(() => ({ data: null }));
+  const { data } =
+    finished === "pending" || finished === "signedOut"
+      ? { data: null }
+      : await authClient.getSession().catch(() => ({ data: null }));
   if (data) throw redirect(redirectTo);
   return {
     redirectTo,
@@ -67,7 +69,7 @@ export async function clientAction({ request }: Route.ClientActionArgs): Promise
   const redirectTo = safeRedirect(formString(form, "redirectTo"));
   // An offline sign-out's server half goes first: while it's owed, the next
   // session check would end the new session too. It fails only offline.
-  if (await finishPendingSignOut())
+  if ((await finishPendingSignOut()) === "pending")
     return {
       intent: intent === "send-email" || intent === "code" ? "email" : "password",
       error: authMessages.offline,

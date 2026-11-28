@@ -1,11 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { endSession, requireSession } from "./session";
+import { confirmedSessionId, signOutOnServer } from "./pendingSignOut";
+import { endSession, requireSession, wipeDevice } from "./session";
 
 // The session check's two new duties (sync-safety slice 4, B-290), with the
 // server and the local database faked:
 // - a sign-out left pending offline is finished first, and the answer is
 //   signed out without asking who is signed in; the marker clears only once
-//   the server has the sign-out;
+//   the server has the sign-out (a marker naming no session, as "1" here);
+// - a marker naming its session (B-730) asks first whose session the cookie
+//   holds: the same is signed out, a newer one kept, none drops the marker;
 // - a session the server ended keeps the local copy for its owner when
 //   changes wait to upload, else wipes it.
 
@@ -49,6 +52,14 @@ const memoryStorage = () => {
 
 const PENDING = "caretook:sign-out-pending";
 const USER = { id: "u1", name: "Fictional Caretaker", email: "caretaker@example.com" };
+const OTHER = { id: "u2", name: "Fictional Relative", email: "relative@example.com" };
+/** get-session's answer for `user` signed in with session `sessionId`. */
+const signedIn = (user: typeof USER, sessionId: string) => ({
+  data: { user: { ...user, emailVerified: true }, session: { id: sessionId } },
+  error: null,
+});
+/** The pending marker an offline sign-out of `sessionId` leaves. */
+const markerFor = (sessionId: string) => JSON.stringify({ at: Date.now(), session: sessionId });
 const request = () => new Request("https://caretook.invalid/app/groups/g1/timeline");
 
 /** `requireSession`'s redirect, as the location it sends to. */
@@ -100,10 +111,58 @@ describe("requireSession with a sign-out pending", () => {
   });
 
   it("asks the server as usual with no marker", async () => {
-    auth.getSession.mockResolvedValue({ data: { user: { ...USER, emailVerified: true } }, error: null });
+    auth.getSession.mockResolvedValue(signedIn(USER, "s1"));
     const session = await requireSession(request());
     expect(auth.signOut).not.toHaveBeenCalled();
     expect(session.user.id).toBe("u1");
+  });
+});
+
+describe("a pending sign-out names its session (B-730)", () => {
+  it("is the session the last confirmed check recorded, read before the wipe forgets it", async () => {
+    auth.getSession.mockResolvedValue(signedIn(USER, "s1"));
+    await requireSession(request());
+    const sessionId = confirmedSessionId();
+    expect(sessionId).toBe("s1");
+    await wipeDevice();
+    expect(confirmedSessionId()).toBeNull();
+    auth.signOut.mockRejectedValue(new TypeError("Failed to fetch"));
+    await signOutOnServer(sessionId);
+    expect(JSON.parse(localStorage.getItem(PENDING)!)).toMatchObject({ session: "s1" });
+  });
+
+  it("signs out when the cookie still holds that session", async () => {
+    localStorage.setItem(PENDING, markerFor("s1"));
+    auth.getSession.mockResolvedValue(signedIn(USER, "s1"));
+    auth.signOut.mockResolvedValue({ data: { success: true }, error: null });
+    expect(await redirectOf(requireSession(request()))).toBe("/sign-in");
+    expect(auth.signOut).toHaveBeenCalledOnce();
+    expect(localStorage.getItem(PENDING)).toBeNull();
+  });
+
+  it("keeps a newer session (a magic-link or invite sign-in) and drops the marker", async () => {
+    localStorage.setItem(PENDING, markerFor("s1"));
+    auth.getSession.mockResolvedValue(signedIn(OTHER, "s2"));
+    const session = await requireSession(request());
+    expect(session.user.id).toBe("u2");
+    expect(auth.signOut).not.toHaveBeenCalled();
+    expect(localStorage.getItem(PENDING)).toBeNull();
+    expect(confirmedSessionId()).toBe("s2");
+  });
+
+  it("drops the marker when the cookie holds no session", async () => {
+    localStorage.setItem(PENDING, markerFor("s1"));
+    expect(await redirectOf(requireSession(request()))).toBe("/sign-in");
+    expect(auth.signOut).not.toHaveBeenCalled();
+    expect(localStorage.getItem(PENDING)).toBeNull();
+  });
+
+  it("stays pending offline, still signed out", async () => {
+    localStorage.setItem(PENDING, markerFor("s1"));
+    auth.getSession.mockRejectedValue(new TypeError("Failed to fetch"));
+    expect(await redirectOf(requireSession(request()))).toBe("/sign-in");
+    expect(auth.signOut).not.toHaveBeenCalled();
+    expect(JSON.parse(localStorage.getItem(PENDING)!)).toMatchObject({ session: "s1" });
   });
 });
 
@@ -141,7 +200,7 @@ describe("a fresh session's background recheck finds it ended (B-869)", () => {
   const freshOnTimeline = async () => {
     const location = { href: TIMELINE, assign: vi.fn(), reload: vi.fn() };
     vi.stubGlobal("window", { location });
-    auth.getSession.mockResolvedValueOnce({ data: { user: { ...USER, emailVerified: true } }, error: null });
+    auth.getSession.mockResolvedValueOnce(signedIn(USER, "s1"));
     await requireSession(new Request(TIMELINE));
     localStorage.setItem(`caretook:session-confirmed:${USER.id}`, String(Date.now() - 5 * 60 * 1000));
     let answer = (_: unknown) => undefined as void;
