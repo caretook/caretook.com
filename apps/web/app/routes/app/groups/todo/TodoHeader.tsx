@@ -11,7 +11,7 @@ import type { TodoState } from "@caretook/data/domain";
  *
  * - `via`: the member's AI assistant it was added through ("via Claude"), when it was.
  * - `editors`: who is editing the notes now (avatars).
- * - `actions`: Edit (the edit sheet) and ⋯ with Reopen and Delete, for writers.
+ * - `actions`: the shared ⋯ (`TodoMenu`: Edit, Reopen, Delete), for writers.
  * - `tags`: its tags (`QuickTags`), under the title (chips for every role; tags PRD).
  */
 export function TodoHeader({
