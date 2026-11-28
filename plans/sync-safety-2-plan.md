@@ -4,16 +4,16 @@
 
 ## Status
 
-| Slice | Wave | State  | Merge into `prd/sync-safety-2` (slice commits) |
-| ----- | ---- | ------ | ---------------------------------------------- |
-| 1     | 1    | merged | 4d070348b (9f4435a03)                          |
-| 2     | 1    | merged | 24b9272c5 (f8581109c..938e9e941)               |
-| 3     | 2    | ready  |                                                |
-| 4     | 1    | merged | 786118c26 (db392b14f, 64e2ce076)               |
+| Slice | Wave | State     | Merge into `prd/sync-safety-2` (slice commits)          |
+| ----- | ---- | --------- | ------------------------------------------------------- |
+| 1     | 1    | merged    | 4d070348b (9f4435a03)                                   |
+| 2     | 1    | merged    | 24b9272c5 (f8581109c..938e9e941)                        |
+| 3     | 2    | in flight | worktree sync-safety-2-3, opus agent spawned 2026-11-28 |
+| 4     | 1    | merged    | 786118c26 (db392b14f, 64e2ce076)                        |
 
 - **Landing mode: run everything through** (dispatcher start, 2026-11-27).
 - **Wave 1 landed** in dev 2026-11-27 through PR #308 (merge on GitHub, dev at d532090), tier components (CI run 46109445348 green on afc67f18c), Codex clean after three rounds: 959b11b28 (successor also made after the reopened row), df938bf03 (`todoModel.stampMadeAfter`: a next at least 1 ms after its predecessor), round 3 filed as B-1002 (fixes-bug, legacy rows). Items done: B-295, B-383, B-384, B-730, B-296; B-805 archived (answered in sync.md). Docs folded (medications, profiles, sync, todos, auth). Report filed. Slice models: all opus; docs fold sonnet.
-- **Next: wave 2 = slice 3 (B-387)**, ready (slice 2 is in dev). Run `risa backlog ingest`/`list`, claim B-387, `risa slice sync-safety-2 3`, spawn one opus agent with `risa prompt slice sync-safety-2 3`. Note for slice 3: the successor rule is now `created_at >= done_at` and `> own created_at`; `insertNext` stamps the next via `stampMadeAfter`; `complete` and `restoreOccurrence` take `lockVisible`. It is the last wave: after landing, `risa rm sync-safety-2`.
+- **Wave 2 under way:** dev synced (up to date) at 87c1eef24; B-387 claimed; slice 3 worktree made and one opus agent spawned (2026-11-28) with the wave-1 notes (successor rule `created_at >= done_at`, `stampMadeAfter`, `lockVisible`). Next: merge its hand-off, CI gate (`risa tier`), PR, Codex, land, docs fold (todos, sync), then `risa rm sync-safety-2` (last wave). Nothing new to propose from the backlog.
 
 ## Durable decisions
 
