@@ -1,8 +1,10 @@
 import type { AppError, AuthUser, StaffCapability } from "@caretook/data";
+import type { UserLimitName, UserLimits } from "./rateLimit";
 
 import { isError, logError, staffCan } from "@caretook/data";
 import { ORPCError, os } from "@orpc/server";
 import { unwrap } from "./errors";
+import { createUserLimits } from "./rateLimit";
 
 /**
  * The mount point's session lookup. `live` reads the session row itself,
@@ -41,13 +43,20 @@ export const lazyAuthUser = (lookup: AuthUserLookup): LazyAuthUser => {
  * Per-request context; procedures never read requests. Either `authUser`
  * is given (in-process callers and tests), or the mount point passes
  * `getAuthUser`, which authed and staff procedures resolve in their
- * middleware; public procedures never look up a session. `clientIp` is the
- * caller's address, for the public forms' rate limit.
+ * middleware; public procedures never look up a session.
+ *   - `clientIp`: the caller's address as the mount point trusts it, for
+ *     per-IP limits (the public forms, a link's sign-up); never stored.
+ *   - `userLimits`: the per-user limits (rateLimit.ts); a test passes its
+ *     own, everyone else gets the process's.
+ *   - `resHeaders`: the response's headers (`/rpc`'s ResponseHeadersPlugin),
+ *     where a 429's `retry-after` goes.
  */
 export type ApiContext = {
   authUser?: AuthUser | null;
   getAuthUser?: LazyAuthUser;
   clientIp?: string | null;
+  userLimits?: UserLimits;
+  resHeaders?: Headers;
 };
 
 /** The caller, as `authedProcedure` and `staffProcedure` resolve it (a lookup error is a 500). */
@@ -93,12 +102,43 @@ export const logFailures = os.$context<ApiContext>().middleware(async ({ context
 
 export const publicProcedure = os.$context<ApiContext>().use(logFailures);
 
-/** Requires a signed-in user (`context.authUser` is non-null inside). */
-export const authedProcedure = publicProcedure.use(async ({ context, next }) => {
+let processLimits: UserLimits | undefined;
+
+/**
+ * Counts the call against the caller's `name` limit (rateLimit.ts's
+ * USER_LIMITS); past it, a 429 with `retry-after`, never a 400: the
+ * device's uploader sets aside only bad requests, so a limited upload stays
+ * queued and is retried.
+ */
+const perUser = (name: UserLimitName) =>
+  os.$context<ApiContext & { authUser: AuthUser }>().middleware(async ({ context, next }) => {
+    const limits = context.userLimits ?? (processLimits ??= createUserLimits());
+    const wait = await limits.hit(name, context.authUser.id);
+    if (wait !== null) {
+      context.resHeaders?.set("retry-after", String(wait));
+      throw new ORPCError("TOO_MANY_REQUESTS", {
+        message: "Too many requests. Wait a little and try again.",
+        data: { code: "rateLimit:tooMany", retryAfter: wait },
+      });
+    }
+    return next();
+  });
+
+/** A signed-in user (`context.authUser` is non-null inside), not yet limited. */
+const signedIn = publicProcedure.use(async ({ context, next }) => {
   const authUser = await resolveAuthUser(context, false);
   if (!authUser) throw new ORPCError("UNAUTHORIZED");
   return next({ context: { authUser } });
 });
+
+/** Requires a signed-in user (`context.authUser` is non-null inside), within the per-user default limit. */
+export const authedProcedure = signedIn.use(perUser("default"));
+
+/**
+ * A signed-in procedure under its own per-user limit instead of the
+ * default: `sync.upload` and the ones that email other people.
+ */
+export const limitedProcedure = (name: Exclude<UserLimitName, "default">) => signedIn.use(perUser(name));
 
 /**
  * Caretook staff with `capability` (db/schema/staffRules.ts: admin and
@@ -106,11 +146,14 @@ export const authedProcedure = publicProcedure.use(async ({ context, next }) => 
  * a group's owner is refused like anyone else (a 403), and so is support on
  * an admin-only capability. The session is read live, never from the
  * cookie cache (B-140), so a revoked staff session is refused at once.
+ * Within the per-user default limit, like every signed-in procedure.
  */
 export const staffProcedure = (capability: StaffCapability) =>
-  publicProcedure.use(async ({ context, next }) => {
-    const authUser = await resolveAuthUser(context, true);
-    if (!authUser) throw new ORPCError("UNAUTHORIZED");
-    if (!staffCan(authUser.roleNames, capability)) throw new ORPCError("FORBIDDEN");
-    return next({ context: { authUser } });
-  });
+  publicProcedure
+    .use(async ({ context, next }) => {
+      const authUser = await resolveAuthUser(context, true);
+      if (!authUser) throw new ORPCError("UNAUTHORIZED");
+      if (!staffCan(authUser.roleNames, capability)) throw new ORPCError("FORBIDDEN");
+      return next({ context: { authUser } });
+    })
+    .use(perUser("default"));

@@ -4,7 +4,7 @@ import type { Outcome } from "./syncRegistry";
 import { ERRORS, initClient, isError, logError, newError, noteDocumentService } from "@caretook/data";
 import { z } from "zod";
 import { unwrap } from "./errors";
-import { authedProcedure } from "./procedures";
+import { limitedProcedure } from "./procedures";
 import { applyOp, text } from "./syncRegistry";
 
 // PowerSync's upload queue. A device writes to its local SQLite, PowerSync
@@ -129,7 +129,7 @@ const rejected = (op: CrudOp, error: AppError): CrudResult => {
 
 export const sync = {
   /** Apply a device's queued changes, in order. See the notes at the top of this file. */
-  upload: authedProcedure
+  upload: limitedProcedure("sync")
     .input(z.object({ ops: z.array(crudOpZSchema).max(SYNC_BATCH_LIMIT) }))
     .handler(async ({ context, input }) => {
       const results: CrudResult[] = [];

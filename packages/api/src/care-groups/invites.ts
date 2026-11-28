@@ -22,7 +22,7 @@ import { z } from "zod";
 import { iso } from "../dto";
 import { unwrap } from "../errors";
 import { joinMailer } from "./joinRequests";
-import { authedProcedure, publicProcedure } from "../procedures";
+import { authedProcedure, limitedProcedure, publicProcedure } from "../procedures";
 
 // `invite.*`: care group invites by email (invites slice 3) and by link
 // (slice 4). Managers (owners and admins) list, send, resend and revoke
@@ -140,7 +140,7 @@ export const invite = {
    * Invite someone by email (owners and admins; only owners invite owners).
    * `attested`: the inviter confirms the care recipient agreed to share.
    */
-  createEmail: authedProcedure
+  createEmail: limitedProcedure("inviteEmail")
     .input(
       z.object({
         groupId: id,
@@ -159,13 +159,15 @@ export const invite = {
     }),
 
   /** Send a waiting email invite again, with a new link (the old one stops working). */
-  resend: authedProcedure.input(z.object({ id })).handler(async ({ context, input }) => {
-    const sent = unwrap(
-      await careGroupInviteService.resend(context, input.id, { mail: inviteMailer(context.authUser.id) }),
-    );
-    if (sent.queued) deliverSoon(sent.queued);
-    return one(sent.invite);
-  }),
+  resend: limitedProcedure("inviteEmail")
+    .input(z.object({ id }))
+    .handler(async ({ context, input }) => {
+      const sent = unwrap(
+        await careGroupInviteService.resend(context, input.id, { mail: inviteMailer(context.authUser.id) }),
+      );
+      if (sent.queued) deliverSoon(sent.queued);
+      return one(sent.invite);
+    }),
 
   /** Withdraw a waiting invite: its link stops working at once. */
   revoke: authedProcedure.input(z.object({ id })).handler(async ({ context, input }) => {
@@ -276,7 +278,7 @@ export const invite = {
    * ticked the legal box, which an account with no current acceptance must
    * (`legalRequired`).
    */
-  accept: authedProcedure
+  accept: limitedProcedure("joinAsk")
     .input(z.object({ token, consent: z.literal(true), legal: z.literal(true).optional() }))
     .handler(async ({ context, input }) => {
       const result = unwrap(await careGroupInviteService.accept(context, input, { joinMail: joinMailer() }));
