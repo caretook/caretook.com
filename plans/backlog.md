@@ -303,6 +303,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1066 | bug | triaged | data-rights-2 |  | Deleting a care group leaves a pending joinDeclined email unskipped: its key is joinDeclined:<requestId>:<userId> and it links only to /app, so skipGroupMail misses it |
 | B-1067 | chore | triaged | fixes-nit |  | careGroupService.remove and the Details route compare group roles as strings ('owner'), against care-groups' rule to use isOwnerRole; also the connectors check at careGroupService.ts:102 |
 | B-1068 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineTagEdit.browser.test.tsx: deleting a tag an owner deletes a tag after a dialog naming its records |
+| B-1069 | chore | triaged | fixes-tooling |  | Recheck the realpath wrapper in pnpm test:tooling once Risa ships RISA-1093 |
 
 ## Items
 
@@ -1876,3 +1877,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-28 (prd/code-health-4): Flaked in components-4 on prd/code-health-4 run 46187226019 (049e799a); the branch didn't touch it; passed on the recheck run 46187839305.
+
+### B-1069 · chore · Recheck the realpath wrapper in pnpm test:tooling once Risa ships RISA-1093
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-28 (Robert Bo Davis): From the inbox: package.json's test:tooling calls Risa's runner through $(realpath …), a workaround for RISA-1048 (through the node_modules symlink the runner ran nothing and exited 0). v0.2.3 (pinned 2026-11-28) fixes the runner: the plain path ran all 35 files. Kept on the user's word until RISA-1093 (about 20 other Risa entry points with the same symlink no-op) is in a pinned release; then drop the wrapper and trim step 4 of docs/agents/project-config.md (Updating Risa).
+- 2026-11-28 (Robert Bo Davis): Triaged to fixes-tooling: a one-line script change plus a doc step. Not runnable until RISA-1093 is in a release Caretook pins; Risa's backlog session was asked to say when.
