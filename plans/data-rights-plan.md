@@ -10,7 +10,7 @@
 
 **Landing mode:** run everything through (start every ready slice, land each green wave, ask only real questions via `risa ask`).
 
-**Where it stands:** wave 1 (slices 1 to 4, opus) is merged and synced with dev (2026-11-28). The first gate (run 46172480554) braked on 11 slice-1 integration tests; the opus fix agent's commit 21097f669 (tests expect scrubbed rows; `symptom_type_id` kept; `symptomTypeService.replace` names only live entries) is merged as `70d0b9c12`. The full gate reruns now. Follow-up filed: B-1049 (a deleted pass's name scrubbed, so the connector's `listMedications` shows blank pass names). Next on green: `risa rm data-rights-<1..4>`, `risa backlog done B-84`, PR, Codex, land; then slice 5 (claim B-357).
+**Where it stands:** wave 1 (slices 1 to 4, opus) is merged and synced with dev (2026-11-28). The first gate (run 46172480554) braked on 11 slice-1 integration tests, fixed by 21097f669 (merged `70d0b9c12`). Rerun 46174164100 on ea86b97c: **flake** only (`search.sync.browser.test.tsx` timing, on the brake list). PR #341 opened; `risa review data-rights --wait` runs. Follow-up filed: B-1049. Next: triage Codex, `risa land data-rights --tier full`, `risa rm data-rights-<1..4>`, `risa backlog done B-84`, docs fold, status-trim, rotate; slice 5 (claim B-357) in the next session.
 
 **Open:** slice 3 saw a scrubbed (empty-name) place drop out because `toProvider` returned null; slice 2's `toProvider` now keeps a deleted row with no name, so check at the wave gate that a scrubbed place reads "Removed place" (and `toMedication` likewise) before filing a follow-up. Slices 2 (21 files) and 3 (14) passed the file-count warning: note for the next plan.
 
