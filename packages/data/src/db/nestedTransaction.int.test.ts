@@ -124,6 +124,7 @@ describe("withTransaction: nested calls", () => {
             runs++;
             sawCommit = committed;
           });
+          await sp.execute(sql`SELECT 1`);
           return "inner";
         },
         { tx },
@@ -145,6 +146,7 @@ describe("withTransaction: nested calls", () => {
       const nested = await withTransaction(
         async (sp) => {
           afterCommit(sp, () => runs++);
+          await sp.execute(sql`SELECT 1`);
           return refused();
         },
         { tx },
@@ -153,6 +155,7 @@ describe("withTransaction: nested calls", () => {
       const thrown = await withTransaction(
         async (sp) => {
           afterCommit(sp, () => runs++);
+          await sp.execute(sql`SELECT 1`);
           throw new Error("a fictional failure");
         },
         { tx },
@@ -174,6 +177,7 @@ describe("withTransaction: nested calls", () => {
           return withTransaction(
             async (deeper) => {
               afterCommit(deeper, () => runs++);
+              await deeper.execute(sql`SELECT 1`);
               return "deeper";
             },
             { tx: sp },
