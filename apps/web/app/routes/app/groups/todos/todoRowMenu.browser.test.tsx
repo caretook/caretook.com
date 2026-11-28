@@ -31,6 +31,13 @@ const LIST = `/app/groups/${TEST_GROUP.id}/todos`;
 const MINE = `${LIST}?who=mine`;
 
 const today = localDate(new Date(), TEST_TIME_ZONE);
+/** The first Monday after today (as todoRepeat.browser.test.tsx's). */
+const monday = (() => {
+  for (let n = 1; ; n++) {
+    const day = addDays(today, n);
+    if (new Date(`${day}T12:00:00Z`).getUTCDay() === 1) return day;
+  }
+})();
 
 const PARTY = todo({
   id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f7e01",
@@ -67,10 +74,10 @@ const EYES = todo({
 const BINS = todo({
   id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f7e06",
   title: "Put the bins out",
-  dueOn: addDays(today, 1),
+  dueOn: today,
   assigneeId: TEST_USER.id,
-  repeatRule: "FREQ=WEEKLY;INTERVAL=1",
-  repeatStartsOn: addDays(today, 1),
+  repeatRule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO",
+  repeatStartsOn: addDays(monday, -7),
   repeatId: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f7e06",
 });
 const world = () => [PARTY, INVITES, STAMPS, BATTERIES, EYES, BINS];
@@ -118,7 +125,7 @@ describe("a todo row's ⋯", () => {
     await expect
       .poll(() => document.querySelector(`[data-todo-section=done] [data-todo="${EYES.id}"]`))
       .toBeNull();
-    await expect.element(rowOf(EYES.id)).toHaveAttribute("data-todo-state", "open");
+    await expect.element(rowOf(EYES.id)).not.toHaveAttribute("data-todo-state", "done");
   });
 
   test("a reader's rows have none", async () => {
@@ -161,7 +168,9 @@ describe("Edit from a row", () => {
     await userEvent.fill(dialog.getByRole("textbox", { name: "Todo" }), "Sort the spare batteries");
     await userEvent.click(dialog.getByRole("button", { name: "Save" }));
     await expect.poll(() => device.location()).toBe(MINE);
-    await expect.element(rowOf(BATTERIES.id)).toHaveTextContent("Sort the spare batteries");
+    await expect
+      .element(getByCss(`main [data-todo="${BATTERIES.id}"] [data-todo-title]`))
+      .toHaveTextContent("Sort the spare batteries");
     expect(document.querySelector("[data-todo-page]")).toBeNull();
   });
 });

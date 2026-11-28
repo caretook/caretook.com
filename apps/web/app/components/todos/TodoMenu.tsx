@@ -51,8 +51,10 @@ export function TodoMenu({
   const navigate = useNavigate();
   const { pathname, search } = useLocation();
   const tick = useTodoTick(todo.groupId);
-  // The subtask count once Delete asked (the confirm waits for it), else null.
-  const [confirming, setConfirming] = useState<number | null>(null);
+  // The confirm is mounted once Delete is first asked (a list's rows hold none until
+  // then), with the subtask count it waits for; it stays, so closing gives focus back to the ⋯.
+  const [asked, setAsked] = useState<number | null>(null);
+  const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   if (!group.canWrite) return null;
 
@@ -66,18 +68,22 @@ export function TodoMenu({
       state: TODO_SHEET_STATE,
       preventScrollReset: true,
     });
+  const confirm = (count: number) => {
+    setAsked(count);
+    setOpen(true);
+  };
   const askDelete = () => {
     setError(null);
-    if (subtasks !== undefined || asksRepeat) return setConfirming(subtasks ?? 0);
+    if (subtasks !== undefined || asksRepeat) return confirm(subtasks ?? 0);
     readRows(getSync(), todoDescendantsQuery(todo.groupId, todo.id))
-      .then((rows) => setConfirming(rows.length))
+      .then((rows) => confirm(rows.length))
       .catch((e: unknown) => {
         console.error("Couldn't count the subtasks", e);
-        setConfirming(0);
+        confirm(0);
       });
   };
   const send = (skip: boolean) => {
-    setConfirming(null);
+    setOpen(false);
     onDelete?.();
     const db = getSync();
     (skip ? skipTodo(db, todo.id) : removeTodo(db, todo.id))
@@ -114,24 +120,25 @@ export function TodoMenu({
         <Ellipsis className="size-4" aria-hidden="true" />
       </Menu>
       {message && <Message tone="error">{message}</Message>}
-      {asksRepeat ? (
-        <RepeatDeleteDialog
-          open={confirming !== null}
-          title={todo.title}
-          onClose={() => setConfirming(null)}
-          onSkip={() => send(true)}
-          onStop={() => send(false)}
-        />
-      ) : (
-        <ConfirmDialog
-          open={confirming !== null}
-          title="Delete this todo?"
-          message={deleteMessage(todo.title, confirming ?? 0)}
-          confirmLabel="Delete"
-          onClose={() => setConfirming(null)}
-          onConfirm={() => send(false)}
-        />
-      )}
+      {asked !== null &&
+        (asksRepeat ? (
+          <RepeatDeleteDialog
+            open={open}
+            title={todo.title}
+            onClose={() => setOpen(false)}
+            onSkip={() => send(true)}
+            onStop={() => send(false)}
+          />
+        ) : (
+          <ConfirmDialog
+            open={open}
+            title="Delete this todo?"
+            message={deleteMessage(todo.title, asked)}
+            confirmLabel="Delete"
+            onClose={() => setOpen(false)}
+            onConfirm={() => send(false)}
+          />
+        ))}
     </>
   );
 }
