@@ -17,14 +17,14 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 - **Wave 12 landed** (2026-11-28) through PR #340 at full (run 46171924664, Codex clean on abf3b81); dev pushed 5f77754..8377fdb; to-test/2026-11-28-1249-fixes-tooling.md. Folded: search.md's query timing. B-954 bit at the browser checks after the sync (stack lacked `user.group_limit`; `pnpm datastore:migrate` fixed it). **Idle hand-over:** no slice in flight; the next session starts wave 13 from the waiting items (B-1045, new: `risa rotate --self` failed, Risa tooling, likely Risa's like B-954).
 - **Wave 13 started 2026-11-28** (takeover after an interruption; no landing journal, no slices were in flight). Slices 102–108, all opus. Hot set to their paths. All merged (slice 103 needed none); `risa ci run full` requested on afb22d1d (full: the seeds). New B-1051 (assistantActionManyMedications int-test load flake). Context past the soft limit: rotate at this wave's boundary. Fold at landing: slice 105 gave `web:unit` the `~/` alias; fix any doc saying web:unit uses relative imports only. Also fold slice 108's onboarding test account (`onboarding@example.com`, `pnpm datastore:reset:onboarding`, local or staging only) into docs/domain/app-shell.md's Setup part and a row in docs/seed-accounts.md (text in B-667's note). Not in this wave: B-791 (profile routes are data-rights' hot), B-1045 and B-954 (Risa's: RISA-1082), B-863 (held), B-907 (large), B-921 (close once quarantine steady), B-977 (feature), B-750/B-752 (parked).
 - **Wave 13 landed** (2026-11-28) through PR #342 at full (run 46174655374, Codex clean on 517e978); dev ce5dc44..eb2a078, notice 2063b8213; to-test/2026-11-28-1323-fixes-tooling.md. Slices 102, 104–108 merged; 103 (B-782) needed no code (fixed by 273ba77a0). Browser checks app-shell, invites, marketing 3/3. Folded: the onboarding test account (app-shell.md, seed-accounts.md), web:unit's `~/` (loop.md). Lesson: request a CI run once and commit nothing until its verdict (a second push cancels the first run). Seeds changed: the main checkout needs `pnpm datastore:reset` (the user's). **Idle hand-over:** no slice in flight; the next session starts wave 14 from the waiting items.
-- **Wave 14 started 2026-11-28** (takeover after an interruption; no landing journal, nothing in flight). Slice 109 (B-1051, the many-medications givePass load timeout), opus.
+- **Wave 14 started 2026-11-28** (takeover after an interruption; no landing journal, nothing in flight). Slice 109 (B-1051, the many-medications givePass load timeout), opus: handed off (made Given all set-based: ~1,000 round trips to a few; 1 s unloaded to ~0.1 s), merged as 16598a82d. `risa ci run integration` requested (the tier `risa tier` proposed).
 - **Waiting triaged items for later waves:** B-791 (waits on data-rights' profile routes; failed in quarantine again), B-750 and B-752 (parked, not runnable), B-863 (Risa tooling, held), B-907 (large: ~50 test files), B-921 (candidate to close once quarantine shows it steady), B-954 (Risa's `serve`/`browser`: belongs in Risa), B-977 (a deploy-workflow feature, not a fix).
 - **Watch:** wait on a check with `risa wait check`; confirm any failure alone 3x before calling it a flake. Agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`).
 
-| Slice | Item   | State                | Merge |
-| ----- | ------ | -------------------- | ----- |
-| 109   | B-1051 | agent spawned (opus) |       |
+| Slice | Item   | State  | Merge     |
+| ----- | ------ | ------ | --------- |
+| 109   | B-1051 | merged | 16598a82d |
 
 ## Wave 1
 
