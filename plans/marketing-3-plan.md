@@ -10,17 +10,17 @@
 
 **Landing mode:** run everything through (started run-through by the dispatcher): start every ready slice, land each green wave, ask only real questions via `risa ask`.
 
-**Now (2026-11-28):** wave 1 starting (slices 1, 2, 3, 4, 7). Models: 1, 2, 4 opus; 3, 7 sonnet (research note; exact text spelled out). Backlog at wave 1 boundary: nothing new for marketing-3.
+**Now (2026-11-28):** wave 1 starting (slices 1, 2, 3, 4, 7). Worktrees made; agents on opus (the plan's Model field) for all five. Backlog at wave 1 boundary: nothing new for marketing-3.
 
 | Slice | Wave | State   | Merge into `prd/marketing-3` (slice commits) |
 | ----- | ---- | ------- | -------------------------------------------- |
-| 1     | 1    | planned |                                              |
-| 2     | 1    | planned |                                              |
-| 3     | 1    | planned |                                              |
-| 4     | 1    | planned |                                              |
+| 1     | 1    | working |                                              |
+| 2     | 1    | working |                                              |
+| 3     | 1    | working |                                              |
+| 4     | 1    | working |                                              |
 | 5     | 2    | planned |                                              |
 | 6     | 2    | planned |                                              |
-| 7     | 1    | planned |                                              |
+| 7     | 1    | working |                                              |
 
 ## Architectural decisions
 
