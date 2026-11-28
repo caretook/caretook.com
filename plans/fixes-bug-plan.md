@@ -10,10 +10,11 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+| Slice | Item   | State           | Merge |
+| ----- | ------ | --------------- | ----- |
+| 99    | B-1046 | starting (opus) |       |
 
-Idle hand-over: no slice in flight.
+Wave 29 started 2026-11-28: `risa sync` needed no merge; slice 99 written and starting.
 
 **Wave 28 landed** (2026-11-28): PR #354 (dev 1c2b872), Codex clean, CI components flake (run 46186862084; todayCard, filed B-1065); to-test `2026-11-28-1540-fixes-bug.md`; landing report filed. B-1056, B-1058 done; worktrees removed; docs folded into assistant.
 
@@ -1047,3 +1048,18 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md, docs/domain/
 
 - Add `dialog` elements to the layer guard's selector.
 - Component test: with an open native `<dialog>` holding focus, `/` and Cmd/Ctrl+K don't open the sheet.
+
+## Wave 29
+
+One slice, for the alpha report B-1046 (decided in ask a430, skeptic s105, for the user's veto): slice 96 found no repro in Chromium, so this wave takes away the lead it named. All test data fictional. No migration.
+
+### Slice 99: WebKit and the newest days draw every timeline row (B-1046)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/timeline.md, docs/domain/components.md · Tests: unit, component · Check: apps/web/app/routes/app/groups/timeline/offscreenRows.test.ts apps/web/app/routes/app/groups/timeline/timelineBlank.browser.test.tsx apps/web/app/routes/app/groups/timeline/timelineScroll.browser.test.tsx
+
+An alpha tester on iOS Safari and the installed PWA sees the Today header with no entries below it until a scroll (`risa backlog show B-1046` has the reports and slice 96's findings). Slice 96 (`timelineBlank.browser.test.tsx`) found no data path that leaves the list empty in Chromium; its lead is WebKit not painting rows under `content-visibility: auto` (`apps/web/app/routes/app/groups/timeline/offscreenRows.ts`, from B-139, used in `TimelineEntryList.tsx` about line 233) once Today's day counts as settled (after paging, Back, or the logo on a long window).
+
+- Never contain Today's day or any later day: `settledDays` leaves them drawn whatever the tail count.
+- On WebKit (Safari, iOS browsers and the installed PWA) apply no `OFFSCREEN_ROWS` at all; detect it once, in one small helper beside `offscreenRows.ts`, with a comment saying why (B-1046). Chromium and Firefox keep B-139's behaviour for the older days.
+- Unit tests (`offscreenRows.test.ts`): Today and a later day are never settled, even with many rows after them; the WebKit check turns the offscreen class off. Component tests: keep `timelineBlank.browser.test.tsx` and `timelineScroll.browser.test.tsx` green; add one that Today's rows carry no `content-visibility` after paging an older page in.
+- B-1046 stays open after this slice for report 2 (empty after the logo, reopening fixed it: likely the local database not answering after an iOS resume): say so in the hand-off.
