@@ -7,7 +7,7 @@
 | Slice | Wave | State           | Merge into `prd/shared-displays` (slice commits) |
 | ----- | ---- | --------------- | ------------------------------------------------ |
 | 1     | 1    | merged (sonnet) | 8be180eb6 (4e7f6360e)                            |
-| 2     | 2    | running (opus)  |                                                  |
+| 2 | 2 | handed off (opus), merge held until wave 1 lands | (2925d1922) |
 | 3     | 3    | planned         |                                                  |
 | 4     | 3    | planned         |                                                  |
 | 5     | 3    | planned         |                                                  |
