@@ -10,10 +10,13 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+| Slice | Item   | State          | Merge |
+| ----- | ------ | -------------- | ----- |
+| 90    | B-1002 | started (opus) | —     |
+| 91    | B-1003 | started (opus) | —     |
+| 92    | B-1006 | started (opus) | —     |
 
-**Idle after wave 25** (idle hand-over; landed through PR #295, 2026-11-27, ef9445cb8, Codex clean on a92da06, CI integration green run 46089663368; to-test `to-test/2026-11-27-1955-fixes-bug.md`; landed unsynced, dev had 5 unrelated commits). Slice 89 (B-992, opus, a83841058): a per-group `symptom_catalog` advisory lock (replace exclusive, symptom entry writes shared, tombstone followed); folded into timeline.md. Open: the backfill's `fillPointers` still runs without the lock (out of scope). **Next session:** ingest, `risa backlog list`; nothing else waiting for fixes-bug. Checked again 2026-11-27 (fresh session): inbox empty, only B-750 and B-752 (both held as below), nothing runnable; rotated. Checked again 2026-11-27 (third idle start by the dispatcher): same, nothing runnable; asked the backlog session to park B-750/B-752 in a held topic so the dispatcher stops counting them; rotated. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table.
+**Wave 26 in flight** (2026-11-28): three sync-safety follow-ups, all parallel, all opus. Hot files set on the fixes-bug row. Wave 25 landed through PR #295 (ef9445cb8); its notes are in the history file after the next status-trim. Held: B-750 (only once its notes name files), B-752 (only if B-753's watchdog names a recurrence). Gotcha: run prettier on the plan after editing the Status table.
 
 ## Wave 1
 
@@ -950,3 +953,34 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/timeline.md, docs/domain/d
 
 - One per-group symptom-catalog advisory lock (`pg_advisory_xact_lock` on a `symptom_catalog:<groupId>` key, as `tagService.ts` does for tags): `replace` takes it exclusive; every symptom entry write (create, update, the connector's log, the sync upload's path through the service) takes it shared before resolving the symptom, then checks the resolved row isn't a tombstone (follow it if it is). Non-symptom entry writes take no lock. Keep the change inside `symptomTypeService.ts` and `timelineEntryService.ts` (plus the models they use); don't touch `packages/api/src/sync.ts`.
 - Integration tests (fictional group, two transactions on the shared test Postgres): an update read before replace and committed after it ends on the replacement symptom; a create naming a tombstone A (A→B) racing replace(B→C) ends on C. Say in the hand-off how the tests force the interleaving.
+
+## Wave 26
+
+Three sync-safety follow-ups, run in parallel (90 and 91 both touch the repeating-todo code in `todoService.ts` and `todos.sync.ts`, in different functions; the orchestrator merges in plan order). **First confirm each bug with a failing test**; if it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code. All test data fictional. No migration and no change to existing rows (no backfill).
+
+### Slice 90: reopening a tick made before B-383 finds its successor (B-1002)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/todos.md, docs/domain/sync.md · Tests: integration, component
+
+Repeating todos ticked before sync-safety-2 (B-383) took `done_at` from the app clock after the transaction's `now()`, so their successor's `created_at` can sit slightly before the predecessor's `done_at`. The successor rule in `laterInChain` (server `packages/data/src/services/todoService.ts`, about line 211; device `apps/web/app/lib/todos/todos.sync.ts`, about line 845) then misses it, and reopen leaves both open and repeating.
+
+- Fix without touching data: when the current rule finds no successor, fall back to the old `dueOn` rule (the next row in the chain by `due_on`), on both server and device, the same way in each. Say in the hand-off why the fallback can't pick a wrong row for chains written after B-383.
+- Integration test: a fictional chain whose successor's `created_at` is a few milliseconds before the predecessor's `done_at`; reopening the predecessor removes or reopens it as the current rule does for new chains (one open row, still repeating). Component (device) test: the same chain in the local database through `reopenTodo`.
+
+### Slice 91: a stale tick's PATCH can't restore a stopped chain (B-1003)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/todos.md, docs/domain/sync.md · Tests: integration, component
+
+A device holding the Undo's soft-deleted next occurrence that ticks a stale copy writes a PATCH clearing `deleted_at`; the PATCH path in `packages/api/src/syncRegistry.ts` (about line 430) calls `todoService.restoreOccurrence` (`todoService.ts`, about line 811), which still restores for a writer when the chain has no open row, so a stopped chain comes back. B-387's flag covers only the PUT path.
+
+- The device flags that restore update with `TICK_NEXT_METADATA` (as B-387's PUT does); the PATCH path skips `restoreOccurrence` when the op is flagged and the chain has no open row, and the op is accepted with no change (not refused, so the queue drains). An unflagged restore (a member's own Undo) behaves as today. Keep the server change to the todo case of the upload switch and the service.
+- Integration test: a fictional stopped chain (no open row, next soft-deleted); a flagged PATCH clearing `deleted_at` leaves it deleted; an unflagged one from a writer still restores. Component test: the device's stale tick writes the flag.
+
+### Slice 92: deleting a pass doesn't resend every medication's schedule (B-1006)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/medications.md, docs/domain/sync.md · Tests: component, integration
+
+`removePass` (`apps/web/app/lib/medications/medicationPasses.sync.ts`, about line 248) rewrites every medication's schedule from the device's copy and queues those medication PATCHes, so an offline delete overwrites another member's schedule edit made meanwhile. The server already rewrites the schedules itself when a pass is deleted (see the `medicationPass` comment in `packages/api/src/syncRegistry.ts`); confirm that first with an integration test.
+
+- The device stops uploading those schedule PATCHes: it may still update its local medication rows so screens stay right until sync, but only the pass delete goes up (use the local-only write path the sync docs name; if none fits, say so and stop). Don't change `syncRegistry.ts` or the server.
+- Component test: deleting a pass queues only the pass delete (no medication ops) and the local medications drop the pass. Integration test: the server's pass delete rewrites a medication's schedule and keeps another member's concurrent schedule edit.
