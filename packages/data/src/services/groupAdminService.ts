@@ -80,7 +80,8 @@ export const search = async (
 /**
  * Staff (`groups.read`): the group's name, recipient's name, members (with
  * who invited them and when they joined), counts and dates; null when
- * there's no such group. Records `group.view` in the background.
+ * there's no such group. Records `group.view`, awaited, so the entry exists
+ * before the answer (a failed write fails the read).
  */
 export const get = async (ctx: ServiceContext, groupId: string) => {
   const refused = staffRefusal(ctx, "groups.read");
@@ -92,7 +93,12 @@ export const get = async (ctx: ServiceContext, groupId: string) => {
   const activity = await groupDirectoryModel.activity(groupId, ctx.tx);
   if (isError(activity)) return activity;
 
-  adminAuditService.recordSoon({ actorId: auditActorId(ctx), action: "group.view", targetGroupId: groupId });
+  const audited = await adminAuditService.record(undefined, {
+    actorId: auditActorId(ctx),
+    action: "group.view",
+    targetGroupId: groupId,
+  });
+  if (isError(audited)) return audited;
   return { ...group, members, ...activity };
 };
 

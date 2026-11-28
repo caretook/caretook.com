@@ -45,6 +45,17 @@ const auditFor = async (targetUserId: string) => {
   return res.data;
 };
 
+/** `actorId`'s audit entries with `action`, read at once (no waiting on background work). */
+const entriesBy = async (actorId: string, action: "user.view" | "user.search") => {
+  const res = await adminAuditLogModel.search({
+    authUser: SYSTEM_USER,
+    filter: { actorId, action },
+    paginate: { page: 1, limit: 100 },
+  });
+  if (isError(res)) throw new Error(String(res.code));
+  return res.data;
+};
+
 /** Signed-in sessions for `userId`, as Better Auth would store them. */
 const addSessions = async (userId: string, agents: string[]) => {
   const rows = await getDb()
@@ -118,6 +129,19 @@ describe("admin.users.search", () => {
     const second = await api.admin.users.search({ page: 2 });
     expect(second.page).toBe(2);
     expect(second.users.length).toBe(Math.max(0, Math.min(50, total - 50)));
+
+    // Each search with text is on the log with that text when it returns; a
+    // listing without text isn't a search.
+    const searches = await entriesBy(support.user.id, "user.search");
+    expect(searches).toHaveLength(3);
+    expect(searches.map((e) => e.changes)).toEqual(
+      expect.arrayContaining([
+        { query: [tag.toUpperCase(), tag.toUpperCase()] },
+        { query: [suffix, suffix] },
+        { query: ["%", "%"] },
+      ]),
+    );
+    expect(searches[0]).toMatchObject({ targetUserId: null, targetGroupId: null, reason: null });
   });
 });
 
@@ -178,10 +202,10 @@ describe("admin.users.get", () => {
     const forbidden = (await careColumns()).flatMap((c) => [c, camel(c)]);
     expect(keysOf(page).filter((k) => forbidden.includes(k))).toEqual([]);
 
-    // Opening the page is recorded (in the background).
-    const views = (await auditFor(target.user.id)).filter((e) => e.action === "user.view");
+    // Opening the page is recorded before it answers.
+    const views = await entriesBy(support.user.id, "user.view");
     expect(views).toHaveLength(1);
-    expect(views[0]).toMatchObject({ actorId: support.user.id });
+    expect(views[0]).toMatchObject({ actorId: support.user.id, targetUserId: target.user.id });
   });
 
   it("is a 404 for an unknown account", async () => {
