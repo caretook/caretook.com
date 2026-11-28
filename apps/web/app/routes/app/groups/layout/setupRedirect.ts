@@ -1,6 +1,8 @@
 import type { GroupContext } from "~/lib/app-shell/group";
 import type { SyncDb } from "~/lib/sync";
 
+import { isOwnerRole } from "@caretook/data/permissions";
+
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { readSetupFacts } from "~/lib/app-shell/gettingStarted.sync";
 import { firstUnfinishedStep, setsUpGroup, setupOpened, setupRedirectStep } from "~/lib/app-shell/groupSetup";
@@ -43,7 +45,7 @@ export const setupRedirect = async ({
 }): Promise<string | null> => {
   const { id: groupId, userId, role } = group;
   const key = `${userId}:${groupId}`;
-  if (request.method !== "GET" || role !== "owner" || redirected.has(key)) return null;
+  if (request.method !== "GET" || !isOwnerRole(role) || redirected.has(key)) return null;
   if (onSetupPage(new URL(request.url).pathname, groupId)) return null;
   const cached = cachedSettings(userId);
   if (setupOpened(cached.groupSetup, groupId) || cached.setupDismissed.includes(groupId)) return null;

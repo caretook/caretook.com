@@ -57,6 +57,7 @@ export {
   isGroupRoleName,
   isLoggerRole,
   isManagerRole,
+  isOwnerRole,
   isWriterRole,
 } from "../constants/roles";
 export type { GroupRoleGroup, GroupRoleName } from "../constants/roles";
