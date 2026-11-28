@@ -42,7 +42,6 @@ import { isSystemUser, rejectError } from "../permissions";
 // ever append updates; `compact` folds them into the snapshot and refreshes
 // the plain text.
 
-export const serviceName = "noteDocument";
 export const schemaName = noteDocumentModel.schemaName;
 
 const invalid = (error: z.ZodError) =>

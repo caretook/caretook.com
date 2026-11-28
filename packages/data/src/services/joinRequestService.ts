@@ -26,7 +26,6 @@ import { groupDisplayName } from "./groupNames";
 // write is the system's, inside these functions, after checking the actor.
 // Each step emails through an injected `JoinMailer`, in the same transaction.
 
-export const serviceName = "joinRequest";
 export const schemaName = careGroupJoinRequestModel.schemaName;
 
 type K = typeof schemaName;

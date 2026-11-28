@@ -1,3 +1,2 @@
-export * from "./search";
+export * from "../../../domain/search";
 export * from "./searchDocument";
-export * from "./searchHighlight";

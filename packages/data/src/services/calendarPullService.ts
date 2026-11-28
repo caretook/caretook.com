@@ -31,8 +31,6 @@ import * as noteDocumentService from "./noteDocumentService";
 import * as todoService from "./todoService";
 import * as timelineEntryService from "./timelineEntryService";
 
-export const serviceName = "calendarPull";
-
 // Pulling members' changes back from Google Calendar (appointments-2, slice
 // 9). The calendar cron's `googlePull` step (`pullDue`) takes each live
 // connection at most every 5 minutes, lists what changed in its calendar

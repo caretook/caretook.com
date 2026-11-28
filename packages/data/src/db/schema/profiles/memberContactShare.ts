@@ -8,6 +8,7 @@ import { z } from "zod";
 import { careGroupMemberSchema } from "../care-groups/careGroupMember";
 import { audits, id, timestamps } from "../core/columns";
 import { CONTACT_LIMITS, optionalTextZSchema } from "../core/contactFields";
+import { SHARED_FIELDS } from "../../../domain/profiles/profileVisibility";
 
 // What one member shares with one care group (profiles): only the values of
 // the fields they chose, null for the rest. A projection of `user_contact`
@@ -18,8 +19,6 @@ import { CONTACT_LIMITS, optionalTextZSchema } from "../core/contactFields";
 // It syncs to every member of the group, so the streams never touch
 // `user_contact` or co-members' `user` rows for contact details.
 
-/** The contact fields a member can share with a group. */
-export const SHARED_FIELDS = ["phones", "email", "address"] as const;
 export type SharedField = (typeof SHARED_FIELDS)[number];
 
 export const memberContactShareSchema = pgTable(

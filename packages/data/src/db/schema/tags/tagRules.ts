@@ -7,7 +7,7 @@ import {
   isWriterRole,
 } from "../../../constants/roles";
 import { AVATAR_COLORS } from "../app-shell/avatar";
-import { uuidV5 } from "../core/uuidV5";
+import { uuidV5 } from "../../../domain/core/uuidV5";
 
 // The tags' pure rules (tags PRD), client-safe: the one place that folds a
 // tag name, derives a tag's or a link's id, says who may tag what, and reads

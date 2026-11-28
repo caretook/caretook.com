@@ -10,7 +10,6 @@ import { contactSendZSchema, spamVerdict } from "../db/schema";
 import { isError, newError } from "../errors";
 import { contactMessageModel } from "../models";
 
-export const serviceName = "contactMessage";
 export const schemaName = contactMessageModel.schemaName;
 
 type K = typeof schemaName;

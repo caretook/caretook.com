@@ -7,7 +7,7 @@ import { z } from "zod";
 import { careGroupSchema } from "../care-groups/careGroup";
 import { careRecipientSchema } from "../profiles/careRecipient";
 import { audits, id, timestamps } from "../core/columns";
-import { parseRule } from "../appointments/repeatRule";
+import { parseRule } from "../../../domain/appointments/repeatRule";
 import { medicationSchema, scheduleTimeZSchema } from "../medications/medication";
 import { providerSchema } from "../providers/provider";
 import { timelineEntrySchema } from "../timeline/timelineEntry";

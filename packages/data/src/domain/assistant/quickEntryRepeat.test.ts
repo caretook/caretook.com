@@ -98,7 +98,7 @@ describe("readRepeat", () => {
 
   test("the parser stays free of rrule and @caretook/data/series", () => {
     for (const file of [
-      "quickEntry.ts",
+      "../../db/schema/assistant/quickEntry.ts",
       "quickEntryRepeat.ts",
       "quickEntryTime.ts",
       "quickEntryVocabulary.ts",

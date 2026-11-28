@@ -11,7 +11,6 @@ import { revokeForGroup } from "./connectorGrantService";
 import { addDefaults as addDefaultPasses } from "./medicationPassService";
 import { addDefaults as addDefaultSymptoms } from "./symptomTypeService";
 
-export const serviceName = "careGroup";
 export const schemaName = careGroupModel.schemaName;
 
 type K = typeof schemaName;

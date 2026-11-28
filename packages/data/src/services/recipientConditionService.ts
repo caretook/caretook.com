@@ -55,7 +55,6 @@ import { resolveRecipient } from "./medicationService";
 // or unlink folds into the change entry of its save's time, so one save's
 // links (however many) are one entry with "Managed by: before → after".
 
-export const serviceName = "recipientCondition";
 export const schemaName = recipientConditionModel.schemaName;
 
 const invalid = (error: z.ZodError) =>

@@ -19,7 +19,6 @@ import { rejectError } from "../permissions";
 // A deleted condition's (or medication's) links stay in place, and the
 // reads here leave them out.
 
-export const serviceName = "medicationCondition";
 export const schemaName = medicationConditionModel.schemaName;
 
 const invalid = (error: z.ZodError) =>

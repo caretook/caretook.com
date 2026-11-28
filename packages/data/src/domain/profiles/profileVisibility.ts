@@ -1,14 +1,16 @@
-import type { GroupRoleName } from "../../../constants/roles";
-import type { ContactPhone } from "../core/contactFields";
-import type { SharedField } from "./memberContactShare";
-import type { ContactValues } from "./userContact";
+import type { GroupRoleName } from "../../constants/roles";
+import type { ContactPhone } from "../../db/schema/core/contactFields";
+import type { SharedField } from "../../db/schema/profiles/memberContactShare";
+import type { ContactValues } from "../../db/schema/profiles/userContact";
 
-import { GROUP_MANAGER_ROLES, GROUP_ROLE_NAMES, WRITER_ROLES } from "../../../constants/roles";
-import { SHARED_FIELDS } from "./memberContactShare";
+import { GROUP_MANAGER_ROLES, GROUP_ROLE_NAMES, WRITER_ROLES } from "../../constants/roles";
 
 // Who sees and edits what on a recipient's profile, and what a member's
 // sharing choices show a group (profiles). Pure and client-safe: screens,
 // services and tests all use it.
+
+/** The contact fields a member can share with a group. */
+export const SHARED_FIELDS = ["phones", "email", "address"] as const;
 
 /**
  * The recipient's fields in groups that share one rule:

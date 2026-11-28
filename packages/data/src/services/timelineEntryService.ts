@@ -54,7 +54,6 @@ import {
   lockCatalog as lockSymptomCatalog,
 } from "./symptomTypeService";
 import { releaseEvent } from "./todoService";
-export const serviceName = "timelineEntry";
 export const schemaName = timelineEntryModel.schemaName;
 
 type K = typeof schemaName;

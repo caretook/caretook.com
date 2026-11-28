@@ -7,7 +7,7 @@ import type {
   TimelineEntryCreateInput,
   Tx,
 } from "../db";
-import type { SeriesVisit } from "../db/schema/appointments/seriesVisits";
+import type { SeriesVisit } from "../domain/appointments/seriesVisits";
 import type { IncludeDeleted } from "../models/appointmentSeries";
 import type { ServiceContext } from "./types";
 
@@ -25,7 +25,7 @@ import {
   seriesVisitFallbackId,
   seriesVisitId,
 } from "../db/schema";
-import { firstDayFrom, seriesVisits } from "../db/schema/appointments/seriesVisits";
+import { firstDayFrom, seriesVisits } from "../domain/appointments/seriesVisits";
 import { isError, newError } from "../errors";
 import { logError } from "../logging";
 import {
@@ -58,7 +58,6 @@ import * as timelineEntryService from "./timelineEntryService";
 // own visit uploads follow. One without it (an API caller, a seed) gets its
 // visits from today (or its first day) through today + 90.
 
-export const serviceName = "appointmentSeries";
 export const schemaName = appointmentSeriesModel.schemaName;
 
 const issuesOf = (error: z.ZodError) =>

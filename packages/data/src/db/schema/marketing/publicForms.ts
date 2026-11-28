@@ -8,7 +8,7 @@ import {
   HONEYPOT_FIELD,
   NAME_MAX,
   SOURCE_FIELD_MAX,
-} from "./publicFormRules";
+} from "../../../domain/marketing/publicFormRules";
 
 // The marketing site's public forms' Zod schemas (marketing slice 4): the
 // waitlist and contact. Client-safe, but the site's form components import

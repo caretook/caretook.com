@@ -1,8 +1,8 @@
 import type { MedicationSchedule, MedicationStatus } from "./medication";
 import type { PassLike, TimedSlot } from "./medicationPass";
 
-import { addDays } from "../core/entryTiming";
-import { dayInZone, zonedInstant } from "../core/zonedDay";
+import { addDays } from "../../../domain/core/entryTiming";
+import { dayInZone, zonedInstant } from "../../../domain/core/zonedDay";
 import { normalizeSchedule } from "./medication";
 import { scheduleHasPass, slotTimes } from "./medicationPass";
 

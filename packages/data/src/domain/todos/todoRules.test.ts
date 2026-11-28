@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { todoContentZSchema, todoCreateZSchema, todoOccurrenceZSchema, todoUpdateZSchema } from "./todo";
+import {
+  todoContentZSchema,
+  todoCreateZSchema,
+  todoOccurrenceZSchema,
+  todoUpdateZSchema,
+} from "../../db/schema/todos/todo";
 import {
   assigneeOf,
   canCompleteTodo,

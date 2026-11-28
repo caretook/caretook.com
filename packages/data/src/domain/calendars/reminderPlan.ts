@@ -1,9 +1,8 @@
 import type { CalendarItem } from "./calendarItems";
-import type { ReminderLead, ReminderOverrideMode } from "./calendarRules";
+import type { ReminderLead, ReminderOverrideMode } from "../../db/schema/calendars/calendarRules";
 
 import { addDays, dayStart, localDate } from "../core/entryTiming";
 import { zonedInstant } from "../core/zonedDay";
-import { REMINDER_LEADS } from "./calendarRules";
 
 // Reminder planning (appointments-2, B-61): which reminder sends are due
 // between the last run and now. Pure and client-safe, so the "Remind me"
@@ -22,6 +21,13 @@ import { REMINDER_LEADS } from "./calendarRules";
 //   (former members).
 // - The key is (recipient, item uid, lead, start), so a moved visit sends
 //   again and a repeated run sends nothing.
+
+/**
+ * When a reminder goes, before an item starts: the evening before (18:00),
+ * the morning of (7:00), or 120, 60 or 30 minutes before. Worked out in the
+ * member's own zone.
+ */
+export const REMINDER_LEADS = ["eveningBefore", "morningOf", 120, 60, 30] as const;
 
 /** How far back a late run catches up. Sends older than this are dropped. */
 export const REMINDER_CATCH_UP_MS = 6 * 60 * 60_000;

@@ -1,4 +1,4 @@
-import type { GroupRoleName } from "../../../constants/roles";
+import type { GroupRoleName } from "../../constants/roles";
 
 // Care groups in /admin (admin slice 4). Pure and client-safe: the API, the
 // service and the group page share it.

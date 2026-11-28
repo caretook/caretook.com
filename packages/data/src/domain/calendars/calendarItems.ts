@@ -1,5 +1,5 @@
-import type { TimelineEntry } from "../timeline/timelineEntry";
-import type { Todo } from "../todos/todo";
+import type { TimelineEntry } from "../../db/schema/timeline/timelineEntry";
+import type { Todo } from "../../db/schema/todos/todo";
 
 import { addDays, dayStart, localDate } from "../core/entryTiming";
 import { zonedInstant } from "../core/zonedDay";

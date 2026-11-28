@@ -18,7 +18,8 @@ import { careGroupSchema } from "../care-groups/careGroup";
 import { careRecipientSchema } from "../profiles/careRecipient";
 import { audits, enumCheck, id, timestamps } from "../core/columns";
 import { providerSchema } from "../providers/provider";
-import { uuidV5 } from "../core/uuidV5";
+import { uuidV5 } from "../../../domain/core/uuidV5";
+import { MEDICATION_TYPES } from "../../../domain/medications/medicationTypeDisplay";
 
 // A care group's medication list: what the recipient takes, how and when,
 // who prescribed it and which pharmacy fills it. Each belongs to one group.
@@ -47,11 +48,6 @@ export type MedicationForm = (typeof MEDICATION_FORMS)[number];
 export const MEDICATION_STATUSES = ["current", "completed", "discontinued"] as const;
 export type MedicationStatus = (typeof MEDICATION_STATUSES)[number];
 
-/**
- * What kind of thing a medication is. Null on medications added before types
- * existed ("Type not set"); the forms that ask require one.
- */
-export const MEDICATION_TYPES = ["prescription", "otc", "supplement", "other"] as const;
 export type MedicationType = (typeof MEDICATION_TYPES)[number];
 
 export const MEDICATION_STOP_REASONS = ["sideEffects", "ineffective", "prescriberStopped", "other"] as const;

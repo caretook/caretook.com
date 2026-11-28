@@ -1,4 +1,4 @@
-import { uuidV5 } from "../core/uuidV5";
+import { uuidV5 } from "../../../domain/core/uuidV5";
 
 // The symptom catalog's rules (symptom-catalog PRD), pure and client-safe:
 // the one place a symptom name is folded. The device, the server and the

@@ -27,7 +27,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `todo-links` | done | `todo-subtasks-3` | `apps/web/app/lib/todos/`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/entry/EntryTodos.tsx`, `apps/web/app/routes/app/groups/entry/route.tsx`, `apps/web/app/routes/app/groups/provider/route.tsx`, `apps/web/app/routes/app/groups/medication/route.tsx`, `apps/web/app/lib/core/recentlyViewed.ts`, `apps/web/app/lib/auth/forgetUserData.ts`, `apps/web/app/lib/search/search.sync.ts`, `apps/web/app/lib/search/searchTables.sync.ts`, `packages/data/src/db/schema/search/searchDocument.ts` | Todo link picker on site search (one box, type chips and typed type, richer matching, smart empty state) and quick add todos/subtasks from linkable pages; reuses B-942's quick add |
 | `fixes-bug` | standing | — | — | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
 | `fixes-tooling` | standing, hold | `test-gates` | — | plan: plans/fixes-tooling-plan.md, rules: plans/fixes-rules.md. **On hold 2026-11-24: paused by the user after wave 6 so UI fixes can run (only one fixes topic at a time).** Its tool items moved to Risa with B-543 (2026-11-27); it keeps Caretook's own tests, flakes and check rules. |
-| `fixes-perf` | standing | — | — | plan: plans/fixes-perf-plan.md, rules: plans/fixes-rules.md |
+| `fixes-perf` | standing | — | `apps/web/vite.config.ts`, `scripts/build/budget.json`, `scripts/build/budget` | plan: plans/fixes-perf-plan.md, rules: plans/fixes-rules.md |
 | `sync-safety-2` | — | `sync-safety` | `packages/data/src/services/medicationService.ts`, `packages/data/src/services/medicationPassService.ts`, `packages/data/src/services/recipientConditionService.ts`, `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/todoService.ts`, `packages/data/src/models/todo`, `packages/data/src/db/schema/medications/medication.ts`, `packages/api/src/syncRegistry.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/auth/`, `apps/web/app/routes/sign-in.tsx`, `apps/web/app/lib/sync/index.ts` | planned 2026-11-25 (B-295, B-296, B-383, B-384, B-387, B-730; B-805 answered): change-entry times, repeating-todo races, sign-ins and tabs; held after two skeptic send-backs (the user split B-294 off to sync-safety-3); lift with flags=- once the assumed rows are read |
 | `data-rights` | hold | — | `packages/data/src/db/schema/core/scrub`, `packages/data/src/db/migrations/`, `packages/data/src/services/careGroupService`, `packages/data/src/services/careGroupInviteService`, `packages/data/src/services/joinRequestService`, `packages/data/src/services/todoService.ts`, `packages/data/src/db/schema/care-groups/careGroupConsent`, `packages/data/src/db/schema/auth/legalAcceptance`, `packages/data/src/db/schema/admin/adminAudit`, `packages/api/src/care-groups/`, `apps/web/app/lib/providers/`, `apps/web/app/lib/medications/`, `apps/web/app/lib/profiles/`, `apps/web/app/lib/todos/`, `apps/web/app/lib/timeline/entryDisplay`, `apps/web/app/lib/appointments/visitPrep`, `apps/web/app/components/entry/`, `apps/web/app/components/providers/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/periods/`, `apps/web/app/routes/app/groups/provider/`, `apps/web/app/routes/app/groups/medication/`, `apps/web/app/routes/app/groups/profile/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/timeline/pass/`, `apps/web/app/routes/app/groups/settings/details/`, `scripts/browser-checks/roundtrip.spec.mjs`, `scripts/browser-checks/app-shell.spec.mjs` | plans/data-rights-prd.md; held after two plan send-backs (s49, s51), user chose the carve-out (a243) |
 | `data-rights-2` | hold | `data-rights` | — | Follow-on of data-rights: ownership hand-over and account deletion (B-565, B-53's account half; the user answered a239: block a last owner until hand-over or group delete), export, staff tooling, legal text and change notice, inactive-group scrub, retention sweep, Google calendar removal on delete |
@@ -185,8 +185,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-362 | change | triaged | code-health-2 |  | A soft-delete model factory and a shared upsert helper: nine models are the same file, twelve upserts repeat the exists-as-system, visible-as-actor sequence, 'invalid' is defined 18 times |
 | B-363 | change | triaged | code-health-2 |  | One exported role-capability table (canWrite(role), canComplete(role)) used by services, device modules and screens, before any role is added |
 | B-364 | change | triaged | code-health-3 |  | Device reads are 164 raw SQL strings with hand-typed row types, 17 files outside *.sync.ts: derive row types from the device schema and make libLayout.test.ts refuse SQL elsewhere |
-| B-365 | chore | ready | code-health | prd/code-health | Remove unused scaffolding and dead exports: serviceName (45 exports, 0 reads), the services registry, getService, isServiceName, initClient, isUserRoleName, isGroupRoleName, primaryContactName, hasContact, CALENDAR_CARDS, COMING_SOON |
-| B-366 | chore | ready | code-health | prd/code-health | Pin dependencies exactly: 47 caret ranges remain (react-router, drizzle-orm, zod, vite among them) against AGENTS.md's rule |
+| B-365 | chore | landed | code-health | prd/code-health | Remove unused scaffolding and dead exports: serviceName (45 exports, 0 reads), the services registry, getService, isServiceName, initClient, isUserRoleName, isGroupRoleName, primaryContactName, hasContact, CALENDAR_CARDS, COMING_SOON |
+| B-366 | chore | landed | code-health | prd/code-health | Pin dependencies exactly: 47 caret ranges remain (react-router, drizzle-orm, zod, vite among them) against AGENTS.md's rule |
 | B-368 | chore | triaged | code-health-3 |  | Comments that point at plans instead of behaviour: 198 'slice N' references in 154 source files and 262 PRD-name parentheticals |
 | B-369 | change | triaged | code-health-3 |  | baseModel.list always runs a second COUNT query, and a sync PATCH costs about seven round trips (a 100-op batch about a thousand, serially) |
 | B-375 | chore | triaged | fixes-tooling |  | Small test fixes: calendars.int.test.ts:286 asserts code toBeTruthy (any error passes); timelineScroll.browser.test.tsx:163 carries retry: 2; check-areas maps packages/data and packages/api to no browser check; the web:unit project lacks the ~/ alias (120 deep relative imports) |
@@ -253,7 +253,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-954 | bug | triaged | fixes-tooling |  | Browser checks and prd serve run on a stack whose applied migrations are behind the repo's, so a missing column fails a check far from its cause |
 | B-961 | change | triaged | shared-displays |  | Shared displays audit: each record kind (timeline entry, medication, provider, todo, event) shows through one shared display on rows, cards, pages and sheets; list today's variants and merge them, exceptions written down |
 | B-965 | change | triaged | fixes-perf |  | Group the tiny shared app helper chunks on the first /app load |
-| B-966 | change | triaged | fixes-perf |  | Marketing and sign-in pages load the whole shared icons chunk (~5-10.5 KB gz) since slice 11 grouped lucide icons |
+| B-966 | change | ready | fixes-perf | prd/fixes-perf | Marketing and sign-in pages load the whole shared icons chunk (~5-10.5 KB gz) since slice 11 grouped lucide icons |
 | B-967 | bug | triaged | fixes-tooling |  | Browser check layout-offline fails at 'offline: a row's edit link opens its edit sheet': the row's tag chips cover the Edit link's centre |
 | B-972 | feature | triaged | tags-4 |  | Tags tab on the planner: a unified view listing all tags and the items tagged with each |
 | B-975 | change | landed | fixes-ui | prd/fixes-ui | Marketing home: AI providers 'will not' keep your data or train on it, not 'may not' (apps/web/app/routes/marketing/home/content.ts, the AI answer) |
@@ -262,6 +262,11 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-981 | feature | triaged | med-intervals-2 |  | Interval Med times: a Med time every N hours (from due or given) so a group's frequency changes in one edit, and as-needed Med times (B-938 part 2) |
 | B-983 | bug | triaged | fixes-tooling |  | Browser-check flake: ui.spec.mjs 'add sheet: the full screen' measured the Symptom sheet's surface at height 0 (expected 900) at 420px light and dark under load; passed alone |
 | B-995 | change | triaged | fixes-nit |  | RemindMeSheet in components/entry imports reminderChoices from the settings calendar route; move reminderChoices into lib/calendars |
+| B-996 | bug | landed | fixes-bug |  | CI: scripts/project/project-data.test.mjs: this checkout's project data passes the tool's project-data check fails on d… |
+| B-997 | bug | landed | fixes-bug |  | CI: scripts/project/project-data.test.mjs: this checkout's role docs the sections the prompts and docs name are in the … |
+| B-998 | bug | triaged | fixes-tooling |  | search.sync.browser.test.tsx's 50 ms query budget flakes on CI runners (51.8 ms for 'the' on run 46097107440) |
+| B-999 | change | triaged | fixes-ui |  | Timeline day headers: on mobile, abbreviate the weekday (Mon, Tue, …) where a header shows day and date, so rows fit small screens without wrapping; full name on wider screens |
+| B-1000 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/lib/search/search.sync.browser.test.tsx: about 2,000 entries the rebuild takes under 2 s, and a … |
 
 ## Items
 
@@ -781,7 +786,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-365 · chore · Remove unused scaffolding and dead exports: serviceName (45 exports, 0 reads), the services registry, getService, isServiceName, initClient, isUserRoleName, isGroupRoleName, primaryContactName, hasContact, CALENDAR_CARDS, COMING_SOON
 
-- status: ready
+- status: landed
 - prd: code-health
 - owner: prd/code-health
 - commit: be48a4aec
@@ -791,7 +796,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-366 · chore · Pin dependencies exactly: 47 caret ranges remain (react-router, drizzle-orm, zod, vite among them) against AGENTS.md's rule
 
-- status: ready
+- status: landed
 - prd: code-health
 - owner: prd/code-health
 - commit: be48a4aec
@@ -1495,15 +1500,17 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-27 (slice/fixes-perf/11): From fixes-perf slice 11 (B-960): after the icons group, the first /app load still fetches ~74 shared app chunks under 2 KB (lib/, components/, packages/data schema helpers) plus ~22 tiny React Router route-chunk stubs. A plain codeSplitting group over app code doesn't work: a group takes its modules' dependencies (includeDependenciesRecursively), so an entriesAware group with a merge threshold dragged rrule and yjs into the /app shell and blew the entry to 209 KB gz. includeDependenciesRecursively: false needs preserveEntrySignatures 'allow-extension' or false, which React Router's client build overrides to 'exports-only' (INVALID_OPTION). Options: a Vite plugin hook setting preserveEntrySignatures for the client build (check React Router's route exports still hold) with strictExecutionOrder, or Rolldown's experimentalInlineCommonChunks (experimental). Measure with the slice-11 bench (HTTP/1.1 is where it pays).
+- 2026-11-27 (prd/fixes-perf): Wave 3 (2026-11-27): written as fixes-perf slice 14 but not started: disk 5 GB free, under Risa's 10 GB stack line. Runs next wave as slice 14 (already in the plan) once there is space.
 
 ### B-966 · change · Marketing and sign-in pages load the whole shared icons chunk (~5-10.5 KB gz) since slice 11 grouped lucide icons
 
-- status: triaged
+- status: ready
 - prd: fixes-perf
-- owner:
-- commit:
+- owner: prd/fixes-perf
+- commit: 341b757c7
 
 - 2026-11-27 (prd/fixes-perf): From fixes-perf slice 11 (B-960, merge c81f220e): the client build's codeSplitting 'icons' group (apps/web/vite.config.ts) puts every lucide-react icon in one chunk (40 KB raw, 13.2 KB gz). Sign-in and marketing pages that use one or two icons now fetch it: ~10.5 KB gz more on sign-in and marketing, ~5 KB on home/faq/about/features. The user: every KB there counts for Lighthouse and SEO. Fix: keep the icons group to /app routes only (e.g. a group test scoped to modules reached from app/routes/app/, or inline icons on public pages), then check Lighthouse on / and /sign-in and the budget (scripts/build/budget.json); budget's together: [lucide-react] rule may need scoping to the app group.
+- 2026-11-27 (slice/fixes-perf/13): Slice 13 (3d45fd5ef): icons split by who reaches them: icons (app only, 106 icons, 9.9 KB gz), icons-public (public pages' icons + lucide core, 2.0 KB gz), icons-marketing (marketing-only, 2.6 KB gz); a build plugin reads lucide imports (scripts/build/chunks.mjs). JS gz: / 161.6->152.5 KB, /sign-in 209.1->197.4 KB, /app timeline 541.6->542.8 KB (128->130 files). Budget: keepOut public/sign-in groups. Lighthouse not run (no dependency).
 
 ### B-967 · bug · Browser check layout-offline fails at 'offline: a row's edit link opens its edit sheet': the row's tag chips cover the Edit link's centre
 
@@ -1573,3 +1580,51 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-27 (prd/fixes-nit): Found by fixes-nit slice 10 (B-950): components/entry/RemindMeSheet.tsx imports ~/routes/app/groups/settings/calendar/reminderChoices, against components.md (shared components never import routes/). Also scripts/project/browser-run.test.mjs names the old TimelineEntryRow path as a sample.
 - 2026-11-27 (Robert Bo Davis): Backlog sweep 2026-11-27: waits on code-health (shares settings/calendar/); fixes-nit set after=code-health so it doesn't restart idle. Clear that after once code-health lands.
+
+### B-996 · bug · CI: scripts/project/project-data.test.mjs: this checkout's project data passes the tool's project-data check fails on d…
+
+- status: landed
+- prd: fixes-bug
+- owner:
+- commit: b978e0d7d
+
+- 2026-11-27 (prd/code-health): [ci-key 943795992e9d] Fails on dev too; found by prd/code-health in https://github.com/caretook/caretook.com/actions/runs/46097107440. First failure: AssertionError: the check's lines: expected 'scripts/project/prompt-golden.txt:12:…' to contain 'project-check: ok' at /home/runner/work/caretook.com/caretook.com/scripts/project/project-data.test.mjs:27:59 at file:///home/runner/work/caretook.com/caretook.com/node_modules/.pnpm/vitest@5.1.0_@types+node@24.19.2_@vitest+browser-playwright@5.1.0_@vitest+ui@5.1.0_vite_4ad326831fd8730b7608e0cf2df5ee30/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:1632:35 at file:///home/runner/work/ca…
+- 2026-11-27 (Robert Bo Davis): Fixed on dev by b978e0d7d: Risa pin back to v0.1.2 (v0.1.7 broke this check). Repin once Risa fixes the machinery doc seam, with a fresh prompt-golden.txt.
+
+### B-997 · bug · CI: scripts/project/project-data.test.mjs: this checkout's role docs the sections the prompts and docs name are in the …
+
+- status: landed
+- prd: fixes-bug
+- owner:
+- commit: b978e0d7d
+
+- 2026-11-27 (prd/code-health): [ci-key e0b35c0c068a] Fails on dev too; found by prd/code-health in https://github.com/caretook/caretook.com/actions/runs/46097107440. First failure: AssertionError: machinery's Worktrees and leases: expected '## Worktrees and leases\n\n- **`risa …' to match /\*\*`risa tidy`\*\*[\s\S]*- `new\.sh …/ at /home/runner/work/caretook.com/caretook.com/scripts/project/project-data.test.mjs:109:44 at Array.forEach (<anonymous>) at /home/runner/work/caretook.com/caretook.com/scripts/project/project-data.test.mjs:107:11 at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///home/runner/work/c…
+- 2026-11-27 (Robert Bo Davis): Fixed on dev by b978e0d7d: Risa pin back to v0.1.2 (v0.1.7 broke this check). Repin once Risa fixes the machinery doc seam, with a fresh prompt-golden.txt.
+
+### B-998 · bug · search.sync.browser.test.tsx's 50 ms query budget flakes on CI runners (51.8 ms for 'the' on run 46097107440)
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-27 (prd/code-health): Seen on prd/code-health 5d4ee6ba (PR #299), full run 46097107440, components-1. The branch doesn't touch lib/search; it passed 3 of 3 locally. A hard 50 ms wall-clock bound is too tight for a loaded runner.
+- 2026-11-27 (prd/code-health): Same flake filed from CI as B-1000 at code-health's landing (run 46098408581); one fix covers both.
+
+### B-999 · change · Timeline day headers: on mobile, abbreviate the weekday (Mon, Tue, …) where a header shows day and date, so rows fit small screens without wrapping; full name on wider screens
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-27 (Robert Bo Davis): From the user 2026-11-27, triaged to fixes-ui (layout). Standard short weekday names (Intl weekday: "short"), mobile breakpoint only; desktop keeps the full name. The timeline's day label likely comes from dayFormat in apps/web/app/lib/core/format.ts (weekday and month long); check every day header that uses it so they stay one shared display. EasyTimeline.tsx has its own long format too.
+
+### B-1000 · bug · CI flake: apps/web/app/lib/search/search.sync.browser.test.tsx: about 2,000 entries the rebuild takes under 2 s, and a …
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-27 (Robert Bo Davis): [ci-key 19f35fba4fff] Flaked (passed on its rerun); on the brake list, so not quarantined; found by prd/code-health. First failure: AssertionError: {"knee":17.5,"short of breath":12.200000000011642,"\"short of breath\"":16.900000000023283,"walk -cane":9.299999999988358,"pres":5.699999999953434,"the":66.90000000002328}: expected 66.90000000002328 to be less than 50 at http://127.0.0.1:40387/home/runner/work/caretook.com/caretook.com/apps/web/app/lib/search/search.sync.browser.test.tsx?import&browserv=1812567600000:273:68 at async http://127.0.0.1:40387/node_modules/.vite/vitest/58cf8ec96f1f9266cf3c45bffb8a3488ce3393e…

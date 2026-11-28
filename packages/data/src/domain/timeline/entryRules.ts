@@ -1,6 +1,6 @@
-import type { TimelineEntryKind } from "./timelineEntry";
+import type { TimelineEntryKind } from "../../db/schema/timeline/timelineEntry";
 
-import { isLoggerRole, isOwnRowLogger, isWriterRole } from "../../../constants/roles";
+import { isLoggerRole, isOwnRowLogger, isWriterRole } from "../../constants/roles";
 
 // Who may log and change timeline entries (easy roles PRD). Pure and
 // client-safe: the device's local writes and the screens ask these, and

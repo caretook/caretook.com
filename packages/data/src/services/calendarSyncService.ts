@@ -36,8 +36,6 @@ import { appOrigin, getGoogleCalendarClient, inCalendarBackground, planPush } fr
 import { logError } from "../logging";
 import { openGoogleToken } from "../utils/googleToken";
 
-export const serviceName = "calendarSync";
-
 // Pushing Caretook's calendar to members' Google calendars (appointments-2,
 // slice 7). A write that can change a calendar item (an appointment or
 // reminder, a todo, a series, a member's consent) queues a job in its own

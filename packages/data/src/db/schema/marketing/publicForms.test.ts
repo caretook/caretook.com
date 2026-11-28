@@ -6,7 +6,7 @@ import {
   CONTACT_TOPICS,
   MIN_FORM_MS,
   spamVerdict,
-} from "./publicFormRules";
+} from "../../../domain/marketing/publicFormRules";
 import { contactSendZSchema, waitlistJoinZSchema } from "./publicForms";
 
 const human = { elapsedMs: MIN_FORM_MS + 500 };
