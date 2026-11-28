@@ -1,4 +1,4 @@
-import { encodeNoteDoc, entryProviderId, MENTION_NODE, NOTE_FRAGMENT } from "@caretook/data/schema";
+import { entryProviderId } from "@caretook/data/schema";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import * as Y from "yjs";
@@ -20,6 +20,7 @@ import {
   WESTSIDE,
 } from "../providers/providerWorld";
 import { found, waitUntil } from "../../../../../test/found";
+import { encodeNoteDoc, MENTION_NODE, NOTE_FRAGMENT } from "@caretook/data/domain";
 
 // Mentions on the entry page, on the test device: typing `@` opens a popup
 // of the group's providers that narrows as you type; arrows and Enter (or a

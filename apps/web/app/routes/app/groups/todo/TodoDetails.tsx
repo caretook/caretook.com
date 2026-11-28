@@ -1,10 +1,9 @@
 import type { LocalTodo } from "~/lib/todos/todos.sync";
 
-import { todoState } from "@caretook/data/schema";
 import { Repeat } from "lucide-react";
 import { Section } from "~/components/ui";
-import { todoRepeatLine } from "~/lib/todos/todoDisplay";
 import { assigneeText, doneByLine, dueLines } from "./todoPage";
+import { todoState, todoRepeatLine } from "@caretook/data/domain";
 
 /**
  * Who the todo is for, when it's due (with the overdue or due line while

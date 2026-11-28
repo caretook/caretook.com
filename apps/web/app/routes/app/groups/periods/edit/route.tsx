@@ -7,7 +7,6 @@ import { useEffect } from "react";
 import { redirect } from "react-router";
 import { Sheet } from "~/components/ui";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
-import { scheduleZoneNote } from "~/lib/medications/medicationDisplay";
 import { periodTitle } from "~/lib/care-periods/periodDisplay";
 import { editPeriodGuard, parsePeriodPrefill } from "~/lib/care-periods/periodSheets";
 import { sessionContext } from "~/lib/auth/session";
@@ -17,6 +16,7 @@ import { readRows } from "~/lib/timeline/timeline.sync";
 import { PeriodForm } from "../PeriodForm";
 import { periodFromForm } from "../periodFormData";
 import { loadPlaceRows, useClosePeriodSheet, usePlaceChoices } from "../periodSheet";
+import { scheduleZoneNote } from "@caretook/data/schema";
 
 // Shared by web + native. `periods/:periodId/edit`: the edit sheet, over the
 // periods page (opened from a period's page, which it goes back to). The same

@@ -1,18 +1,13 @@
 import type {
   MedicationSchedule,
   MedicationStatus,
-  NoteSectionLine,
-  PeriodSpan,
   ScheduleChange,
-  TrackPeriod,
   TimelineEntryDetails,
   UnitChoices,
   VitalFieldSpec,
   VitalReading,
   VitalType,
 } from "@caretook/data/schema";
-import type { DueDose } from "../medications/dueDoses";
-import type { SchedulePass } from "../medications/medicationDisplay";
 import type { TimedEntry } from "./upcoming";
 
 import {
@@ -26,11 +21,17 @@ import {
   toDisplay,
   VITAL_TYPES,
   VITALS,
+  doseSlotsBetween,
+  missedDoseCounts,
+  changeText,
+  medicationTitle,
+  passMovedText,
+  scheduleText,
 } from "@caretook/data/schema";
-import { doseSlotsBetween, missedDoseCounts } from "../medications/dueDoses";
-import { changeText, medicationTitle, passMovedText, scheduleText } from "../medications/medicationDisplay";
 import { dateText, periodTitle } from "../care-periods/periodDisplay";
 import { entryTiming } from "./upcoming";
+import type { NoteSectionLine, PeriodSpan, TrackPeriod } from "@caretook/data/domain";
+import type { DueDose, SchedulePass } from "@caretook/data/schema";
 
 // Visit prep: what happened since the recipient last saw a provider, as the
 // lines of a dated section put at the top of an appointment's live notes

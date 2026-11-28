@@ -1,13 +1,14 @@
 import type { DeviceRoute } from "../../../../../test/device";
 import type { GroupRole } from "../../../../../test/fixtures";
 
-import { addDays, entryTodoId, localDate } from "@caretook/data/schema";
+import { entryTodoId } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
 import { found, waitUntil } from "../../../../../test/found";
 import { at, entryTodo, fx, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
 import * as entryRoute from "./route";
+import { addDays, localDate } from "@caretook/data/domain";
 
 // The entry page's Todos (planner-3, slice 3) on a stored note and event:
 // open todos in list order with ticks and Undo, done ones with who and

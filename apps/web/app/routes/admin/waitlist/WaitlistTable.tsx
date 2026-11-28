@@ -1,6 +1,5 @@
-import type { CaringFor, WaitlistSource } from "@caretook/data/schema";
-
-import { CARING_FOR_LABELS } from "@caretook/data/schema";
+import type { CaringFor, WaitlistSource } from "@caretook/data/domain";
+import { CARING_FOR_LABELS } from "@caretook/data/domain";
 
 // The waitlist's rows: what each visitor typed, and when they joined.
 

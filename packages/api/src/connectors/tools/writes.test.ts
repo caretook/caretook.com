@@ -1,4 +1,3 @@
-import { parseRule } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import { describeTool } from "../registry";
 import {
@@ -16,6 +15,7 @@ import {
   updateCondition,
   updateEntry,
 } from "./writes";
+import { parseRule } from "@caretook/data/domain";
 
 // The write tools as tools/list sends them: each action's own fields minus
 // `type`, writes marked so Claude and ChatGPT ask first.

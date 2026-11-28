@@ -1,8 +1,9 @@
-import type { ContactPhone, ContactValues, SharedContact, SharedField } from "@caretook/data/schema";
+import type { ContactPhone, ContactValues, SharedField } from "@caretook/data/schema";
 import type { ContactAction } from "../providers/contactActions";
 
-import { SHARED_FIELDS } from "@caretook/data/schema";
 import { callAction, mailtoHref, mapsHref, textAction } from "../providers/contactActions";
+import type { SharedContact } from "@caretook/data/domain";
+import { SHARED_FIELDS } from "@caretook/data/domain";
 
 // Members' contact details on a group's Members page (profiles): what each
 // member shares with the group (the synced `member_contact_share` row) as

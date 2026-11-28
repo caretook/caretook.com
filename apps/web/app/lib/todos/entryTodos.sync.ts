@@ -2,10 +2,11 @@ import type { ActionResult } from "../core/api";
 import type { SyncDb } from "../sync/index";
 import type { LocalQuery } from "../timeline/timeline.sync";
 
-import { entryTodoId, isTodoWriter } from "@caretook/data/schema";
+import { entryTodoId } from "@caretook/data/schema";
 import { eq } from "drizzle-orm";
 import { timelineEntryTodos } from "../sync/schema";
 import { forbidden, groupFor, nowTimestamp, readRows } from "../timeline/timeline.sync";
+import { isTodoWriter } from "@caretook/data/domain";
 
 // Which todos a timeline entry links, on this device (planner-3): the entry ↔
 // todo links (`timeline_entry_todo`), many to many. Writes queue for upload,

@@ -8,8 +8,8 @@ import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx, TEST_GROUP } from "../../../../../test/fixtures";
 import { QUICK_ENTRY_DRAFT } from "~/lib/assistant/quickEntryDraft";
-import { dayInZone, startOfDay } from "~/lib/core/zonedDay";
 import * as entryRoute from "./route";
+import { dayInZone, startOfDay } from "@caretook/data/domain";
 
 // The new-event page opened with a draft (quick entry's provider events,
 // history state): its title, day (all day), place and providers shown, and

@@ -3,11 +3,10 @@ import type { LocalPass } from "~/lib/medications/medicationPasses.sync";
 import type { MedicationSchedule, ScheduleSlot } from "@caretook/data/schema";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { MEDICATION_LIMITS } from "@caretook/data/schema";
+import { MEDICATION_LIMITS, scheduleText } from "@caretook/data/schema";
 import { Button, ChoiceGroup, Field, TITLE_SECTION } from "~/components/ui";
 import { useGroup } from "~/lib/app-shell/group";
 import { localTimeZone } from "~/lib/core/format";
-import { scheduleText } from "~/lib/medications/medicationDisplay";
 import { FIELD } from "./medicationFormData";
 import { initialSlots } from "./scheduleSlots";
 import { SetTimesFields } from "./SetTimesFields";

@@ -2,7 +2,7 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { CodePreview, JoinStep } from "./joinPage";
 import type { Route } from "./+types/route";
 
-import { LEGAL_REQUIRED_MESSAGE, newCareGroupZSchema } from "@caretook/data/schema";
+import { newCareGroupZSchema } from "@caretook/data/schema";
 import { ORPCError } from "@orpc/client";
 import { useRef, useState } from "react";
 import { Form, Link, redirect, useNavigation } from "react-router";
@@ -19,6 +19,7 @@ import { NEW_GROUP_LINK_STATE } from "~/lib/care-groups/newGroupLink";
 import { AuthCard, ErrorMessage, useSubmitOnce } from "../AuthCard";
 import { LegalAgreement } from "../LegalAgreement";
 import { CLOSED_CODE, stepForIssues } from "./joinPage";
+import { LEGAL_REQUIRED_MESSAGE } from "@caretook/data/domain";
 
 // `/join/:code`: a staff access code's link (printed as a QR code). Shared by
 // web + native, client-only. Signed out, it's a two-step form: your account

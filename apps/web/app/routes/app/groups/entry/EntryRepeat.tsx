@@ -1,7 +1,6 @@
 import type { SeriesRow } from "~/lib/appointments/series.sync";
 import type { LiveEntry } from "./useLiveEntry";
 
-import { repeatText } from "@caretook/data/schema";
 import { Repeat } from "lucide-react";
 import { lazy, Suspense, useState } from "react";
 import { RepeatMark } from "~/components/entry";
@@ -10,6 +9,7 @@ import { defaultChoice, draftTiming } from "~/lib/appointments/repeatChoice";
 import { seriesQuery, toRepeatInput } from "~/lib/appointments/series.sync";
 import { useLiveQuery } from "~/lib/sync";
 import { ENTRY_CHIP } from "./entryPage";
+import { repeatText } from "@caretook/data/domain";
 
 // The field's preview needs rrule: its folder loads only when Repeat opens.
 const RepeatSheet = lazy(() => import("~/components/repeat").then((m) => ({ default: m.RepeatSheet })));

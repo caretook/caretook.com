@@ -1,13 +1,11 @@
-import type { TodoRuleFields } from "@caretook/data/schema";
 import type { TimedEntry } from "../appointments/upcoming";
 import type { UpcomingSection } from "../appointments/upcomingDays";
 import type { TodoTree, TodoTreeNode, TreeTodo } from "./todoTreeView";
 
-import { localDate, todoOrder, todoState } from "@caretook/data/schema";
-import { dayLabel } from "../core/format";
 import { NOW_KEY } from "../appointments/upcomingDays";
-import { startOfDay, zonedInstant } from "../core/zonedDay";
 import { todoDayOf, todoDayTrees } from "./todoTreeView";
+import type { TodoRuleFields } from "@caretook/data/domain";
+import { localDate, todoOrder, todoState, dayLabel, startOfDay, zonedInstant } from "@caretook/data/domain";
 
 // Open todos with a due day in the Planner, as day trees under their day
 // among the appointments. Worked out, never written:

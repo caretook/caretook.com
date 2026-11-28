@@ -3,9 +3,10 @@ import type { CarePeriodCreateInput } from "../db";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createWorld, ok } from "../../test/fixtures";
-import { periodSpans, toChangeTime } from "../db/schema";
+import { toChangeTime } from "../db/schema";
 import { isError } from "../errors";
 import { carePeriodService, noteDocumentService, providerService } from ".";
+import { periodSpans } from "../domain/care-periods/carePeriodTrack";
 
 // Every test builds its own group and users, so tests never depend on each other.
 

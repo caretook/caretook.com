@@ -15,16 +15,10 @@ import { and, eq } from "drizzle-orm";
 import { SYSTEM_USER, isOwnRowLogger } from "../constants";
 import { dbMayFail, withTransaction } from "../db";
 import {
-  buildNoteDoc,
   canHaveNoteDocument,
-  canLogEntry,
   doseDuplicateUploadSchema,
-  FUTURE_DATE_MESSAGE,
   isDoseDetails,
   isSymptomDetails,
-  isTooFarAhead,
-  noteText,
-  SERVER_FUTURE_SKEW_MS,
   isSystemWrittenKind,
   symptomTypeId,
   timelineEntryContentZSchema,
@@ -54,6 +48,9 @@ import {
   lockCatalog as lockSymptomCatalog,
 } from "./symptomTypeService";
 import { releaseEvent } from "./todoService";
+import { buildNoteDoc, noteText } from "../domain/live-notes/noteYjs";
+import { canLogEntry } from "../domain/timeline/entryRules";
+import { FUTURE_DATE_MESSAGE, isTooFarAhead, SERVER_FUTURE_SKEW_MS } from "../domain/core/entryTiming";
 export const schemaName = timelineEntryModel.schemaName;
 
 type K = typeof schemaName;

@@ -9,7 +9,6 @@ import { Sheet } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { medicationDraftFrom } from "~/lib/assistant/quickEntryDraft";
 import { getGroup } from "~/lib/app-shell/group";
-import { scheduleZoneNote } from "~/lib/medications/medicationDisplay";
 import { medicationPageState } from "~/lib/medications/medicationOrigin";
 import { newMedicationGuard, sheetTab } from "~/lib/medications/medicationSheets";
 import { sessionContext } from "~/lib/auth/session";
@@ -19,6 +18,7 @@ import { readRows } from "~/lib/timeline/timeline.sync";
 import { MedicationForm } from "../MedicationForm";
 import { issuesForSlotRows, medicationFromForm } from "../medicationFormData";
 import { loadFormSources, useCloseMedicationSheet, useMedicationFormSources } from "../medicationSheet";
+import { scheduleZoneNote } from "@caretook/data/schema";
 
 // Shared by web + native. `medications/<tab>/new`: the add sheet, over
 // Schedule or the list. A viewer lands on the tab. A save opens the new

@@ -1,7 +1,7 @@
 import type { UnitChoices, VitalFieldSpec, VitalReading, VitalType } from "@caretook/data/schema";
 
 import { fieldUnitLabel, toDisplay, VITALS } from "@caretook/data/schema";
-import { addDays, dayInZone, startOfDay } from "../core/zonedDay";
+import { addDays, dayInZone, startOfDay } from "@caretook/data/domain";
 
 // Recent vital averages (the profile page, B-100): for a fixed core set of
 // vital types, the average and reading count over the last 7 and 30 days.

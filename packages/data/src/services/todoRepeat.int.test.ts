@@ -3,11 +3,11 @@ import type { TodoCreateInput } from "../db";
 import { describe, expect, it } from "vitest";
 import { createWorld, ok } from "../../test/fixtures";
 import { SYSTEM_USER } from "../constants";
-import { addDays, localDate } from "../db/schema";
 import { nextTodoId } from "../db/schema/appointments/series";
 import { isError } from "../errors";
 import { todoModel } from "../models";
 import { medicationService, noteDocumentService, providerService, todoService } from ".";
+import { addDays, localDate } from "../domain/core/entryTiming";
 
 // Repeating todos (planner-2) through todoService: the repeat columns on
 // create and update, the next occurrence on a tick (once), reopen and Undo,

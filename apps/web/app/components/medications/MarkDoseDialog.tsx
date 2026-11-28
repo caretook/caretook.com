@@ -1,11 +1,10 @@
 import type { MarkStatus } from "./DoseSlotRow";
-import type { DoseSlot } from "~/lib/medications/dueDoses";
 
 import { useState } from "react";
-import { MEDICATION_LIMITS } from "@caretook/data/schema";
+import { MEDICATION_LIMITS, clockTime, medicationTitle } from "@caretook/data/schema";
 import { ConfirmDialog, Field } from "~/components/ui";
-import { clockTime, medicationTitle } from "~/lib/medications/medicationDisplay";
 import { usePassLog } from "./usePassLog";
+import type { DoseSlot } from "@caretook/data/schema";
 
 /** A slot being marked Skipped or Refused, in its pass's round when it's in one. */
 export type Marking = { slot: DoseSlot; status: MarkStatus; passLogId?: string | null };

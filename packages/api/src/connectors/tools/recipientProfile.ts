@@ -4,12 +4,12 @@ import {
   providerService,
   recipientAllergyService,
   recipientConditionService,
-  sortConditions,
 } from "@caretook/data";
 import { z } from "zod";
 import { defineTool, READ_ANNOTATIONS } from "../registry";
 import { recipientAge } from "./readSupport";
 import { asMember, loadGroup } from "./shared";
+import { sortConditions } from "@caretook/data/domain";
 
 const SEVERITY_RANK = { severe: 0, moderate: 1, mild: 2, unknown: 3 } as const;
 

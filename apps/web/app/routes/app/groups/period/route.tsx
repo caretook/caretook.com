@@ -4,7 +4,6 @@ import type { ActionResult } from "~/lib/core/api";
 import type { CarePeriodRow } from "~/lib/care-periods/carePeriods.sync";
 import type { ProviderRow } from "~/lib/providers/providers.sync";
 
-import { neighbours } from "@caretook/data/schema";
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
@@ -26,6 +25,7 @@ import { PeriodNeighbours } from "./PeriodNeighbours";
 import { deleteConfirmText } from "./periodPage";
 import { PeriodPlace } from "./PeriodPlace";
 import { useCarePeriodNotes } from "./useCarePeriodNotes";
+import { neighbours } from "@caretook/data/domain";
 
 // Shared by web + native. A care period's page: where care was, from when to
 // when and for how long, the place with its contact actions, the periods

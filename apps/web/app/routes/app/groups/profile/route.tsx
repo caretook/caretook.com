@@ -7,7 +7,6 @@ import { Outlet } from "react-router";
 import type { RecipientDetailsRow } from "~/lib/profiles/recipientDetails";
 import type { MemberDetailRow } from "~/lib/care-groups/members.sync";
 
-import { canEditRecipient, canManageEmergencyContacts, canReadRecipient } from "@caretook/data/schema";
 import { useMemo } from "react";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
@@ -30,6 +29,7 @@ import { EmergencySection } from "./EmergencySection";
 import { BasicsSection, NoteSection } from "./ProfileSections";
 import { ProfileHeader } from "./ProfileHeader";
 import { VitalAveragesSection } from "./VitalAveragesSection";
+import { canEditRecipient, canManageEmergencyContacts, canReadRecipient } from "@caretook/data/domain";
 
 // Shared by web + native. `…/profile`: the care recipient's profile, for
 // every member, in bands (`Page bands`: the header, then each part a

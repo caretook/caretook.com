@@ -1,7 +1,7 @@
 import type { TimedEntry } from "./upcoming";
 
-import { dayLabel } from "../core/format";
 import { entryTiming, listedDay, upcomingOrderIn } from "./upcoming";
+import { dayLabel } from "@caretook/data/domain";
 
 // Upcoming's and the Past tab's sections, and the timeline's Upcoming block. Pure, so web:unit tests it.
 

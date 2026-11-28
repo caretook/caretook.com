@@ -1,13 +1,9 @@
-import {
-  appointmentSeriesService,
-  noteDocumentService,
-  seriesVisitId,
-  timelineEntryService,
-} from "@caretook/data";
+import { appointmentSeriesService, noteDocumentService, timelineEntryService } from "@caretook/data";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../data/test/fixtures";
 import { clientFor } from "./testing";
+import { seriesVisitId } from "@caretook/data/domain";
 
 // sync.upload for a series edit (appointments-2, slice 2): "This and later"
 // reaches the server as ordinary ops in one batch (the new series, the old

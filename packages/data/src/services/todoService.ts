@@ -10,18 +10,7 @@ import {
   ASSIGNEE_NOT_MEMBER_ISSUE,
   BAD_PARENT_ISSUE,
   BAD_TODO_LINK_ISSUES,
-  canCompleteTodo,
-  canHaveSubtask,
-  clampDue,
-  completionOnly,
-  isTodoCompleter,
-  inheritedDue,
-  isTodoWriter,
-  localDate,
-  MAX_TODO_DEPTH,
   REPEAT_WITH_SUBTASKS_ISSUE,
-  repeatColumnsFor,
-  rollupOf,
   TODO_LIMITS,
   todoContentOf,
   todoContentZSchema,
@@ -49,6 +38,15 @@ import { asCreated, unchanged } from "./upserted";
 import { enqueue as enqueueCalendarPush } from "./calendarSyncService";
 import { linkIn, unlinkIn } from "./entryTodoService";
 import { copyLinks } from "./recordTagService";
+import {
+  canCompleteTodo,
+  completionOnly,
+  isTodoCompleter,
+  isTodoWriter,
+  repeatColumnsFor,
+} from "../domain/todos/todoRules";
+import { canHaveSubtask, clampDue, inheritedDue, MAX_TODO_DEPTH, rollupOf } from "../domain/todos/todoTree";
+import { localDate } from "../domain/core/entryTiming";
 
 // Todos: the group's shared todo list. Write through here, not the model:
 // this is where content is validated, the assignee and links are checked,

@@ -1,8 +1,8 @@
 import type { CarePeriodContentInput } from "@caretook/data/schema";
 import type { NewPlace } from "../../../../lib/care-periods/carePeriods.sync";
 
-import { dayStart, localDate } from "@caretook/data/schema";
 import { parseZonedDateTime } from "@internationalized/date";
+import { dayStart, localDate } from "@caretook/data/domain";
 
 // The care period sheet's form as a period: the fields `PeriodForm` posts,
 // read into the shape the device writes (`createCarePeriod`) validate. Pure,

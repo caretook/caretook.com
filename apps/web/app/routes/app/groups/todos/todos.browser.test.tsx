@@ -1,7 +1,6 @@
 import type { DeviceRoute } from "../../../../../test/device";
 import type { GroupRole } from "../../../../../test/fixtures";
 
-import { addDays, localDate } from "@caretook/data/schema";
 import { afterEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import * as editSheet from "./edit/route";
@@ -14,6 +13,7 @@ import { at, fx, hoursAgo, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from ".
 import { clearTodoUndo } from "~/lib/todos/todoUndo";
 import { pickTime } from "../../../../../test/timeSelect";
 import { requiredLabels } from "../../../../../test/required";
+import { addDays, localDate } from "@caretook/data/domain";
 
 // The Planner's Todos tab (todos slice 1; tasks-2 put it under the Planner header): the list's Filter menu, sections, ticks with
 // Undo, Done with Reopen, what viewers see, and the add and edit sheets with

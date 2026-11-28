@@ -4,15 +4,17 @@
 
 ## Status
 
-**Where it stands:** wave 1 (slices 1, 2, 5) all merged 2026-11-27; B-366, B-365 done (B-361 waits for slice 6). CI `full` green on edc35e614 (run 46094484809); dev sync was a no-op; slice worktrees removed. PR #299 open; Codex review and the lean browser set running. Then land wave 1. Slices 3 and 4 dropped: B-367 moved to Risa. Slice 6 (wave 2) also waits for `simple-mode` to land in `dev`.
+**Where it stands:** wave 1 (slices 1, 2, 5) **landed** in `dev` 2026-11-27 through PR #299 at tier `full` (run 46098408581, a flake outside the branch: B-998/B-1000), Codex clean; to-test `to-test/2026-11-27-2138-code-health.md`. Slice worktrees removed. B-366, B-365 done; B-361 open for slice 6.
+
+**Wave 2 under way (2026-11-27):** `risa sync` up to date; worktree `code-health-6` made on `slice/code-health/6`; opus agent spawned; B-361 claimed; watch running. Slice 6 handed off and merged (da7230f3d; B-361 ready). Its slice check failed only on `prompt-golden.txt` (outside its diff; standalone project-check ok; likely the pending Risa repin); build budget `app` +183 B gzip from module order only (same modules), accepted. Follow-ups: stale comment `routes/app/groups/todo/todoPage.ts:6` names the deleted `todoDisplay.ts`. Next: gate (full check + `pnpm build:budget` + browser checks), PR, land fast (the plan's _How to run_), wave 2 docs fold, `risa rm code-health`.
 
 **Landing mode:** run everything through (dispatcher start): start every ready slice, land each green wave, ask only real questions through `risa ask`.
 
-**Models:** slices 1, 2, 5 on opus.
+**Models:** slices 1, 2, 5 ran on opus; slice 6 on opus.
 
-**Notes for the fold:** `initClient` kept (read by `packages/api/src/sync.ts`); the pins test also accepts a git dependency at a full commit hash (the root's `risa`). Slice 5 moved 29 modules, not 48: the quick entry parser, due doses, medication display and series edits stay (they need schema values; splitting them is a follow-up). `symptomCatalog` and `connectorRules` stay (read by path from `scripts/`).
+**Notes for slice 6 and the fold:** `initClient` was kept (read by `packages/api/src/sync.ts`). The pins test accepts a git dependency at a full commit hash (the root's `risa`); on a sync that conflicts in the root `package.json`, keep our exact pins and take `dev`'s `risa` hash. Slice 5 moved 29 modules, not 48. The quick entry parser, due doses, medication display and series edits stay in the schema folder (they need schema values; splitting them is a follow-up). `symptomCatalog` and `connectorRules` stay (read by path from `scripts/`). The domain area indexes hold exactly the names the schema area indexes used to export; `quickEntryRepeat` and `quickEntryVocabulary` are in neither. fixes-nit's B-950 moved the timeline entry row into `components/entry/` (on `dev`); fixes-nit waits on `code-health` in the registry for B-995 (`settings/calendar/`). Don't commit _Status_ while a PR review is out: it makes Codex's verdict stale.
 
-**Other PRDs:** hot files narrowed to wave 1's real paths (2026-11-27) so fixes-nit's B-950 (moves `TimelineEntryRow.tsx` and `useOpenTodoCounts` into `components/entry/`) runs alongside; slice 6 rewrites import lines on whatever `dev` holds when it starts. **At wave 1's landing, message `fixes-nit-34`** (it holds B-995 on `settings/calendar/`).
+**Wave 1 docs folded:** AGENTS.md names the pins test; `data-layer.md` never named the registry or `serviceName` (nothing to drop).
 
 | Slice | Wave | State                         | Merge into `prd/code-health` (slice commits) |
 | ----- | ---- | ----------------------------- | -------------------------------------------- |
@@ -21,7 +23,7 @@
 | 3     | —    | dropped (B-367 moved to Risa) |                                              |
 | 4     | —    | dropped (B-367 moved to Risa) |                                              |
 | 5     | 1    | merged                        | 777dd8279 (dcf97ac7b, 2c1d87fe9, 1b0a7c14c)  |
-| 6     | 2    | not started                   |                                              |
+| 6     | 2    | merged                        | da7230f3d (3061657cc, 1998b1b8c)             |
 
 **Backlog:** claim a slice's item when it starts; run `risa backlog done` on an item when its last slice merges.
 

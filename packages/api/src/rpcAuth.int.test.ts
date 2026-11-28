@@ -1,11 +1,12 @@
 import type { AuthUserLookup } from "./procedures";
 
 import { getAuth, getAuthConfig, getAuthUser } from "@caretook/auth";
-import { accountSchema, getDb, MIN_FORM_MS, newError } from "@caretook/data";
+import { accountSchema, getDb, newError } from "@caretook/data";
 import { randomUUID } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createGroup, createUser } from "../../data/test/fixtures";
 import { createRpcHandler } from "./handler";
+import { MIN_FORM_MS } from "@caretook/data/domain";
 
 // /rpc's session lookup (B-140): lazy (public procedures never look one
 // up), one query for the account and its memberships, and Better Auth's

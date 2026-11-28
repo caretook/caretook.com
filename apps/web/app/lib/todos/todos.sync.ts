@@ -7,28 +7,30 @@ import {
   ASSIGNEE_NOT_MEMBER_ISSUE,
   BAD_PARENT_ISSUE,
   BAD_TODO_LINK_ISSUES,
+  entryTodoId,
+  NOTE_DOCUMENT_KINDS,
+  REPEAT_WITH_SUBTASKS_ISSUE,
+  todoContentOf,
+  todoContentZSchema,
+  todoCreateZSchema,
+  todoUpdateZSchema,
+} from "@caretook/data/schema";
+import {
   canCompleteTodo,
   canHaveSubtask,
   clampDue,
   DUE_AFTER_PARENT_ISSUE,
-  entryTodoId,
   inheritedDue,
   isDueAfterParent,
   isTodoCompleter,
   isTodoWriter,
   MAX_TODO_DEPTH,
-  NOTE_DOCUMENT_KINDS,
-  REPEAT_WITH_SUBTASKS_ISSUE,
   repeatColumnsFor,
   ROLLUP_METADATA,
   rollupOf,
   SIBLING_ORDER_SQL,
-  todoContentOf,
-  todoContentZSchema,
-  todoCreateZSchema,
-  todoUpdateZSchema,
   UNDO_NEXT_METADATA,
-} from "@caretook/data/schema";
+} from "@caretook/data/domain";
 import { eq, inArray, sql } from "drizzle-orm";
 import { noteDocuments, recordTags, timelineEntryTodos, todos } from "../sync/schema";
 import { recordTagRow } from "../tags/tags.sync";
@@ -1017,7 +1019,7 @@ export const createTodoDocument = async (db: SyncDb, todoId: string): Promise<Ac
 
 // Kept with this block (not at the top) so parallel slices' additions merge
 // as separate hunks; imports are hoisted either way.
-import { addDays, localDate, todoOrder } from "@caretook/data/schema";
+import { addDays, localDate, todoOrder } from "@caretook/data/domain";
 import { useMemo } from "react";
 import { useNow } from "../live-notes/editors.sync";
 import { useRememberedQuery } from "../sync/useRememberedQuery";

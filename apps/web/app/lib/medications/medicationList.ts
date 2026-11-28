@@ -2,14 +2,9 @@ import type { MedicationStatus, MedicationType } from "@caretook/data/schema";
 
 import type { TagsByRecord } from "../providers/providerDirectory";
 
-import {
-  MEDICATION_STATUSES,
-  MEDICATION_TYPES,
-  TAG_PARAM,
-  tagFromParams,
-  withTagParam,
-} from "@caretook/data/schema";
+import { MEDICATION_STATUSES, TAG_PARAM, tagFromParams, withTagParam } from "@caretook/data/schema";
 import { fold, hasTag, queryTokens } from "../providers/providerDirectory";
+import { MEDICATION_TYPES } from "@caretook/data/domain";
 
 // The medication list: its filters in the URL (`?q=`, `?status=`, `?type=`, `?tag=`), the
 // display order, and search matching. Pure: no React or database here; the

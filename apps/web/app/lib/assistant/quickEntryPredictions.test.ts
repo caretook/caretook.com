@@ -2,7 +2,7 @@ import type { PredictionEntry } from "./quickEntryPredictions";
 
 import { describe, expect, it } from "vitest";
 import { usualAtHour } from "./quickEntryPredictions";
-import { addDays, zonedInstant } from "../core/zonedDay";
+import { addDays, zonedInstant } from "@caretook/data/domain";
 
 const ZONE = "America/Los_Angeles";
 

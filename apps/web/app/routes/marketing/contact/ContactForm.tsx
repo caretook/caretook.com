@@ -1,6 +1,5 @@
 import type { ContactPageContent } from "../sections/types";
 
-import { CONTACT_MESSAGE_MAX, CONTACT_TOPIC_LABELS, CONTACT_TOPICS, NAME_MAX } from "@caretook/data/schema";
 import { formString } from "~/lib/core/form";
 import { rpc } from "~/lib/core/rpc";
 import {
@@ -11,6 +10,7 @@ import {
   TextField,
   usePublicForm,
 } from "../sections/PublicForm";
+import { CONTACT_MESSAGE_MAX, CONTACT_TOPIC_LABELS, CONTACT_TOPICS, NAME_MAX } from "@caretook/data/domain";
 
 const TOPIC_OPTIONS = CONTACT_TOPICS.map((value) => ({ value, label: CONTACT_TOPIC_LABELS[value] }));
 

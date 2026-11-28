@@ -1,7 +1,6 @@
 import type { SyncDb } from "../sync/index";
 import type { SearchStore } from "./search.sync";
 
-import { encodeNoteDoc, noteDocFromText, parseSearch } from "@caretook/data/schema";
 import { DatabaseSync } from "node:sqlite";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
@@ -13,6 +12,7 @@ import {
   searchEntryIds,
   searchGroup,
 } from "./search.sync";
+import { encodeNoteDoc, noteDocFromText, parseSearch } from "@caretook/data/domain";
 
 // The indexer against a real SQLite with FTS5, laid out the way PowerSync
 // stores synced rows: `ps_data__<table>` (id, JSON data), read through a

@@ -1,6 +1,5 @@
 import type { Fixture } from "../../../test/fixtures";
 
-import { parseSearch } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
 import { found } from "../../../test/found";
@@ -19,6 +18,7 @@ import {
   stopSearchIndex,
 } from "./search.sync";
 import { createEntry } from "../timeline/timeline.sync";
+import { parseSearch } from "@caretook/data/domain";
 
 // The search index on the test device (from search.mjs, slice 1): the same
 // FTS5 index, triggers and indexer as on a phone, on PowerSync's own

@@ -18,14 +18,13 @@ import {
   providerService,
   recipientAllergyService,
   recipientConditionService,
-  ROLLUP_METADATA,
   symptomTypeService,
   tagService,
   timelineEntryService,
   todoService,
-  UNDO_NEXT_METADATA,
   withTransaction,
 } from "@caretook/data";
+import { ROLLUP_METADATA, UNDO_NEXT_METADATA } from "@caretook/data/domain";
 
 // The upload registry: which device tables `sync.upload` writes, and how each
 // op maps onto the services (never the models, so RBAC and validation apply

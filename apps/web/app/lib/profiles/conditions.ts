@@ -1,6 +1,6 @@
 import type { ConditionStatus } from "@caretook/data/schema";
 
-import { sortConditions } from "@caretook/data/schema";
+import { sortConditions } from "@caretook/data/domain";
 
 // The recipient's conditions, in words: their order (active first), the
 // "since" text, a condition's one-line summary and the card's states. Pure:
@@ -35,8 +35,6 @@ export const MONTH_NAMES = [
   "November",
   "December",
 ] as const;
-
-export { sortConditions };
 
 /** "2015", "March 2021", or null when there's no since. */
 export const sinceDate = ({ sinceYear, sinceMonth }: Pick<ConditionLike, "sinceYear" | "sinceMonth">) => {

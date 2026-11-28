@@ -8,7 +8,7 @@ import type { MaterializeInput } from "~/lib/live-notes/liveEntry.sync";
 import type { EntryRow } from "~/lib/timeline/timeline.sync";
 import type { EntryPageData } from "./loadEntry";
 
-import { canChangeEntry, canHaveNoteDocument, noteText } from "@caretook/data/schema";
+import { canHaveNoteDocument } from "@caretook/data/schema";
 import { useCallback, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { toast } from "~/components/ui";
@@ -31,6 +31,7 @@ import { materializeLiveEntry } from "~/lib/live-notes/liveEntry.sync";
 import { linkProvider } from "~/lib/providers/providers.sync";
 import { removeEntry, toTimelineEntry, updateEntry } from "~/lib/timeline/timeline.sync";
 import { entrySql } from "./loadEntry";
+import { canChangeEntry, noteText } from "@caretook/data/domain";
 
 export type LiveEntry = {
   /** The entry as it is now: the stored row (live), else the draft. */

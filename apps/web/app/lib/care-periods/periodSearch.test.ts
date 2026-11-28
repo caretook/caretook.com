@@ -1,6 +1,5 @@
 import type { SearchablePeriod } from "./periodSearch";
 
-import { periodSpans } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import {
   choiceText,
@@ -11,6 +10,7 @@ import {
   periodWhere,
   rangeUntilNow,
 } from "./periodSearch";
+import { periodSpans } from "@caretook/data/domain";
 
 const LA = "America/Los_Angeles";
 const NOW = new Date("2026-11-19T20:00:00Z");

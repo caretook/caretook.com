@@ -1,7 +1,6 @@
 import type { DeviceRoute } from "../../../../../test/device";
 import type { Fixture } from "../../../../../test/fixtures";
 
-import { addDays, localDate } from "@caretook/data/schema";
 import { Link } from "react-router";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
@@ -11,6 +10,7 @@ import { at, fx, medicationPass, todo, TEST_TIME_ZONE, TEST_USER } from "../../.
 import { CLOCK, clockAt } from "../medications/medicationWorld";
 import * as timeline from "./route";
 import { chooseEasyMode, TIMELINE_URL } from "./timelineWorld";
+import { addDays, localDate } from "@caretook/data/domain";
 
 // The tile cache (timeline-ux slice 2, B-166): the header tiles never pop
 // in. Mounted again in the same session (Back from another page), a Today

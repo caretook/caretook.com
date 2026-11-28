@@ -1,8 +1,7 @@
-import type { CalendarItem } from "../db/schema";
-
 import { describe, expect, it } from "vitest";
 import { STATUS_PROPERTY, UID_PROPERTY } from "./client";
 import { eventHash, googleEventId, planPush, toGoogleEvent } from "./pushPlan";
+import type { CalendarItem } from "../domain/calendars/calendarItems";
 
 // The Google push plan (appointments-2 slice 7), on the appointments area's
 // week (Thu 19 Nov 2026, Los Angeles). Names and places are made up.

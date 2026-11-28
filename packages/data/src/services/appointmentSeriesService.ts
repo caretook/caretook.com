@@ -14,16 +14,11 @@ import type { ServiceContext } from "./types";
 import { SYSTEM_USER, isWriterRole } from "../constants";
 import { withTransaction } from "../db";
 import {
-  addDays,
   appointmentSeriesContentOf,
   appointmentSeriesContentZSchema,
   appointmentSeriesCreateZSchema,
   appointmentSeriesUpdateZSchema,
   appointmentSeriesUpsertZSchema,
-  dayInZone,
-  SERIES_AHEAD_DAYS,
-  seriesVisitFallbackId,
-  seriesVisitId,
 } from "../db/schema";
 import { firstDayFrom, seriesVisits } from "../domain/appointments/seriesVisits";
 import { isError, newError } from "../errors";
@@ -41,6 +36,9 @@ import { asCreated, unchanged } from "./upserted";
 import * as entryProviderService from "./entryProviderService";
 import * as noteDocumentService from "./noteDocumentService";
 import * as timelineEntryService from "./timelineEntryService";
+import { addDays } from "../domain/core/entryTiming";
+import { dayInZone } from "../domain/core/zonedDay";
+import { SERIES_AHEAD_DAYS, seriesVisitFallbackId, seriesVisitId } from "../domain/appointments/repeatRule";
 
 // Repeating appointments and reminders (appointments-2). Write through here,
 // not the model: this is where the rule and template are validated, the

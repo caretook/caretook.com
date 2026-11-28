@@ -1,12 +1,12 @@
 import type { PlanSeries, SeriesEditChange } from "@caretook/data/series";
 
-import { parseRule, ruleText, SERIES_LIMITS } from "@caretook/data/schema";
 import { ruleFrom } from "@caretook/data/series";
 import { useState } from "react";
 import { Field, FormFooter, Message, Sheet, TimeSelect, ToggleField } from "~/components/ui";
 import { choiceOfRule } from "~/lib/appointments/repeatChoice";
 import { currentHourTime } from "~/lib/core/timeOfDay";
 import { repeatOutcome, RepeatField } from "./RepeatField";
+import { parseRule, ruleText, SERIES_LIMITS } from "@caretook/data/domain";
 
 /** "HH:MM" plus minutes, as a wall-clock time (past midnight wraps). */
 const addMinutes = (time: string, minutes: number) => {

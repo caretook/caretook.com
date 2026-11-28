@@ -1,8 +1,8 @@
 import { useCallback, useState } from "react";
-import { completedText } from "~/lib/todos/todoDisplay";
 import { clearTodoUndo, offerTodoUndo } from "~/lib/todos/todoUndo";
 import { getSync } from "~/lib/sync";
 import { completeTodo, reopenTodo } from "~/lib/todos/todos.sync";
+import { completedText } from "@caretook/data/domain";
 
 const WRITE_FAILED = "Couldn't save that. Try again.";
 

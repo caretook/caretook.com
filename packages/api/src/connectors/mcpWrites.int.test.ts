@@ -14,7 +14,7 @@ import {
   todoService,
   timelineEntryService,
 } from "@caretook/data";
-import { doseSlotIdFor, fromBase64, MENTION_NODE, symptomTypeId } from "@caretook/data/schema";
+import { doseSlotIdFor, symptomTypeId } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../../data/test/fixtures";
 import {
@@ -27,6 +27,7 @@ import {
   TEST_ORIGIN,
   toolRequest,
 } from "./testing";
+import { fromBase64, MENTION_NODE } from "@caretook/data/domain";
 
 // The write tools through /mcp's HTTP handler, with tokens from the real
 // OAuth dance: each tool writes through the server runner with "via" the

@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import type { TimelinePeriods } from "./timelinePeriods";
 
-import { periodAt, periodDayOn } from "@caretook/data/schema";
 import { ArrowRightLeft } from "lucide-react";
 import { Link } from "react-router";
 import { Button, ICON, ICON_LG } from "~/components/ui";
@@ -15,6 +14,7 @@ import { CopyLinkButton } from "~/components/entry";
 import { QuickAddMenu } from "./QuickAddMenu";
 import { dayLinkPath } from "~/lib/timeline/timelineLinks";
 import { dayKeyIn } from "~/lib/timeline/timelineDays";
+import { periodAt, periodDayOn } from "@caretook/data/domain";
 
 /**
  * A day section's sticky header: the day's heading ("Today", "Monday, Nov

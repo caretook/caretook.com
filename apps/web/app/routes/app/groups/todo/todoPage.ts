@@ -1,7 +1,5 @@
-import type { TodoRuleFields, TodoState } from "@caretook/data/schema";
-
-import { localDate } from "@caretook/data/schema";
-import { assigneeLabel, dueText, shortDay } from "../../../../lib/todos/todoDisplay";
+import type { TodoRuleFields, TodoState } from "@caretook/data/domain";
+import { localDate, assigneeLabel, dueText, shortDay } from "@caretook/data/domain";
 
 // How the todo page words a todo (pure; web:unit tests it): the header's
 // badge, the assignee, the due day and the done-by line. Days and times are

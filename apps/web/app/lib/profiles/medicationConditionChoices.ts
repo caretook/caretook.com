@@ -1,6 +1,7 @@
 import type { ConditionLike } from "./conditions";
 
-import { sinceText, sortConditions } from "./conditions";
+import { sinceText } from "./conditions";
+import { sortConditions } from "@caretook/data/domain";
 
 // The medication form's "For" field (conditions slice 4): which of the
 // recipient's conditions it offers. Pure: web:unit tests it.

@@ -5,7 +5,7 @@ import { Link } from "react-router";
 import { ListRow } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useMedicationLinkState } from "~/lib/medications/medicationOrigin";
-import { medicationTitle } from "~/lib/medications/medicationDisplay";
+import { medicationTitle } from "@caretook/data/schema";
 
 type DataHooks = { [attr: `data-${string}`]: string | undefined };
 

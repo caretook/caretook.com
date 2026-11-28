@@ -1,6 +1,5 @@
-import type { ParsedSearch, SearchTerm } from "@caretook/data/schema";
-
-import { foldSearchText, isEmptySearch } from "@caretook/data/schema";
+import type { ParsedSearch, SearchTerm } from "@caretook/data/domain";
+import { foldSearchText, isEmptySearch } from "@caretook/data/domain";
 
 // Search by tag name (tags-3), pure: which of the group's tags a search
 // names. The tags stay out of the index (`search.sync.ts` joins the links

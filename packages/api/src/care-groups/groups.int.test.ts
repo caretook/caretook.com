@@ -13,12 +13,12 @@ import {
   SYSTEM_USER,
   userModel,
 } from "@caretook/data";
-import { LEGAL_VERSIONS } from "@caretook/data/schema";
 import { setBackgroundRunner, sharedMemorySender } from "@caretook/notifications";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createGroup, createUser } from "../../../data/test/fixtures";
 import { clientFor, codesOf } from "../testing";
+import { LEGAL_VERSIONS } from "@caretook/data/domain";
 
 // Starting care groups (invites slice 5) through the router: careGroup.create,
 // access codes (sign-up and its group in one transaction) and the staff-only

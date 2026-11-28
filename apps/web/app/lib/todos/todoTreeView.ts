@@ -1,6 +1,5 @@
-import type { TodoRuleFields } from "@caretook/data/schema";
-
-import { MAX_TODO_DEPTH, siblingOrder, todoOrder, todoState } from "@caretook/data/schema";
+import type { TodoRuleFields } from "@caretook/data/domain";
+import { MAX_TODO_DEPTH, siblingOrder, todoOrder, todoState } from "@caretook/data/domain";
 
 // The one tree display's shape (todo-subtasks-3; pure, web:unit tests it):
 // every list of todos shows a subtask only inside its tree. `todoTrees`

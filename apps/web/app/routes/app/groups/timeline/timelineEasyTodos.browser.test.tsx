@@ -1,7 +1,6 @@
 import type { DeviceRoute } from "../../../../../test/device";
 import type { Fixture, GroupRole } from "../../../../../test/fixtures";
 
-import { addDays, localDate } from "@caretook/data/schema";
 import { afterEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
@@ -10,6 +9,7 @@ import { clearTodoUndo } from "~/lib/todos/todoUndo";
 import * as timeline from "./route";
 import { chooseEasyMode } from "./timelineWorld";
 import { waitUntil } from "../../../../../test/found";
+import { addDays, localDate } from "@caretook/data/domain";
 
 // Easy mode's "My todos" card (todos slice 6), on the test device
 // (offline): my open todos as trees in the shared row's easy look

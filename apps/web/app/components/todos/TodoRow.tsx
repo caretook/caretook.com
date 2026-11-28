@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import type { TodoTickProgress } from "./TodoTick";
 import type { LocalTodo } from "~/lib/todos/todos.sync";
 
-import { canCompleteTodo, todoState } from "@caretook/data/schema";
 import { ListTodo, UserRound } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import { QuickTags } from "~/components/tags";
@@ -12,8 +11,8 @@ import { TodoPartOf, TodoProgressMark } from "./TodoTreeMarks";
 import { Badge, ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
-import { assigneeLabel, doneText, dueText } from "~/lib/todos/todoDisplay";
 import { todoPageState } from "~/lib/todos/todoSheets";
+import { canCompleteTodo, todoState, assigneeLabel, doneText, dueText } from "@caretook/data/domain";
 
 /**
  * One todo: its tick (for whoever may complete it), the title (opening the

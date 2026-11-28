@@ -2,12 +2,7 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { InvitePreview, UsablePreview } from "./invitePage";
 import type { Route } from "./+types/route";
 
-import {
-  ATTESTATION_TEXT,
-  CONSENT_TEXT,
-  LEGAL_REQUIRED_MESSAGE,
-  SHARED_WITH_MEMBERS,
-} from "@caretook/data/schema";
+import { ATTESTATION_TEXT, CONSENT_TEXT, SHARED_WITH_MEMBERS } from "@caretook/data/schema";
 import { ORPCError } from "@orpc/client";
 import { Form, Link, redirect, useNavigation } from "react-router";
 import { Button, CheckField, Field, LINK } from "~/components/ui/plain";
@@ -31,6 +26,7 @@ import {
   LINK_APPROVAL_NOTE,
   roleMeaning,
 } from "./invitePage";
+import { LEGAL_REQUIRED_MESSAGE } from "@caretook/data/domain";
 
 // `/invite/:token`: the page an email invite or an invite link opens. Shared
 // by web + native, client-only: it reads the public `invite.preview`, and

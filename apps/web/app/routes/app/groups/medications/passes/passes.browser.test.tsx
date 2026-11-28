@@ -8,7 +8,6 @@ import { fx, medicationPass, TEST_TIME_ZONE } from "../../../../../../test/fixtu
 import { pickTime } from "../../../../../../test/timeSelect";
 import { requiredLabels } from "../../../../../../test/required";
 import { currentHourTime } from "~/lib/core/timeOfDay";
-import { clockTime } from "~/lib/medications/medicationDisplay";
 import { clearUndo } from "~/lib/medications/passUndo";
 import {
   CLOCK,
@@ -23,6 +22,7 @@ import {
   OPEN_DIALOG,
   PASSES,
 } from "../medicationWorld";
+import { clockTime } from "@caretook/data/schema";
 
 // The Passes tab (B-424; medications.mjs's passes steps): the group's passes
 // in order with the medications in each, under the Medications header; a

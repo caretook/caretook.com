@@ -1,13 +1,13 @@
 import type { DeviceRoute } from "../../../test/device";
 import type { GroupRole } from "../../../test/fixtures";
 
-import { addDays, localDate } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../test/device";
 import { at, fx, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../test/fixtures";
 import * as medicationRoute from "../../routes/app/groups/medication/route";
 import * as providerRoute from "../../routes/app/groups/provider/route";
+import { addDays, localDate } from "@caretook/data/domain";
 
 // `LinkedTodos` (todos slice 3) on the pages that have it: a provider's page
 // and a medication's page (an entry's page has its own Todos since

@@ -2,7 +2,8 @@ import type { MedicationForm, MedicationSchedule, MedicationType, ScheduleSlot }
 import type { FieldIssue } from "../../../../lib/core/api";
 import type { NewMedicationProviders } from "../../../../lib/medications/medications.sync";
 
-import { MEDICATION_FORMS, MEDICATION_TYPES } from "@caretook/data/schema";
+import { MEDICATION_FORMS } from "@caretook/data/schema";
+import { MEDICATION_TYPES } from "@caretook/data/domain";
 
 // The medication sheet's form as a medication: the fields `MedicationForm`
 // posts, read into the shape the device writes (`createMedication`,

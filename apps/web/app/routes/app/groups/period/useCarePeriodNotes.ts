@@ -1,10 +1,10 @@
 import type * as Y from "yjs";
 
-import { noteText } from "@caretook/data/schema";
 import { useCallback, useRef, useState } from "react";
 import { shouldMaterialize } from "~/lib/live-notes/liveEntry";
 import { getSync } from "~/lib/sync";
 import { createCarePeriodDocument } from "~/lib/care-periods/carePeriods.sync";
+import { noteText } from "@caretook/data/domain";
 
 /**
  * The period's notes document, made on the first real change (text), like a

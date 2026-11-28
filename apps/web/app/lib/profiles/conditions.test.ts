@@ -2,7 +2,8 @@ import type { ConditionLike } from "./conditions";
 
 import { recipientConditionContentZSchema } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
-import { conditionState, conditionText, sinceText, sortConditions } from "./conditions";
+import { conditionState, conditionText, sinceText } from "./conditions";
+import { sortConditions } from "@caretook/data/domain";
 
 let n = 0;
 const condition = (overrides: Partial<ConditionLike> = {}): ConditionLike => ({

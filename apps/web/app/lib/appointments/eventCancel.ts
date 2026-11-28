@@ -1,5 +1,5 @@
 import { TIMELINE_LIMITS } from "@caretook/data/schema";
-import { dayLabel } from "../core/format";
+import { dayLabel } from "@caretook/data/domain";
 
 // Cancelling an event and putting it back: the fields each writes, and the
 // words the entry page's Cancelled banner shows. Pure; unit-tested in
