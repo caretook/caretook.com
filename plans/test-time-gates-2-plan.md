@@ -10,19 +10,25 @@ PRD: [test-time-gates-2-prd.md](test-time-gates-2-prd.md). Items B-859, B-837, B
 
 **Plan fix (2026-11-28):** the plan predates the Risa move; `ci`, `recover`, `rotate`, `dispatch`, `time-gate` and `tier-data` tests now live in ~/git/risa. Slice 1 drops `ci.test.mjs`. Slice 2 narrowed and slice 3's criterion moved to `pnpm test:tooling`, the backlog session agreeing (2026-11-28). The quiet rule (loops/time-gate.mjs:77 needs a quiet start and end) was sent to Risa's backlog (Admiral Marcus) : filed as RISA-1065 (time gate judges the local measure on its start load only, fixes-bug); the test split is RISA-1066 (fixes-tooling). Risa's backlog notifies backlog (caretook) when RISA-1065 ships in a tag.
 
-**Models:** slice 1 opus.
+**Models:** slice 1 opus; slice 3 opus.
 
 **Slice 1 (merged cd093268c, 2026-11-28):** requested `components` run 46162250609 on b176b461 (`flake`: the brake-listed `search.sync` perf test and `resetStaging.int.test.ts`, neither ours). Test-step seconds: shard 1 323 (warn), 2 305 (warn), 3 199, 4 208; 262 files, 2580 tests. The three-shard count from 45760650119 (220 files, 2198 tests) is 2009 commits old; the nearest three-shard run, free-limits' 46160525942 on 25aab0f1, had 260 files and 2571 tests (5 files differ). Slice 3 refreshes the table from 46162250609. Its quick check was judged under today's rule (125 s, ok), with no `tooling` step. Note: slice shells inherit `RISA_CONFIG`/`RISA_SESSION_*` from this session; unset them in slice prompts.
 
 **Slice 2 (merged 340667590, 2026-11-28):** the measuring quick check on 134128d4c (window a403, "now", decided for you, skeptic s91): judged `ok`, 142 s; loads 3.09 start, 5.41 end on 10 cores; steps typegen 1, static 80, count 2, unit 37, lint 1, docs 0, tooling 12. `quick` armed (8c1e1f5fa); `pnpm test:tooling` passes (605 tests). It didn't need RISA-1065.
 
-**Wave 1 gate:** `full` run 46163542256 on 79689c45: green. Test steps: components-1 231 s, -2 208, -3 223, -4 234; unit-1 47, unit-2 65. Synced with dev (9ac370aa9, brought migration 0050); recheck `full` run 46164085462 on a31cf20a: green (components-1 303 s, warn, unarmed; -2 193, -3 293, -4 216; unit-1 57, unit-2 45: shard spread from the stale table, slice 3's). PR #336: Codex clean. Docs folded (four shards in components and the runbook; machinery: `quick` armed). Landing wave 1. Slice worktrees 1 and 2 removed.
+**Wave 1 gate:** `full` run 46163542256 on 79689c45: green. Test steps: components-1 231 s, -2 208, -3 223, -4 234; unit-1 47, unit-2 65. Synced with dev (9ac370aa9, brought migration 0050); recheck `full` run 46164085462 on a31cf20a: green (components-1 303 s, warn, unarmed; -2 193, -3 293, -4 216; unit-1 57, unit-2 45: shard spread from the stale table, slice 3's). PR #336: Codex clean. Docs folded (four shards in components and the runbook; machinery: `quick` armed).
 
-| Slice                                        | Wave | State   | Merge     |
-| -------------------------------------------- | ---- | ------- | --------- |
-| 1. Four component shards                     | 1    | merged  | cd093268c |
-| 2. The quick gate armed                      | 1    | merged  | 340667590 |
-| 3. The durations refreshed; components armed | 2    | planned | —         |
+**Wave 1 landed** in dev as 0f4e593cf through PR #336 (tier full, 2026-11-28); report filed; to-test/2026-11-28-1122-test-time-gates-2.md.
+
+**Slice 3 (merged 32336c272, 2026-11-28):** table refreshed from `full` 46164085462 (262 entries: 256 components, 6 `ny`, the six `test/zone.ts` files). Requested `components` run 46165126670 on 48ac9bc6, green: shards 303 s (warn), 216, 204, 199; 262 files, 2580 tests (unchanged). Shard 1's files ran ~20% over table times: `components` left unarmed; filed B-1037 (fixes-perf: shard 1 under 275 s, names the slowest files). Per the plan, B-859, B-837, B-772 close at landing with a note pointing to B-1037. Wave 2 gate: `full` run 46166116776 on 140b7fad green (components-2 318 s, warn, unarmed). `risa sync`: no merge needed. No browser checks needed. PR #338 open; Codex review out. Docs folded (components doc: refresh command, unarmed until B-1037). Next: clean review, land `--tier full`, close B-859/B-837/B-772 noting B-1037, report, `risa rm test-time-gates-2`.
+
+**Wave 2 (started 2026-11-28):** sync skipped (up to date with dev); slice 3 worktree made, its opus agent spawned (prompt adds the unset of `RISA_*` and the run ids). Was the brief: start slice 3 (opus) on prd/test-time-gates-2: refresh `scripts/ci/component-durations.json` from run 46162250609 (four shards; or a later green four-shard run), then one requested `components` run; arm `components` if its slowest shard is ≤ 275 s. Then the wave's `full` run, land, fold docs (components doc: the table refreshed from run N; machinery: armed list), close B-859, B-837, B-772 (or an unarmed measure's `fixes-perf` item), `risa rm test-time-gates-2`. Unset `RISA_CONFIG`, `RISA_CONFIG_FOUND`, `RISA_SESSION_*` in the slice prompt. Slice worktrees 1 and 2 removed.
+
+| Slice                                        | Wave | State  | Merge     |
+| -------------------------------------------- | ---- | ------ | --------- |
+| 1. Four component shards                     | 1    | merged | cd093268c |
+| 2. The quick gate armed                      | 1    | merged | 340667590 |
+| 3. The durations refreshed; components armed | 2    | merged | 32336c272 |
 
 ## Architectural decisions
 
