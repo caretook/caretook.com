@@ -6,12 +6,16 @@
 
 | Slice | Wave | State   | Merge into `prd/connectors-5` (slice commits) |
 | ----- | ---- | ------- | --------------------------------------------- |
-| 1     | 1    | planned |                                               |
-| 2     | 1    | planned |                                               |
+| 1     | 1    | running |                                               |
+| 2     | 1    | running |                                               |
 | 3     | 2    | planned |                                               |
 | 4     | 2    | planned |                                               |
 
-**Backlog:** claim B-861 when slice 1 starts; `pnpm backlog done B-861` when the last slice merges.
+**Landing mode:** run everything through (dispatcher start; land each green wave without asking; real questions via `risa ask`).
+
+**Backlog:** B-861 claimed 2026-11-27 (prd/connectors-5); `risa backlog done B-861` when the last slice merges. No other items for this topic.
+
+**Now (2026-11-27):** wave 1 started: slice 1 (opus) in `.loops/connectors-5-1`, slice 2 (opus: consent version and tests) in `.loops/connectors-5-2`. Added `Check:` fields to every slice (anchors warned). Wave 2 (slices 3, 4, opus) waits on slice 1's merge.
 
 ## Architectural decisions
 
@@ -35,7 +39,7 @@ Durable decisions every slice follows:
 
 ## Slice 1: List tags and what carries one
 
-Stack: no · Reads: docs/domain/connectors.md, docs/domain/tags.md · Tests: integration · Blocked by: none
+Stack: no · Reads: docs/domain/connectors.md, docs/domain/tags.md · Tests: integration · Blocked by: none · Check: packages/api/src/connectors/tagTools.int.test.ts
 
 User stories: 1, 2, 3, 8, 9, 10.
 
@@ -55,7 +59,7 @@ Blocks: 3, 4.
 
 ## Slice 2: Consent and privacy name tags
 
-Stack: no · Reads: docs/domain/connectors.md, docs/domain/marketing.md · Tests: unit, component · Blocked by: none
+Stack: no · Reads: docs/domain/connectors.md, docs/domain/marketing.md · Tests: unit, component · Blocked by: none · Check: apps/web/app/routes/connectors/connect/connect.browser.test.tsx
 
 User stories: 11.
 
@@ -74,7 +78,7 @@ Blocks: nothing (the PRD lands only with it).
 
 ## Slice 3: Tag and untag a record
 
-Stack: no · Reads: docs/domain/connectors.md, docs/domain/tags.md · Tests: integration · Blocked by: 1
+Stack: no · Reads: docs/domain/connectors.md, docs/domain/tags.md · Tests: integration · Blocked by: 1 · Check: packages/api/src/connectors/tagWrites.int.test.ts
 
 User stories: 5, 6, 7, 8, 9.
 
@@ -91,7 +95,7 @@ Blocks: nothing.
 
 ## Slice 4: Tags on every record an assistant reads
 
-Stack: no · Reads: docs/domain/connectors.md, docs/domain/tags.md · Tests: integration · Blocked by: 1
+Stack: no · Reads: docs/domain/connectors.md, docs/domain/tags.md · Tests: integration · Blocked by: 1 · Check: packages/api/src/connectors/readTools.int.test.ts
 
 User stories: 4.
 
