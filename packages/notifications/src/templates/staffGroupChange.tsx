@@ -1,3 +1,4 @@
+import { GROUP_ROLE_NAMES, type GroupRoleName } from "@caretook/data/permissions";
 import { z } from "zod";
 import { defineNotification } from "../define";
 import { ButtonLink, EmailLayout, Muted, Paragraph } from "./layout";
@@ -9,9 +10,8 @@ import { ButtonLink, EmailLayout, Muted, Paragraph } from "./layout";
 // member and the roles, never the staff member and no health details, and
 // gives the support address to ask about it.
 
-const ROLES = ["owner", "admin", "caretaker", "viewer", "easy_helper", "easy_viewer"] as const;
-const roleZ = z.enum(ROLES);
-const ROLE_LABELS: Record<(typeof ROLES)[number], string> = {
+const roleZ = z.enum(GROUP_ROLE_NAMES);
+const ROLE_LABELS: Record<GroupRoleName, string> = {
   owner: "an owner",
   admin: "an admin",
   caretaker: "a caretaker",
