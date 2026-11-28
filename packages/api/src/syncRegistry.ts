@@ -442,14 +442,13 @@ const todo = softDelete({
     // one an Undo took away), with its content: the delete scrubbed it
     // (data-rights). A tick's (flagged) never restores a chain stopped
     // since: nothing is written, and the op is applied so the queue drains (B-1003).
+    const content = mapped(TODO_CONTENT, data);
     if ("deleted_at" in data) {
       const fromTick = op.metadata === TICK_NEXT_METADATA;
-      const content = mapped(TODO_CONTENT, data);
-      const res = await todoService.restoreOccurrence(ctx, op.id, { fromTick, content: content as never });
+      const res = await todoService.restoreOccurrence(ctx, op.id, { fromTick, content });
       if (isError(res)) return res;
       if (res === null) return applied;
     }
-    const content = mapped(TODO_CONTENT, data);
     // A tick or reopen decides the repeat on the server (a reopen whose next
     // was edited stops repeating there too), so a device's copy of it is ignored.
     if ("done_at" in data) delete content.repeatRule;

@@ -305,16 +305,16 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
 
     // 3z. A writer deletes a note (data-rights): after sync the other device's
     // copy has no title or body, and its document no text.
-    const noteTitle = `${tag} private note`;
+    const deletedNoteTitle = `${tag} private note`;
     const noteId = psql(
       `WITH e AS (INSERT INTO timeline_entry (group_id, recipient_id, kind, occurred_at, time_zone, title, created_by, updated_by)
-         VALUES ('${DEV_FAMILY}', '${matrix.recipientId}', 'note', now(), 'America/Los_Angeles', '${noteTitle}', '${memberId}', '${memberId}')
+         VALUES ('${DEV_FAMILY}', '${matrix.recipientId}', 'note', now(), 'America/Los_Angeles', '${deletedNoteTitle}', '${memberId}', '${memberId}')
          RETURNING id)
        INSERT INTO note_document (id, group_id, subject, entry_id, text, created_by, updated_by)
          SELECT id, '${DEV_FAMILY}', 'entry', id, 'Words to forget', '${memberId}', '${memberId}' FROM e
        RETURNING id`,
     );
-    await wf(A, rowWith(noteTitle), 15_000);
+    await wf(A, rowWith(deletedNoteTitle), 15_000);
     const noteOnB = async (holds) =>
       until(async () => {
         const [row] = await localRows(
@@ -325,8 +325,8 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
         );
         return row && holds(row) ? row : null;
       });
-    await check("note: the other device has it", !!(await noteOnB((r) => r.title === noteTitle)));
-    await press(A, `${rowWith(noteTitle)}.querySelector('button[aria-label^="Actions"]')`);
+    await check("note: the other device has it", !!(await noteOnB((r) => r.title === deletedNoteTitle)));
+    await press(A, `${rowWith(deletedNoteTitle)}.querySelector('button[aria-label^="Actions"]')`);
     await wf(A, menuItem("Delete"));
     await press(A, menuItem("Delete"));
     await wf(A, `document.querySelector("dialog[open] .btn-error")`);
