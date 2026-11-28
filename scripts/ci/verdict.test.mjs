@@ -52,6 +52,7 @@ describe("the verdict's kinds", () => {
       "components-1": ok,
       "components-2": ok,
       "components-3": ok,
+      "components-4": ok,
       build: ok,
       [job]: { result: "failure", outputs: { started: "true" } },
     };
@@ -427,6 +428,7 @@ describe("the verdict", () => {
       "components-1": ok,
       "components-2": ok,
       "components-3": ok,
+      "components-4": ok,
       build: ok,
     };
     expect(buildVerdict({ ...base, tier: "full", needs })).toMatchObject({
