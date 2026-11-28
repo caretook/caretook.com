@@ -58,3 +58,6 @@ apps/web/app/lib/app-shell/serviceWorker* @suite
 apps/web/public/offline.html             layout-offline
 # Directory defaults: a new file here needs no rule.
 apps/web/app/lib/app-shell/              -
+# The setup pages (onboarding-2): component tests (setup/setup.browser.test.tsx).
+apps/web/app/routes/app/groups/setup/routes.ts first-sync layout-offline
+apps/web/app/routes/app/groups/setup/    -

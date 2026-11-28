@@ -1,7 +1,7 @@
 import type { ContactDetail } from "~/lib/providers/contactActions";
 import type { LocalProvider } from "~/lib/providers/providers.sync";
 
-import { ACTION_ICONS, actionLinkProps } from "~/components/providers";
+import { ACTION_ICONS, actionLinkProps } from "./ContactActions";
 import { Button } from "~/components/ui";
 import { rowContact } from "~/lib/providers/contactActions";
 

@@ -18,7 +18,7 @@ import {
 } from "~/components/ui";
 import { PROVIDER_TYPE_META } from "~/lib/providers/providerDirectory";
 import { SPECIALTY_SUGGESTIONS } from "~/lib/providers/specialties";
-import { FIELD, hasPractice } from "./providerFormData";
+import { FIELD, hasPractice } from "~/lib/providers/providerFormData";
 
 /** What the specialty field is called, and an example, per type. */
 const SPECIALTY: Record<ProviderType, { label: string; placeholder: string }> = {
@@ -51,8 +51,8 @@ const issueFor = (issues: FieldIssue[], path: string) => issues.find((i) => i.pa
 const TYPE_OPTIONS = PROVIDER_TYPES.map((t) => ({ value: t, label: PROVIDER_TYPE_META[t].label }));
 
 /**
- * Add or edit a provider. Posts to its sheet route's clientAction, which
- * writes on the device; the shared Zod schema's messages show on the
+ * Add or edit a provider. Posts to the clientAction of the route it's on
+ * (a provider sheet's, the setup page's), which writes on the device; the shared Zod schema's messages show on the
  * fields. `practices` are the group's practices and pharmacies a clinician
  * (or another contact) can work at.
  */
@@ -73,7 +73,8 @@ export function ProviderForm({
   practices: LocalProvider[];
   /** After a save; adding one passes the new provider's id. The form itself never navigates. */
   onDone: (id?: string) => void;
-  onCancel: () => void;
+  /** Omit for no Cancel (the setup page's form stays on its page). */
+  onCancel?: () => void;
   /** Editing: asks to delete the provider. */
   onDelete?: () => void;
 }) {
@@ -275,7 +276,7 @@ export function ProviderForm({
           className="ms-auto"
           submitLabel={provider ? "Save" : "Add provider"}
           busy={busy}
-          cancel={{ label: "Cancel", onCancel }}
+          cancel={onCancel ? { label: "Cancel", onCancel } : undefined}
         />
       </div>
     </fetcher.Form>
