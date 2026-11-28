@@ -19,7 +19,7 @@ import {
 import { isError, newError } from "../errors";
 import { careRecipientModel, recipientAllergyModel } from "../models";
 import { rejectError } from "../permissions";
-import { asCreated, unchanged } from "./upserted";
+import { createIfAbsent } from "./upserted";
 import { resolveRecipient } from "./medicationService";
 
 // The care recipient's allergies. Write through here, not the model: content
@@ -122,20 +122,17 @@ export const upsert = (ctx: ServiceContext, input: RecipientAllergyUpsertInput) 
     if (!parsed.success) return invalid(parsed.error);
     const { id, groupId, recipientId } = parsed.data;
 
-    const existing = await recipientAllergyModel.getById(id, {
-      authUser: SYSTEM_USER,
+    return createIfAbsent({
+      ctx,
       tx,
-      includeDeleted: true,
+      getById: recipientAllergyModel.getById,
+      id,
+      create: () => create({ ...ctx, tx }, input),
+      immutable: (visible) =>
+        visible.groupId !== groupId || (recipientId !== undefined && visible.recipientId !== recipientId)
+          ? newError({ code: "recipientAllergyService:immutable" })
+          : undefined,
     });
-    if (isError(existing)) return existing;
-    if (!existing) return asCreated(await create({ ...ctx, tx }, input));
-
-    const visible = await recipientAllergyModel.getById(id, { ...ctx, tx, includeDeleted: true });
-    if (isError(visible)) return visible;
-    if (!visible) return rejectError(ctx.authUser);
-    if (visible.groupId !== groupId || (recipientId !== undefined && visible.recipientId !== recipientId))
-      return newError({ code: "recipientAllergyService:immutable" });
-    return unchanged(visible);
   }, ctx);
 
 /** Soft delete (writers). */
