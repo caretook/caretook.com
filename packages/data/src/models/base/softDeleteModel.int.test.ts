@@ -60,9 +60,10 @@ describe("softDeleteFunctions", () => {
     expect(ok(await model.list({ ...ctx, filter: byGroup })).data.map((r) => r.id)).toEqual([kept.id]);
 
     expect(ok(await model.getById(gone.id, { ...ctx, includeDeleted: true }))?.id).toBe(gone.id);
+    // The deleted row's substance is scrubbed, so it sorts last.
     expect(
-      ok(await model.list({ ...ctx, filter: byGroup, includeDeleted: true })).data.map((r) => r.substance),
-    ).toEqual(["Peanuts", "Latex"]);
+      ok(await model.list({ ...ctx, filter: byGroup, includeDeleted: true })).data.map((r) => r.id),
+    ).toEqual([kept.id, gone.id]);
   });
 
   it("uses the default order when none is given, and the caller's when it is", async () => {
