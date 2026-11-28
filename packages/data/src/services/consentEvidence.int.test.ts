@@ -4,6 +4,7 @@ import { eq, sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { createUser, createWorld, ok, system } from "../../test/fixtures";
 import { getDb } from "../db";
+import { isError } from "../errors";
 import {
   adminAuditLogSchema,
   careGroupConsentSchema,
@@ -46,7 +47,12 @@ const joinByEmail = async (
 ) => {
   const email = newAddress("ev-joiner");
   const { token, invite } = ok(
-    await careGroupInviteService.createEmail(inviter.ctx, { groupId, email, role: "caretaker", attested: true }),
+    await careGroupInviteService.createEmail(inviter.ctx, {
+      groupId,
+      email,
+      role: "caretaker",
+      attested: true,
+    }),
   );
   const user = ok(await userService.create(system, { email, name: "Invitee" }));
   if (!user) throw new Error("user not readable");
@@ -123,7 +129,10 @@ describe("the attestation on the consent row", () => {
   });
 
   it("the migration's backfill fills existing rows from their invites", async () => {
-    const migration = readFileSync(new URL("../db/migrations/0052_evidence_survives.sql", import.meta.url), "utf8");
+    const migration = readFileSync(
+      new URL("../db/migrations/0052_evidence_survives.sql", import.meta.url),
+      "utf8",
+    );
     const backfill = migration
       .split("--> statement-breakpoint")
       .map((statement) => statement.replace(/^\s*--.*$/gm, "").trim())
@@ -156,7 +165,10 @@ describe("the attestation on the consent row", () => {
 
 describe("deleting an account or a group", () => {
   /** A registered client and a grant for `who` in the group. */
-  const connect = async (who: { ctx: Parameters<typeof connectorGrantService.grant>[0] }, groupId: string) => {
+  const connect = async (
+    who: { ctx: Parameters<typeof connectorGrantService.grant>[0] },
+    groupId: string,
+  ) => {
     const clientId = `client-${randomUUID()}`;
     const redirectUri = "https://assistant.example.com/oauth/callback";
     await getDb()
@@ -196,13 +208,15 @@ describe("deleting an account or a group", () => {
 
     const db = getDb();
     expect(await consentsOf(id)).toHaveLength(1);
-    expect(await db.select().from(legalAcceptanceSchema).where(eq(legalAcceptanceSchema.userId, id))).toHaveLength(
-      1,
-    );
+    expect(
+      await db.select().from(legalAcceptanceSchema).where(eq(legalAcceptanceSchema.userId, id)),
+    ).toHaveLength(1);
     expect(
       await db.select().from(adminAuditLogSchema).where(eq(adminAuditLogSchema.targetUserId, id)),
     ).toMatchObject([{ targetUserId: id, targetGroupId: s.groupId, action: "user.view" }]);
-    expect(await db.select().from(connectorGrantSchema).where(eq(connectorGrantSchema.userId, id))).toHaveLength(0);
+    expect(
+      await db.select().from(connectorGrantSchema).where(eq(connectorGrantSchema.userId, id)),
+    ).toHaveLength(0);
   });
 
   it("a deleted group keeps its consent rows with the attestation; its invites go", async () => {
@@ -273,8 +287,6 @@ describe("deleting an account or a group", () => {
     expect(found.data).toEqual([
       expect.objectContaining({ action: "group.view", targetGroup: { id: s.groupId, name: null } }),
     ]);
-    expect(await adminAuditService.list(s.owner.ctx, { target: s.groupId }, page)).toMatchObject({
-      code: expect.any(String),
-    });
+    expect(isError(await adminAuditService.list(s.owner.ctx, { target: s.groupId }, page))).toBe(true);
   });
 });
