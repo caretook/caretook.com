@@ -36,7 +36,8 @@ export const listMedications = defineTool({
     if (isError(loaded)) return loaded;
     const meds = await medicationService.list(asMember(ctx), { groupId: ctx.groupId });
     if (isError(meds)) return meds;
-    // Deleted passes too: an old schedule keeps its names.
+    // Deleted passes too: an old schedule keeps its slots, a deleted pass (its
+    // name scrubbed) reading as REMOVED_PASS ("Removed med time", passLabel).
     const passes = await medicationPassService.list(asMember(ctx), {
       groupId: ctx.groupId,
       includeDeleted: true,

@@ -5,7 +5,7 @@ import type { GroupContext } from "~/lib/app-shell/groupContext";
 import { isRouteErrorResponse, Link, Outlet, useLocation, useParams, useRouteLoaderData } from "react-router";
 import { MessageSquarePlus, Search } from "lucide-react";
 import { FullLogo } from "~/components/brand";
-import { openQuickEntry, useOfferQuickEntry } from "~/components/quick-entry";
+import { openQuickEntry, useOfferQuickEntry } from "~/lib/assistant/quickEntryOpen";
 import { FirstSyncPending } from "~/components/shell";
 import { Button, IconButton, ToastRegion } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";

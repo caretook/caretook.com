@@ -5,7 +5,7 @@ import { renderWithDevice } from "../../../test/device";
 import { waitUntil } from "../../../test/found";
 import { TEST_GROUP } from "../../../test/fixtures";
 import { PROBE } from "../../../test/probe";
-import { closeQuickEntry } from "./QuickEntrySheet";
+import { closeQuickEntry } from "~/lib/assistant/quickEntryOpen";
 
 // Commands from the quick entry sheet (quick-entry-3, slice 5): a whole line
 // that opens a page or the timeline on a day shows one command card, and Go

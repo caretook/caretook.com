@@ -1,8 +1,16 @@
-import type { NoteDocument, Tx } from "../../db";
+import type { NoteDocument, NoteDocumentSubject, Tx } from "../../db";
 
 import { eq, sql } from "drizzle-orm";
 import { dbMayFail, txOrDb } from "../../db";
-import { noteDocumentSchema, noteUpdateSchema } from "../../db/schema";
+import {
+  carePeriodSchema,
+  medicationSchema,
+  noteDocumentSchema,
+  noteUpdateSchema,
+  providerSchema,
+  timelineEntrySchema,
+  todoSchema,
+} from "../../db/schema";
 import { isError } from "../../errors";
 import * as baseModel from "../base";
 
@@ -33,6 +41,32 @@ export const lockForCompaction = async (id: string, tx: Tx) => {
   const rows = await dbMayFail(
     () => txOrDb(tx).select().from(t).where(eq(t.id, id)).for("update"),
     "noteDocumentModel:lock",
+  );
+  if (isError(rows)) return rows;
+  return rows[0] ?? null;
+};
+
+const OWNER_TABLES = {
+  entry: timelineEntrySchema,
+  provider: providerSchema,
+  medication: medicationSchema,
+  carePeriod: carePeriodSchema,
+  todo: todoSchema,
+} as const;
+
+/**
+ * Lock a document's owner row `FOR SHARE` for the rest of `tx` (B-1053), so
+ * an append can't overlap the owner's delete: a delete committed first is
+ * seen here (its `deletedAt`), and one that starts later waits for the
+ * append to commit, then its scrub trigger clears what the append wrote.
+ * Returns `{ deletedAt }`, or null if the owner is gone. No permission
+ * scope: the caller has already checked the actor sees the document.
+ */
+export const lockOwner = async (subject: NoteDocumentSubject, id: string, tx: Tx) => {
+  const t = OWNER_TABLES[subject];
+  const rows = await dbMayFail(
+    () => txOrDb(tx).select({ deletedAt: t.deletedAt }).from(t).where(eq(t.id, id)).for("share"),
+    "noteDocumentModel:lockOwner",
   );
   if (isError(rows)) return rows;
   return rows[0] ?? null;

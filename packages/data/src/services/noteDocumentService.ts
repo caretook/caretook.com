@@ -308,6 +308,9 @@ export const createForEntries = (ctx: ServiceContext, input: { groupId: string; 
  * who may write its owner (`mayWriteOwner`), on a visible document in the
  * same group.
  *
+ * The owner row is locked `FOR SHARE` and its deletion rechecked, so an
+ * append never lands after its owner's delete scrubbed the document.
+ *
  * Idempotent on `id`: a replay of an update already stored (or already
  * compacted away) changes nothing. Applying an update twice is harmless in
  * Yjs anyway, but this keeps the table free of duplicates.
@@ -321,6 +324,13 @@ export const appendUpdate = (ctx: ServiceContext, input: NoteUpdateCreateInput) 
     const doc = await visibleDocument(ctx, tx, documentId);
     if (isError(doc)) return doc;
     if (doc.groupId !== groupId) return immutable();
+
+    // Lock the owner and recheck its deletion under the lock (B-1053): the
+    // check above can race a delete, whose scrub trigger would clear the
+    // document and its updates before this one lands.
+    const owner = await noteDocumentModel.lockOwner(doc.subject, documentId, tx);
+    if (isError(owner)) return owner;
+    if (!owner || owner.deletedAt) return notFound();
 
     // Existence is checked as the system, so a taken id is refused cleanly.
     // A replay that arrives after compaction deleted the row is stored again:
