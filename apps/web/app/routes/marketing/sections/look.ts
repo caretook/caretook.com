@@ -23,6 +23,13 @@ export const BAND_ALT = "bg-base-200";
 /** The accent band (the closing call to action, the waitlist). */
 export const BAND_ACCENT = "bg-primary text-primary-content";
 
+/**
+ * The sticky header's surface: the page tone, nearly opaque and blurred
+ * behind; fully opaque, with no blur, under reduced transparency.
+ */
+export const HEADER_SURFACE =
+  "border-b border-base-300 bg-base-100/95 backdrop-blur [@media(prefers-reduced-transparency:reduce)]:bg-base-100 [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none";
+
 /** A card: lifted off either band, edged so it holds in dark too. */
 export const CARD = "card border border-base-300 bg-base-100 shadow-sm";
 
