@@ -4,7 +4,7 @@ import type { ProviderType } from "../providers/provider";
 import type { NewItemDraft } from "./quickEntryNewItem";
 import type { ResolvedTime, TimeDirection, TimeSpec } from "../../../domain/assistant/quickEntryTime";
 import type { VocabularyMatch, VocabularyRole } from "../../../domain/assistant/quickEntryVocabulary";
-import type { QuickEntryPage } from "../../../domain/assistant/quickEntryPage";
+import type { QuickEntryPageContext } from "../../../domain/assistant/quickEntryPage";
 import type { UnitChoices, UnitFor, VitalFieldSpec, VitalReading, VitalType } from "../timeline/vitals";
 
 import { DEVICE_FUTURE_SKEW_MS, FUTURE_DATE_MESSAGE, localDate } from "../../../domain/core/entryTiming";
@@ -102,7 +102,7 @@ export type QuickEntryContext = {
   /** The group's symptom catalog: a symptom named like one of them takes its spelling. */
   symptoms?: readonly { name: string }[];
   /** The record whose page the box opened on (`pageContextFor`): what a line that names none is about. */
-  page?: QuickEntryPage;
+  page?: QuickEntryPageContext;
 };
 
 /** A member of the group, as a todo's assignee. */
