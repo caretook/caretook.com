@@ -8,6 +8,7 @@ import {
   dueDoses,
   duePasses,
   entryTodoService,
+  getDb,
   medicationPassService,
   medicationService,
   memberSharingService,
@@ -24,7 +25,7 @@ import {
   timelineEntryService,
   userContactService,
 } from "@caretook/data";
-import { medicationChangeId } from "@caretook/data/schema";
+import { medicationChangeId, REMOVED_PASS } from "@caretook/data/schema";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, newYDoc, ok, typeParagraph } from "../../../data/test/fixtures";
@@ -265,6 +266,40 @@ describe("read tools", { timeout: 60_000 }, () => {
     ]);
     expect(rest.structuredContent.nextCursor).toBeNull();
     expect(JSON.stringify([current, all, rest])).not.toContain("Elsewhere");
+  });
+
+  it("list_medications: a deleted pass, its name scrubbed, reads as Removed med time in an old schedule (B-1049)", async () => {
+    const handler = handlerAt();
+    const w = await world();
+    const passes = ok(await medicationPassService.list(w.owner.ctx, { groupId: w.group.id })).data;
+    const morning = passes.find((p) => p.name === "Morning")!;
+    const evening = passes.find((p) => p.name === "Evening")!;
+    const med = await addMedication(w.caretaker.ctx, w.group.id, {
+      name: "Metformin",
+      strength: "500 mg",
+      schedule: { type: "scheduled", slots: [{ passId: morning.id }, { passId: evening.id }] },
+    });
+    ok(await medicationPassService.remove(w.caretaker.ctx, evening.id));
+    const gone = ok(
+      await medicationPassService.list(w.owner.ctx, { groupId: w.group.id, includeDeleted: true }),
+    ).data.find((p) => p.id === evening.id)!;
+    expect(gone.name).toBe("");
+    // An old schedule still naming the deleted pass (one stored before deletes
+    // moved a pass's slots to times of their own).
+    await getDb().$client.query(`UPDATE medication SET schedule = $1 WHERE id = $2`, [
+      JSON.stringify({ type: "scheduled", slots: [{ passId: morning.id }, { passId: evening.id }] }),
+      med.id,
+    ]);
+    const token = await w.connect(w.viewer);
+
+    const out = await callTool(handler, token, "list_medications");
+    const meds = out.structuredContent.medications as { title: string; schedule: string }[];
+    expect(meds).toEqual([
+      expect.objectContaining({ title: "Metformin 500 mg", schedule: `Morning and ${REMOVED_PASS}` }),
+    ]);
+    const line = out.content[0]!.text.split("\n").find((l: string) => l.includes("Metformin"))!;
+    expect(line).toContain(`· Morning and ${REMOVED_PASS}`);
+    expect(line).not.toMatch(/·\s*·|and\s*(·|$)|,\s*and|\band and\b/);
   });
 
   it("list_timeline: medication changes read in full (what changed, before and after), and long text isn't cut", async () => {
