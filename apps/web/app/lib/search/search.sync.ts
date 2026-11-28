@@ -14,7 +14,7 @@ import {
   TAG_TARGETS,
   todoSearchDocument,
 } from "@caretook/data/schema";
-import { parseSearch, toFtsMatch } from "@caretook/data/domain";
+import { toFtsMatch } from "@caretook/data/domain";
 import { previewText } from "../live-notes/notes.sync";
 import { createSearchTables, dropSearchTables, SEARCH_SOURCE_TABLES } from "./searchTables.sync";
 import { toLocalTimestamp } from "../timeline/timeline.sync";
