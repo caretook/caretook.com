@@ -71,8 +71,15 @@ export function UpcomingEntryCard({
   const title = upcomingTitle(entry);
   const hasFooter = Boolean(footer);
   const hasSide = !readOnly || !hasFooter;
+  // The easy roles' plain avatar keeps the name as its label and tooltip, as the Planner's always had.
   const author = readOnly ? (
-    <AuthorCircle userId={entry.createdBy} name={authorName} image={authorImage} label={`By ${authorName}`} />
+    <AuthorCircle
+      userId={entry.createdBy}
+      name={authorName}
+      image={authorImage}
+      label={authorName}
+      title={authorName}
+    />
   ) : (
     <AuthorFilterLink userId={entry.createdBy} name={authorName} image={authorImage} circle />
   );
