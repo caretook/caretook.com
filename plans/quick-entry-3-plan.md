@@ -15,7 +15,7 @@
 | 1     | 1    | started |                                                |
 | 2     | 2    | planned |                                                |
 | 3     | 1    | started |                                                |
-| 4     | 1    | started |                                                |
+| 4     | 1    | handed off (f9cd16008), awaits merge after 1, 3 |
 | 5     | 2    | planned |                                                |
 
 **Backlog:** claim a slice's item when it starts; `risa backlog done` an item when its last slice merges.
