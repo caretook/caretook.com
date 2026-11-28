@@ -1,17 +1,28 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { open } from "./client";
+import { closeSync, openSync } from "./index";
 
 // The module registers its back/forward cache handler on `window` as it loads.
 vi.hoisted(() => vi.stubGlobal("window", {}));
 
 // PowerSync is faked: `open` only needs init, disconnectAndClear and connect.
+// `close`, `disconnect` and `execute` (the wipe's VACUUM) for `openSync` and `closeSync`.
 const disconnectAndClear = vi.fn(() => Promise.resolve());
+const closed = vi.fn(() => Promise.resolve());
+const vacuumed = vi.fn((_sql: string) => Promise.resolve());
 vi.mock("@powersync/web", () => ({
   PowerSyncDatabase: class {
     init = () => Promise.resolve();
     disconnectAndClear = disconnectAndClear;
     connect = () => Promise.resolve();
+    disconnect = () => Promise.resolve();
+    close = closed;
+    execute = vacuumed;
   },
+}));
+vi.mock("../search/search.sync", () => ({
+  startSearchIndex: () => Promise.resolve(),
+  stopSearchIndex: () => Promise.resolve(),
 }));
 vi.mock("@powersync/drizzle-driver", () => ({
   DrizzleAppSchema: class {},
@@ -88,5 +99,45 @@ describe("open: the device's owner", () => {
     await open("u1");
     expect(storedKeys()).toEqual(expect.arrayContaining(PREVIOUS_USER_KEYS));
     expect(disconnectAndClear).not.toHaveBeenCalled();
+  });
+});
+
+describe("openSync: a stale tab hands over to the session's new user (B-296)", () => {
+  beforeEach(async () => {
+    vi.stubGlobal("window", {});
+    vi.stubGlobal("localStorage", memoryStorage());
+    vi.stubGlobal("fetch", () => Promise.reject(new TypeError("offline")));
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    localStorage.setItem("caretook:sync-owner", "u1");
+    // This tab holds u1's database.
+    await openSync("u1");
+    for (const f of [disconnectAndClear, closed, vacuumed]) f.mockClear();
+  });
+  afterEach(async () => {
+    await closeSync();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("keeps the copy when another tab already made the new user its owner", async () => {
+    // Another tab signed u2 in and opened the file for them.
+    localStorage.setItem("caretook:sync-owner", "u2");
+    localStorage.setItem("caretook:settings-pending:u2", "fictional");
+    const db = await openSync("u2");
+    expect(db.userId).toBe("u2");
+    expect(closed).toHaveBeenCalledOnce();
+    expect(disconnectAndClear).not.toHaveBeenCalled();
+    expect(vacuumed).not.toHaveBeenCalled();
+    expect(localStorage.getItem("caretook:settings-pending:u2")).toBe("fictional");
+  });
+
+  it("wipes it through the owner rule when the file is still the old user's", async () => {
+    localStorage.setItem("caretook:settings:u1", "fictional");
+    await openSync("u2");
+    expect(disconnectAndClear).toHaveBeenCalledOnce();
+    // Not sign-out's wipe (which vacuums and forgets the owner): `open`'s.
+    expect(vacuumed).not.toHaveBeenCalled();
+    expect(localStorage.getItem("caretook:sync-owner")).toBe("u2");
+    expect(localStorage.getItem("caretook:settings:u1")).toBeNull();
   });
 });
