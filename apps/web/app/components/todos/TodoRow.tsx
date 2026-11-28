@@ -24,7 +24,8 @@ import { todoPageState } from "~/lib/todos/todoSheets";
  * on open subtasks); a listed subtask "Part of <parent>" (todo-subtasks-2).
  * The `context` look (todo-subtasks-3) is an ancestor shown only to place a
  * branch: dimmed, no tick, still a link to its page. A tree (`TodoTree`)
- * passes `addSubtask` (its quick add, under the row's text) and `children`
+ * passes `addSubtask` (its inline quick add: its button right-aligned at the
+ * end of the title's line, the title wrapping before it; B-980) and `children`
  * (the nested list, below the row and not dimmed with it). The `card` look
  * is a Planner tree's top row, laid out like an event card; the `easy` look
  * easy mode's (the big tick and large text). With no `onTick` (easy mode's
@@ -68,7 +69,7 @@ export function TodoRow({
   parentOf?: (parentId: string) => { id: string; title: string } | undefined;
   /** `list` (the default), `card` (the Planner's), `easy` (easy mode's), or `context`: a dimmed ancestor placing a branch, with no tick. */
   look?: TodoRowLook;
-  /** The row's quick add (a tree's, with `adding`), under its text. */
+  /** The row's quick add (a tree's `inline` one, with `adding`), at the end of the title's line. */
   addSubtask?: ReactNode;
   /** What goes under the row in its list item: a tree's next level. */
   children?: ReactNode;
@@ -106,6 +107,17 @@ export function TodoRow({
       onChange={(done) => onTick?.(todo, done)}
     />
   );
+  // With a quick add, the title and its button share one wrapping line; the
+  // opened field takes the next line's whole width. Without, the title alone.
+  const titleLine = (title: ReactNode) =>
+    addSubtask ? (
+      <div className="flex flex-wrap items-start gap-x-2" data-todo-title-line>
+        {title}
+        {addSubtask}
+      </div>
+    ) : (
+      title
+    );
   const assigneeBadge = (className: string, label: ReactNode) => (
     <Badge
       icon={assignee.type === "name" ? UserRound : undefined}
@@ -154,12 +166,14 @@ export function TodoRow({
               <TodoRepeatMark todo={todo} />
               <TodoProgressMark progress={progress} className="text-muted font-normal" />
             </p>
-            <p
-              className={`font-semibold break-words ${todo.doneAt ? "text-faint line-through" : ""}`}
-              data-todo-title
-            >
-              {todo.title}
-            </p>
+            {titleLine(
+              <p
+                className={`min-w-0 flex-1 font-semibold break-words ${todo.doneAt ? "text-faint line-through" : ""}`}
+                data-todo-title
+              >
+                {todo.title}
+              </p>,
+            )}
             <TodoPartOf
               groupId={group.id}
               parent={parent}
@@ -171,7 +185,6 @@ export function TodoRow({
                 {line}
               </p>
             )}
-            {addSubtask && <div className="relative z-10">{addSubtask}</div>}
           </div>
           {/* A long name wraps inside the side column rather than squeezing the title. */}
           <div className="flex max-w-[8rem] flex-col items-end" data-todo-side>
@@ -203,21 +216,22 @@ export function TodoRow({
         >
           {tick || (onTick && <span className="size-8 shrink-0" aria-hidden="true" />)}
           <div className="min-w-0 flex-1">
-            <Link
-              to={appUrls.todo(group.id, todo.id)}
-              state={todoPageState(search)}
-              className={`link link-hover block text-xl font-medium break-words ${todo.doneAt ? "text-faint line-through" : ""}`}
-              data-todo-title
-            >
-              {todo.title}
-            </Link>
+            {titleLine(
+              <Link
+                to={appUrls.todo(group.id, todo.id)}
+                state={todoPageState(search)}
+                className={`link link-hover block min-w-0 flex-1 text-xl font-medium break-words ${todo.doneAt ? "text-faint line-through" : ""}`}
+                data-todo-title
+              >
+                {todo.title}
+              </Link>,
+            )}
             <p className={`text-base ${state === "overdue" ? "text-error-ink" : "text-muted"}`}>
               {line && <span data-todo-due>{line}</span>}
               <TodoRepeatMark todo={todo} className="ms-1.5" />
               <TodoProgressMark progress={progress} className="text-muted ms-1.5" />
             </p>
             <TodoPartOf groupId={group.id} parent={parent} className="text-muted block text-base" />
-            {addSubtask}
           </div>
         </div>
         {children}
@@ -235,15 +249,17 @@ export function TodoRow({
       >
         {tick || <span className="w-6 shrink-0" aria-hidden="true" />}
         <div className="min-w-0 flex-1">
-          <Link
-            to={appUrls.todo(group.id, todo.id)}
-            // The page's way back keeps the list's chip.
-            state={todoPageState(search)}
-            className={`link-hover block font-medium break-words ${todo.doneAt ? "text-faint line-through" : ""}`}
-            data-todo-title
-          >
-            {todo.title}
-          </Link>
+          {titleLine(
+            <Link
+              to={appUrls.todo(group.id, todo.id)}
+              // The page's way back keeps the list's chip.
+              state={todoPageState(search)}
+              className={`link-hover block min-w-0 flex-1 font-medium break-words ${todo.doneAt ? "text-faint line-through" : ""}`}
+              data-todo-title
+            >
+              {todo.title}
+            </Link>,
+          )}
           <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
             {line && (
               <span className={state === "overdue" ? "text-error-ink" : "text-muted"} data-todo-due>
@@ -257,7 +273,6 @@ export function TodoRow({
           </p>
           <TodoPartOf groupId={group.id} parent={parent} className="text-muted mt-0.5 block text-sm" />
           {tags("mt-1")}
-          {addSubtask}
         </div>
       </div>
       {children}

@@ -46,7 +46,7 @@ export function TodoTree({
           look={nodeLook}
           addSubtask={
             adding && !node.context ? (
-              <TodoQuickAdd parent={node.todo} ancestors={above} form="compact" className="mt-1" />
+              <TodoQuickAdd parent={node.todo} ancestors={above} form="compact" inline className="mt-1" />
             ) : undefined
           }
           {...row}
