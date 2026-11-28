@@ -7,7 +7,7 @@
 | Slice | Wave | State         | Merge into `prd/sync-safety-3` (slice commits) |
 | ----- | ---- | ------------- | ---------------------------------------------- |
 | 1     | 1    | merged (opus) | 98f9114db (e46c7c7c7, 96dc47533)               |
-| 2     | 2    | planned       |                                                |
+| 2     | 2    | merged (opus) | c3121383a (a0b109cfe)                          |     |
 | 3     | 3    | planned       |                                                |
 | 4     | 1    | merged (opus) | 95b947f22 (0aa0e004d, fe68fed3e)               |
 | 5     | 4    | planned       |                                                |
@@ -26,6 +26,13 @@
 - 11:40Z: blocked on Docker. The daemon is unresponsive machine-wide (`docker info` times out; test Postgres :5436 down), so `risa rm sync-safety-3-1` hung in `test-db.sh drop` and no browser check ever ran. Asked the backlog session (caretook-com-cb) who runs `risa recover`. Pushed f9313cb7e to PR #322; Codex re-review waiting. After Docker: rm slices 1 and 4, `risa serve --restart`, `risa browser --changed --base dev`, land.
 
 - Cause (backlog session): the disk filled (ENOSPC) at about 09:13Z, hanging Docker and the dispatcher; about 7 GB freed; the user is rebooting. Codex clean on f9313cb. **Resume after reboot** (`risa recover` restarts Docker): `risa rm sync-safety-3-1`, `risa rm sync-safety-3-4`, `risa serve --restart`, `risa browser --changed --base dev`, `risa pr sync-safety-3` (pushes the Status commits), `risa review sync-safety-3 --wait` (or `--no-review` if only Markdown changed since the clean verdict), `risa land sync-safety-3 --tier components -m "feat(sync-safety-3): savepoint transactions and the shared write limit (wave 1, B-294)"`, the landing report, `risa status-trim`, then rotate (wave 2: slice 2, opus).
+
+- **Wave 1 landed** in dev through PR #322 (dev 26eb8f0), tier components; flake filed on B-1000; report a387; to-test `2026-11-28-0803-sync-safety-3.md`. Slice worktrees 1 and 4 removed after the reboot; browser 11/11.
+- **Next session (wave 2):** `risa backlog ingest` and `list`, `risa sync`, then `risa slice sync-safety-3 2` and one opus agent on `risa prompt slice sync-safety-3 2`. Slice 2 imports `SYNC_WRITE_LIMIT` from `@caretook/data/domain` (the api's own `SYNC_BATCH_LIMIT = 100` stays or moves beside it: slice 2's call). Watch for the anchor warning: slice 2's build names 5 files (budget about 4); left as is. B-294 stays in progress until slice 5.
+
+- 2026-11-28 13:05Z: **wave 2 started.** Backlog ingest: nothing new for this topic. `risa sync`: no merge needed. Worktree `sync-safety-3-2` made; one opus agent spawned on `risa prompt slice sync-safety-3 2`.
+
+- Slice 2 handed off (quick check green on a0b109cfe), merged c3121383a. `syncRegistry.ts` unchanged (softDelete and tag PATCH already pass `ctx`). `SYNC_BATCH_LIMIT = 100` stays in `sync.ts`. A 500-op write took about 3.4 s locally (savepoints cost almost nothing). For slice 3: `refusedId` only with `sync:writeRefused`; `failed` always at the write's first op; over 100 ops only when every op shares one `write`; a NUL refuses the whole write (`sync:invalid` on that op). Docs fold at landing: sync _Upload_ still says 100 ops and per-op results. Wave 2 gate: `risa ci run integration` (risa tier: server code).
 
 ## Durable decisions
 

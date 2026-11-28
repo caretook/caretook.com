@@ -53,12 +53,13 @@ export const codesOf = async (call: Promise<unknown>) => {
 /** A time `ms` from now, as PowerSync's SQLite text ("…T10:00:00.000000Z"). */
 export const sqliteTime = (ms = 0) => new Date(Date.now() + ms).toISOString().replace(/Z$/, "000Z");
 
-/** A device's CRUD ops, as PowerSync queues them. */
-export const putOp = (table: string, id: string, data: Record<string, unknown>) =>
-  ({ op: "PUT", table, id, data }) as const;
-export const patchOp = (table: string, id: string, data: Record<string, unknown>) =>
-  ({ op: "PATCH", table, id, data }) as const;
-export const deleteOp = (table: string, id: string) => ({ op: "DELETE", table, id }) as const;
+/** A device's CRUD ops, as PowerSync queues them; `write` is the local transaction they're part of. */
+export const putOp = (table: string, id: string, data: Record<string, unknown>, write?: number) =>
+  ({ op: "PUT", table, id, data, ...(write === undefined ? {} : { write }) }) as const;
+export const patchOp = (table: string, id: string, data: Record<string, unknown>, write?: number) =>
+  ({ op: "PATCH", table, id, data, ...(write === undefined ? {} : { write }) }) as const;
+export const deleteOp = (table: string, id: string, write?: number) =>
+  ({ op: "DELETE", table, id, ...(write === undefined ? {} : { write }) }) as const;
 
 /** Upload one batch as `api`'s device: each op's result, in order. */
 export const upload = async (api: Api, ops: CrudOp[]) => (await api.sync.upload({ ops })).results;
