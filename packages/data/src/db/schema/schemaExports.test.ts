@@ -264,6 +264,7 @@ const SCHEMA_EXPORTS = [
   "careRecipientSelectZSchema",
   "careRecipientUpdateZSchema",
   "changeText",
+  "changeTimes",
   "clearSuppressionZSchema",
   "clockAt",
   "clockTime",

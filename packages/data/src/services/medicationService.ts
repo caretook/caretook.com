@@ -9,6 +9,7 @@ import type {
   Tx,
 } from "../db";
 import type { IncludeDeleted } from "../models/medication";
+import type { ChangeTimes } from "../db/schema";
 import type { ServiceContext } from "./types";
 
 import { SYSTEM_USER } from "../constants";
@@ -27,8 +28,8 @@ import {
   medicationUpsertZSchema,
   schedulePassIds,
   timelineEntryContentZSchema,
-  toChangeTime,
   withoutPass,
+  changeTimes,
 } from "../db/schema";
 import { isError, newError } from "../errors";
 import {
@@ -76,8 +77,8 @@ export type MedicationWriteOptions = { changedAt?: string | null };
  */
 export type MedicationCreateOptions = MedicationWriteOptions & { via?: string | null };
 
-const changeTimeOf = (opts: MedicationWriteOptions) =>
-  (opts.changedAt ? toChangeTime(opts.changedAt) : null) ?? new Date().toISOString();
+/** The save's change times: the device's for the entry's id, never later than now for its date. */
+const changeTimeOf = (opts: MedicationWriteOptions) => changeTimes(opts.changedAt);
 
 /**
  * The recipient a medication is for: `recipientId` when given (it must be in
@@ -181,7 +182,8 @@ const writeChange = async (
   }: {
     before: MedicationContent | null;
     after: Medication;
-    changedAt: string;
+    /** The save's times: `key` for the id, `date` for `occurredAt`. */
+    changedAt: ChangeTimes;
     timeZone: string;
     via?: string | null;
   },
@@ -189,14 +191,14 @@ const writeChange = async (
   const change = medicationChange(before, after);
   if (!change) return null;
 
-  const id = medicationChangeId(after.id, changedAt);
+  const id = medicationChangeId(after.id, changedAt.key);
   const existing = await timelineEntryModel.getById(id, { authUser: SYSTEM_USER, tx, includeDeleted: true });
   if (isError(existing)) return existing;
   if (existing) return existing;
 
   const content = timelineEntryContentZSchema.safeParse({
     kind: "medicationChange",
-    occurredAt: changedAt,
+    occurredAt: changedAt.date,
     timeZone,
     details: { medicationId: after.id, ...change },
   });
@@ -210,7 +212,7 @@ const writeChange = async (
       groupId: after.groupId,
       recipientId: after.recipientId,
       kind: "medicationChange",
-      occurredAt: changedAt,
+      occurredAt: changedAt.date,
       timeZone,
       title: null,
       body: null,

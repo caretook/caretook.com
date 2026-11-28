@@ -144,11 +144,18 @@ export const countWaiting = async (db: SyncDb | null): Promise<number> => {
  * kept (`writeKept`) so it expires if nobody comes back for it.
  */
 export const closeKept = async (db: SyncDb | null) => {
-  if (db) {
-    await db.powersync.disconnect();
-    await db.powersync.close();
-  }
+  await closeHandle(db);
   writeKept(Date.now());
+};
+
+/**
+ * Stop syncing and close this tab's handle, touching nothing stored: the
+ * file, its owner and any kept mark stay (a stale tab handing over, B-296).
+ */
+export const closeHandle = async (db: SyncDb | null) => {
+  if (!db) return;
+  await db.powersync.disconnect();
+  await db.powersync.close();
 };
 
 /**

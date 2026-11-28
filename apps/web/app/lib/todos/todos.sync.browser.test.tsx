@@ -241,6 +241,98 @@ describe("Undo with a linked next (planner-3)", () => {
   });
 });
 
+describe("Undo: the successor by when it was made (B-383)", () => {
+  const yesterday = addDays(today, -1);
+  const dayAfter = addDays(tomorrow, 1);
+
+  test("a next moved by a member to the reopened todo's day, or earlier, is found: it stays, and the reopened one stops repeating", async () => {
+    for (const day of [today, yesterday]) {
+      const { db, screen } = await device();
+      ok(await completeTodo(db, BINS_ID));
+      ok(await updateTodo(db, NEXT_ID, { dueOn: day }));
+      ok(await reopenTodo(db, BINS_ID));
+      expect(await read(db, BINS_ID)).toMatchObject({ doneAt: null, repeatRule: null, repeatId: null });
+      expect(await read(db, NEXT_ID)).toMatchObject({ deletedAt: null, dueOn: day, repeatRule: DAILY });
+      await screen.unmount();
+    }
+  });
+
+  test("an untouched next due on the reopened todo's day, or earlier, is taken away", async () => {
+    // The reopened todo's own day moved later after its tick, its anchor kept.
+    for (const due of [tomorrow, dayAfter]) {
+      const doneAt = hoursAgo(2);
+      const ticked = bins({ dueOn: due, doneAt, doneBy: TEST_USER.id });
+      const next = bins({ id: NEXT_ID, dueOn: tomorrow, eventId: null, createdAt: doneAt });
+      const { db, screen } = await device([ticked, next]);
+      ok(await reopenTodo(db, BINS_ID));
+      expect(await read(db, BINS_ID)).toMatchObject({ doneAt: null, repeatRule: DAILY, repeatId: BINS_ID });
+      expect((await read(db, NEXT_ID))?.deletedAt).not.toBeNull();
+      await screen.unmount();
+    }
+  });
+
+  test("an older tick (A, B done, C open) finds B, not C: both stay, A stops repeating", async () => {
+    const aDone = hoursAgo(5);
+    const bDone = hoursAgo(3);
+    const a = bins({ dueOn: yesterday, doneAt: aDone, doneBy: TEST_USER.id });
+    // B (today's) moved past C's day after its tick: by due day, C would look like A's untouched next.
+    const B_ID = nextTodoId(BINS_ID, today);
+    const b = bins({
+      id: B_ID,
+      dueOn: dayAfter,
+      eventId: null,
+      createdAt: aDone,
+      doneAt: bDone,
+      doneBy: SAM_ID,
+    });
+    const c = bins({ id: NEXT_ID, dueOn: tomorrow, eventId: null, createdAt: bDone });
+    const { db } = await device([a, b, c]);
+    ok(await reopenTodo(db, BINS_ID));
+    expect(await read(db, BINS_ID)).toMatchObject({ doneAt: null, repeatRule: null });
+    expect(await read(db, B_ID)).toMatchObject({ deletedAt: null, doneBy: SAM_ID });
+    expect(await read(db, NEXT_ID)).toMatchObject({ deletedAt: null, doneAt: null });
+  });
+
+  test("after A, B and C ticked offline and synced, reopening C finds D, not B, and takes the untouched D away", async () => {
+    // The server made B, C and D at upload time, after the device's tick times.
+    const twoDaysAgo = addDays(today, -2);
+    const [aDone, bDone, cDone] = [hoursAgo(6), hoursAgo(5), hoursAgo(4)];
+    const B_ID = nextTodoId(BINS_ID, yesterday);
+    const C_ID = nextTodoId(BINS_ID, today);
+    const a = bins({ dueOn: twoDaysAgo, doneAt: aDone, doneBy: TEST_USER.id });
+    const made = { eventId: null, doneBy: TEST_USER.id };
+    const b = bins({ id: B_ID, dueOn: yesterday, ...made, createdAt: hoursAgo(2), doneAt: bDone });
+    const c = bins({ id: C_ID, dueOn: today, ...made, createdAt: hoursAgo(1.5), doneAt: cDone });
+    const d = bins({ id: NEXT_ID, dueOn: tomorrow, eventId: null, createdAt: hoursAgo(1) });
+    const { db } = await device([a, b, c, d]);
+    ok(await reopenTodo(db, C_ID));
+    expect(await read(db, C_ID)).toMatchObject({ doneAt: null, repeatRule: DAILY, repeatId: BINS_ID });
+    expect((await read(db, NEXT_ID))?.deletedAt).not.toBeNull();
+    expect(await read(db, B_ID)).toMatchObject({ deletedAt: null, doneBy: TEST_USER.id, repeatRule: DAILY });
+  });
+
+  test("a tick on a clock behind the server's still makes the next after the ticked row", async () => {
+    // Synced with the server's `created_at`, a minute ahead of this device's clock.
+    const ahead = at(new Date(Date.now() + 60_000));
+    const { db } = await device([bins({ createdAt: ahead, updatedAt: ahead })]);
+    ok(await completeTodo(db, BINS_ID));
+    ok(await reopenTodo(db, BINS_ID));
+    expect(await read(db, BINS_ID)).toMatchObject({ doneAt: null, repeatRule: DAILY });
+    expect((await read(db, NEXT_ID))?.deletedAt).not.toBeNull();
+  });
+
+  test("a next brought back by a second tick is found again on the second reopen", async () => {
+    const { db } = await device();
+    ok(await completeTodo(db, BINS_ID));
+    ok(await reopenTodo(db, BINS_ID));
+    ok(await completeTodo(db, BINS_ID));
+    expect((await read(db, NEXT_ID))?.deletedAt).toBeNull();
+    ok(await reopenTodo(db, BINS_ID));
+    expect(await read(db, BINS_ID)).toMatchObject({ doneAt: null, repeatRule: DAILY });
+    expect((await read(db, NEXT_ID))?.deletedAt).not.toBeNull();
+  });
+});
+
 describe("skip", () => {
   test("deletes this one and writes the next in one transaction; viewers can't", async () => {
     const viewer = await device([bins({ assigneeId: TEST_USER.id })], "viewer");
