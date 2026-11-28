@@ -33,7 +33,8 @@ const TEXTAREA_CLASS: Record<QuickEntrySize, string> = {
  * except a due pass's chip, which is Given all in one tap (with the same
  * Undo). On a user's first few
  * focuses a tips panel floats under the empty box (`QuickEntryTips`).
- * Writers only: the timeline leaves it out for viewers.
+ * The timeline leaves it out for viewers; in the quick entry sheet a
+ * reader's line shows no cards and no Save, only why (`refusal`).
  */
 export function QuickEntryBox({
   groupId,
@@ -197,7 +198,7 @@ export function QuickEntryBox({
         )}
       </form>
       <PassUndoStatus groupId={groupId} place={QUICK_ENTRY_UNDO} className="empty:hidden" />
-      <Message data-quick-status="">{q.status || q.passError}</Message>
+      <Message data-quick-status="">{q.status || q.refusal || q.passError}</Message>
       <p aria-live="polite" className="sr-only" data-quick-announce>
         {q.announcement}
       </p>
