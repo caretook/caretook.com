@@ -13,7 +13,7 @@ Wave 1 (slices 1–3) landed in dev (72298bc8). Wave 2 (slices 4–7) landed as 
 | Slice | Item | State | Merge |
 | ----- | ---- | ----- | ----- |
 
-Idle hand-over, no slice in flight. Wave 4 (slice 9, B-973, sonnet; merge d5b824f11) landed 2026-11-27 as 646a4cc through PR #264 (Markdown only: tier none, no Codex review, `pnpm test:tooling` green): `docs/domain/components.md` 10513 → 10079 B; the orchestrator restored three lines the trim cut (keep polling after a save, no `WAIT_TIMEOUT` copies, the full `no-non-null-in-expect` name). Slice worktree removed. Waiting: B-950 (move TimelineEntryRow into `components/entry`), held because todo-subtasks-3 had `routes/app/groups/timeline/` hot; it landed a wave in dev (notice n208) but is still **running** with that path hot (2026-11-27). Its orchestrator says its wave 4 is the last to edit `routes/app/groups/timeline/` and it will drop that path from its hot files once wave 4 is in dev. On the backlog session's word, fixes-nit was cleaned up meanwhile (`risa rm`) rather than hold a lane: the next run checks `risa backlog prd list`, syncs and writes B-950 as wave 5 (slice 10). Lesson: a sonnet docs trim drops rules as "wording"; diff it line by line. **2026-11-27 run (fixes-nit-36):** still blocked. todo-subtasks-3's wave 4 waits on a CI recheck; its orchestrator will drop `routes/app/groups/timeline/` from its hot files once that is in dev. The backlog session set `after=todo-subtasks-3` on fixes-nit (so the dispatcher stops restarting it) and will clear it once B-950 can run. fixes-nit was removed again (`risa rm`). The next run syncs and writes B-950 as wave 5 (slice 10, opus: a component move with imports to rewire).
+Idle hand-over, no slice in flight. Wave 5 (slice 10, B-950, opus; merge 0775cdcca) landed 2026-11-27 as b0025a31f through PR #300: CI `components` green (run 46095301864), browser `--changed` roundtrip 1/1, Codex clean; report filed; `docs/layout.md` folded (the timeline doc stayed as is: it sits at its budget). The first run failed only on the plan's own Prettier format (the orchestrator's _Status_ edit): format the plan before each CI run. Slice worktree removed. The quarantined `timelineJumpPaging.browser.test.tsx` failed in the landing's listing (quarantined, not blocking). **2026-11-27 (fixes-nit-34, after a restart):** reconciled, nothing in flight. B-995 waits: code-health (running) holds `routes/app/groups/settings/calendar/`; asked code-health-fd to message on landing, and a background check watches `risa backlog prd list`. When it lands: `risa sync`, then write wave 6. Earlier note: B-995 (move `reminderChoices` out of the settings calendar route so `components/entry/RemindMeSheet` stops importing a route), triaged for fixes-nit; check `risa backlog prd list` for `routes/app/groups/settings/calendar/` or `lib/calendars/` hot (push-notifications holds both while it runs), then write it as wave 6, slice 11 (opus). Lessons: a sonnet docs trim drops rules as "wording"; diff it line by line. A move slice past 12 files trips the hook's warning: fine for import-only churn.
 
 ## Wave 1 (written 2026-11-21 by the orchestrator, from the triaged fixes-nit items)
 
@@ -47,7 +47,7 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/data-layer.md, docs/agents
 
 **Build.** **Track only; no migration** (the user's choice).
 
-- Find each contract step: read those PRDs' plans and migrations (`plans/`, `packages/data/…/migrations`, `pnpm log --grep`) for the columns still in the schema but no longer read or written, and for the backfill. List them with evidence (file and line, or the migration).
+- Find each contract step: read those PRDs' plans and migrations (`plans/`, `packages/data/src/db/migrations/`, `pnpm log --grep`) for the columns still in the schema but no longer read or written, and for the backfill. List them with evidence (file and line, or the migration).
 - File one backlog item per contract step with `pnpm backlog add chore "<plain title>" --prd <topic> --status triaged --note "<the columns, where they're still referenced, what must ship first>"`. Pick the topic the backlog doc gives for later migrations (ask the orchestrator if none fits); never a `fixes-*` topic for a migration.
 - Add a `note` on B-379 listing the new ids. Change no code.
 
@@ -147,7 +147,7 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md · Tests: compon
 
 Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md · Tests: component (existing)
 
-**Problem.** Three `ui/` primitives still use `text-base-content/<n>` for secondary text instead of the UI kit's tokens: `components/ui/ChipList.tsx:42` (`/50`, muted chips), `components/ui/tabLook.tsx:38` (`/80`, a tab that isn't current), `components/ui/date/DateTimeField.tsx:265` (`/60`, the weekday header cells) and `:282` (`/40`, days outside the month).
+**Problem.** Three `ui/` primitives still use `text-base-content/<n>` for secondary text instead of the UI kit's tokens: `components/ui/ChipList.tsx` (`/50`, muted chips), `components/ui/tabLook.tsx` (`/80`, a tab that isn't current), and `components/ui/date/DateTimeField.tsx` (`/60`, the weekday header cells; `/40`, days outside the month).
 
 **Build.** In those three files only, per ui-kit _Tokens_ (`text-muted` 70%, `text-faint` 62%): `/50` and `/60` become `text-faint`; `/80` becomes `text-muted` (the orchestrator's pick: the nearest token; a tab that isn't current is secondary); `/40` becomes `text-faint` (the orchestrator's pick: outside-month days lift to 4.5:1 and stay quieter than the month's days). Keep any variant prefix. Don't touch other classes or files. If a component test asserts the old class, update it.
 
@@ -177,5 +177,27 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md · Tests: no
 
 - [ ] `pnpm docs:budget` shows `docs/domain/components.md` under budget; no rule or link lost (say in the hand-off what was cut).
 - [ ] `pnpm exec prettier --check docs/domain/components.md` and `pnpm test:tooling` pass.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Wave 5 (written 2026-11-27 by the orchestrator, from the triaged fixes-nit items)
+
+## Slice 10: The timeline entry row lives in components/entry (B-950)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/layout.md · Tests: component (existing)
+
+**Problem.** `routes/app/groups/provider/LinkedEntries.tsx` (and its browser test) import `../timeline/TimelineEntryRow` and `../timeline/useOpenTodoCounts`, against components.md's rule that a route never imports another route's folder.
+
+**Build.** A move, no behaviour change.
+
+- Move `TimelineEntryRow.tsx`, `useOpenTodoCounts.ts` and `OpenTodosMark.tsx` from `routes/app/groups/timeline/` into `components/entry/`, and export them from `components/entry/index.ts`.
+- `components/entry/` must not import from `routes/`. `TimelineEntryRow` uses timeline-local helpers (`CopyLinkButton`'s `useCopyLink`, `entryLabels`, `EntryOpenTarget`, `LiveDot`, `layout`'s `ASIDE_CLASS`, `timelineLinks`' `entryLinkPath`): move each one it needs into `components/entry/` (or `lib/timeline/` for a pure helper) and point the timeline route's other files at the new place. Move a helper's own test with it. Don't re-export from the old paths; no shims.
+- Rewire every importer (timeline's list and card, the provider page and its test, anything else a repo-wide search finds) to `~/components/entry`.
+- Keep `git mv` so history follows; change no logic or markup.
+
+**Acceptance criteria.**
+
+- [ ] No file outside `routes/app/groups/timeline/` imports from it; `components/entry/` imports nothing from `routes/`.
+- [ ] The existing timeline, provider and entry component tests pass; `risa check --quick "slice hand-off"` passes.
 
 **Blocks:** none. **Blocked by:** none.

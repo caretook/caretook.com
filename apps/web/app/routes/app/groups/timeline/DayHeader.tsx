@@ -11,10 +11,10 @@ import { useGroup } from "~/lib/app-shell/group";
 import { currentLineText, periodTypeMeta } from "~/lib/care-periods/periodDisplay";
 import { PERIOD_SHEET_STATE } from "~/lib/care-periods/periodSheets";
 import { useNow } from "~/lib/live-notes/editors.sync";
-import { CopyLinkButton } from "./CopyLinkButton";
+import { CopyLinkButton } from "~/components/entry";
 import { QuickAddMenu } from "./QuickAddMenu";
-import { dayLinkPath } from "./timelineLinks";
-import { dayKeyIn } from "./timelineDays";
+import { dayLinkPath } from "~/lib/timeline/timelineLinks";
+import { dayKeyIn } from "~/lib/timeline/timelineDays";
 
 /**
  * A day section's sticky header: the day's heading ("Today", "Monday, Nov

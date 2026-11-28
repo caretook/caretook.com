@@ -19,7 +19,7 @@ import { DoseForm } from "../DoseForm";
 import { dosePatchFromForm } from "../doseFormData";
 import { entryUpdateFromForm, parseUnits } from "../entryFormData";
 import { EntryForm } from "../EntryForm";
-import { entryLabel } from "../entryLabels";
+import { entryLabel } from "~/lib/timeline/entryLabels";
 import { Sheet } from "~/components/ui";
 import { useCloseSheet, useTimelineOutlet } from "../sheet";
 import { editSheetGuard } from "../sheetGuard";

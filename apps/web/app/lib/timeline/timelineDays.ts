@@ -1,4 +1,4 @@
-import { dayLabel } from "../../../../lib/core/format";
+import { dayLabel } from "../core/format";
 
 // The timeline's day sections. Pure, so web:unit tests it.
 

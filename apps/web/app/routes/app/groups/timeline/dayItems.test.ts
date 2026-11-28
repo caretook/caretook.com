@@ -1,5 +1,5 @@
 import type { TimelineEntryDetails, TimelineEntryKind } from "@caretook/data/schema";
-import type { TimelineItem } from "./timelineDays";
+import type { TimelineItem } from "../../../../lib/timeline/timelineDays";
 
 import { describe, expect, it } from "vitest";
 import { foldPassLogs } from "./dayItems";

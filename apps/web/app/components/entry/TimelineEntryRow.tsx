@@ -1,32 +1,27 @@
 import type { EntryOpen } from "~/lib/timeline/entryOpen";
 import type { ParsedSearch, UnitChoices } from "@caretook/data/schema";
 import type { LinkedProviderName } from "~/lib/providers/entryProviders";
-import type { EntryCancelActions } from "~/components/entry";
+import type { EntryCancelActions } from "./EntryActions";
 import type { TimelineEntry } from "~/lib/core/rpc";
 import type { NoteBlock } from "~/lib/live-notes/noteRichText";
 
 import { canHaveNoteDocument } from "@caretook/data/schema";
-import {
-  AuthorCircle,
-  AuthorFilterLink,
-  EntryActions,
-  EntryBody,
-  KindFilterLink,
-  KindIcon,
-  RepeatMark,
-} from "~/components/entry";
+import { AuthorCircle, AuthorFilterLink, KindFilterLink, KindIcon } from "./KindIcon";
+import { EntryActions } from "./EntryActions";
+import { EntryBody } from "./EntryBody";
+import { RepeatMark } from "./RepeatMark";
 import { QuickTags } from "~/components/tags";
 import { Badge, ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { formatTime, formatTimeInZone, localTimeZone } from "~/lib/core/format";
 import { cancelledLabel } from "~/lib/appointments/upcomingLabels";
 import { useCopyLink } from "./CopyLinkButton";
-import { actionsLabel, entryLabel, rowDayLabel } from "./entryLabels";
+import { actionsLabel, entryLabel, rowDayLabel } from "~/lib/timeline/entryLabels";
 import { EntryOpenTarget } from "./EntryOpenTarget";
 import { LiveDot } from "./LiveDot";
 import { OpenTodosMark } from "./OpenTodosMark";
 import { ASIDE_CLASS } from "./layout";
-import { entryLinkPath } from "./timelineLinks";
+import { entryLinkPath } from "~/lib/timeline/timelineLinks";
 
 /** What a row or card shows and does: the same for both. */
 export type EntryViewProps = {

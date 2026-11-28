@@ -5,7 +5,7 @@ import { timelineMedicationsQuery } from "~/lib/medications/medicationTimeline.s
 import { timelineLinksQuery } from "~/lib/providers/providers.sync";
 import { historyQuery } from "~/lib/timeline/timeline.sync";
 import { jumpBound } from "~/lib/timeline/timelineJump";
-import { dayKeyIn } from "./timelineDays";
+import { dayKeyIn } from "~/lib/timeline/timelineDays";
 import { button, frames, openTimeline, rows, rowWith, tapAt, TIMELINE_URL, world } from "./timelineWorld";
 import { found, stopsMoving, waitUntil } from "../../../../../test/found";
 
