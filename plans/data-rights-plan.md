@@ -10,7 +10,7 @@
 
 **Landing mode:** run everything through (start every ready slice, land each green wave, ask only real questions via `risa ask`).
 
-**Where it stands:** wave 1 (slices 1 to 4) was spawned 2026-11-28 on opus, rotated mid-wave for the account switch, and **respawned 2026-11-28 on opus with `--continue`** after the switch (slice 1: nothing committed yet; 2 and 4: uncommitted work; 3: one commit `60e80fbe7`). `risa watch data-rights --wait` runs. B-84 and B-53 claimed; B-357 is claimed when slice 5 starts. Backlog ingest at respawn: nothing new. dev has moved (fixes-bug, sync-safety-3 landed): `risa sync` at the wave boundary.
+**Where it stands:** wave 1 (slices 1 to 4, opus, respawned after the account switch) is merged and synced with dev (2026-11-28). The wave gate `risa ci run full --wait` (tier full: migration 0051) is out. Next: on green, `risa rm data-rights-<1..4>`, `risa backlog done B-84`, PR, Codex review, land; then slice 5 (claim B-357). Slice 1 warned: ~22 integration files and browser checks (matrix, live-notes, phase2) reading deleted rows may break in CI; slice 1 also scrubs care-period and todo documents and clears a deleted row's link ids (beyond the plan).
 
 **Open:** slice 3 saw a scrubbed (empty-name) place drop out because `toProvider` returned null; slice 2's `toProvider` now keeps a deleted row with no name, so check at the wave gate that a scrubbed place reads "Removed place" (and `toMedication` likewise) before filing a follow-up. Slices 2 (21 files) and 3 (14) passed the file-count warning: note for the next plan.
 
