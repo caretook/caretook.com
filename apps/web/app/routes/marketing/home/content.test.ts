@@ -23,14 +23,19 @@ describe("homeContent", () => {
     expect(nonEmpty(homeContent.hero.lead)).toBe(true);
   });
 
-  it("carries the tagline in its title and the descriptor's first clause in its description", () => {
+  it("carries the tagline in its title, and keeps the founder clause out of the description", () => {
     expect(homeContent.meta.title).toBe(`${BRAND.name}: ${BRAND.tagline}`);
-    // The founder clause stays out of the description: with it, the description
-    // would pass the search length the first test holds it to.
-    const [first = ""] = homeContent.hero.lockup.descriptor.split(",");
-    expect(nonEmpty(first)).toBe(true);
-    // The description says "The free care notebook…": the clause past its article.
-    expect(homeContent.meta.description).toContain(first.replace(/^A /, ""));
+    // With the founder clause, the description would pass the search length
+    // the first test holds it to.
+    const [, founder = ""] = homeContent.hero.lockup.descriptor.split(", ");
+    expect(nonEmpty(founder)).toBe(true);
+    expect(homeContent.meta.description).not.toContain(founder.replace(/\.$/, ""));
+  });
+
+  it("says what it keeps track of in one sentence of at most 25 words", () => {
+    const { lead } = homeContent.hero;
+    expect(lead).toMatch(/^[A-Z][^.!?]*\.$/);
+    expect(lead.split(/\s+/).length).toBeLessThanOrEqual(25);
   });
 
   it("offers both calls to action: the waitlist and an access code", () => {

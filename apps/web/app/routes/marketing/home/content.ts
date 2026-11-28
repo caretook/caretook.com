@@ -30,9 +30,9 @@ export const homeContent = {
     // the descriptor sits under it. The share image (public/og-default.svg)
     // and its alt (site/meta.ts) say the same words.
     lockup: {
-      descriptor: "A care notebook for families, made by caregivers who've been there.",
+      descriptor: "A shared care journal, made by caregivers who've been there.",
     },
-    lead: "Caretook is a shared place for a family to keep track of a loved one's care: what happened today, symptoms and vitals, medications, notes from visits, and the doctors and pharmacies to call. Everyone sees the same thing, on any phone, even offline.",
+    lead: "Signal or not, caretakers can add today's notes, medications, visits and doctors' numbers, and it reaches everyone in the care group.",
     primary: { label: "Join the waitlist", href: MARKETING_LINKS.waitlist },
     secondary: { label: "Have an access code?", href: MARKETING_LINKS.join },
   } satisfies HeroContent,
