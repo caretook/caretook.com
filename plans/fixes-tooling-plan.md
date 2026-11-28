@@ -28,7 +28,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 104   | B-802 | agent spawned (opus)                                                                              |       |
 | 105   | B-375 | agent spawned (opus)                                                                              |       |
 | 106   | B-852 | handed off (d9cedc667)                                                                            |       |
-| 107   | B-757 | agent spawned (opus)                                                                              |       |
+| 107   | B-757 | handed off (08ea23f63)                                                                            |       |
 | 108   | B-667 | agent spawned (opus)                                                                              |       |
 
 ## Wave 1
