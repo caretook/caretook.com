@@ -16,8 +16,7 @@ import { entryOpen } from "~/lib/timeline/entryOpen";
 import { useEntryOpenerState } from "~/lib/timeline/entryOrigin";
 import { membersQuery, toMember, toTimelineEntries } from "~/lib/timeline/timeline.sync";
 // The timeline's own row, so a linked entry looks the same here (B-937).
-import { TimelineEntryRow } from "../timeline/TimelineEntryRow";
-import { useOpenTodoCounts } from "../timeline/useOpenTodoCounts";
+import { TimelineEntryRow, useOpenTodoCounts } from "~/components/entry";
 
 const NO_ROWS: EntryRow[] = [];
 const NO_MEMBERS: MemberRow[] = [];

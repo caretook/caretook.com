@@ -6,7 +6,7 @@ import type { NoteDocRow } from "~/lib/live-notes/notes.sync";
 import type { NoteBlock } from "~/lib/live-notes/noteRichText";
 import type { EntryFilters, EntryRow, MemberRow, ReadingRow } from "~/lib/timeline/timeline.sync";
 import type { TimelineRows } from "./timelineRows";
-import type { TimelineDay } from "./timelineDays";
+import type { TimelineDay } from "~/lib/timeline/timelineDays";
 import type { PeriodMarker } from "~/lib/care-periods/periodMarkers";
 import type { LocalCarePeriod } from "~/lib/care-periods/carePeriods.sync";
 import type { TimelinePeriods } from "./timelinePeriods";
@@ -35,7 +35,7 @@ import {
   toMember,
   toTimelineEntries,
 } from "~/lib/timeline/timeline.sync";
-import { groupByDay } from "./timelineDays";
+import { groupByDay } from "~/lib/timeline/timelineDays";
 import { nextLimit, PAGE_SIZE, pageWindow } from "~/lib/core/paging";
 import { useLiveRows } from "~/lib/sync/useLiveRows";
 import { rowPassLogId, wholeLogsPage } from "~/lib/medications/passLogs";

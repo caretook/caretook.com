@@ -2,7 +2,7 @@ import type { EntryFilters, LocalQuery } from "~/lib/timeline/timeline.sync";
 
 import { HISTORY_ENDS_SQL, SHOWN_KINDS_SQL, toLocalTimestamp } from "~/lib/timeline/timeline.sync";
 import { baselineStart } from "./daySummary";
-import { dayKeyIn } from "./timelineDays";
+import { dayKeyIn } from "~/lib/timeline/timelineDays";
 
 /** Where the summaries' rows start: the baseline of the oldest loaded day (today's when nothing is loaded). */
 export const summarySince = (oldestLoaded: string | null, cutoff: string, timeZone: string) =>

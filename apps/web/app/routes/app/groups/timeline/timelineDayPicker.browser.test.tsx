@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { at, fx } from "../../../../../test/fixtures";
 import { found, waitUntil } from "../../../../../test/found";
-import { dayKeyIn } from "./timelineDays";
+import { dayKeyIn } from "~/lib/timeline/timelineDays";
 import { chooseEasyMode, frames, openTimeline, rows, rowWith, TIMELINE_URL, world } from "./timelineWorld";
 
 // The date button: the toolbar's popover and the one beside Back to today.

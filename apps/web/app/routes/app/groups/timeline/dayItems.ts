@@ -1,4 +1,4 @@
-import type { TimelineItem as DayItem } from "./timelineDays";
+import type { TimelineItem as DayItem } from "../../../../lib/timeline/timelineDays";
 import type { Groupable, TimelineItem as PassItem } from "../../../../lib/medications/passLogs";
 
 import { groupPassLogs } from "../../../../lib/medications/passLogs";

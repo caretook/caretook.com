@@ -5,7 +5,7 @@ import { Button } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { announcementText, writingLabel } from "~/lib/live-notes/liveNow";
 import { COLUMN_CAP } from "./layout";
-import { LiveDot } from "./LiveDot";
+import { LiveDot } from "~/components/entry";
 
 /**
  * "Maria is writing · PT visit · Join": the most recently active note or
