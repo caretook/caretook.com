@@ -290,7 +290,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-1056 | bug | triaged | fixes-bug |  | Quick entry on a provider's page: a visit line naming no provider ("saw her yesterday") reads as a note, not the event "saw Dr. Lee yesterday" gives; the fallback event card has no providerIds |
 | B-1057 | bug | landed | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/settings/tagsSettings.browser.test.tsx: the Tags page an owner merges Urgent i… |
 | B-1058 | bug | triaged | fixes-bug |  | Quick entry shortcut: / and Cmd/Ctrl+K open the sheet while a native <dialog> confirm is open (the layer guard matches only [role=dialog], not dialog elements) |
-| B-1059 | bug | in-progress | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/layout/frame.browser.test.tsx: the group menu and the last group names the current gr… |
+| B-1059 | bug | ready | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/layout/frame.browser.test.tsx: the group menu and the last group names the current gr… |
 | B-1060 | change | triaged | code-health-5 |  | The services' and the API's group-role-name checks onto the role module (careGroupMemberService, careGroupInviteService, careGroupService, groupAdminService, assistantRequestService, calendarSettingService, connectors connect and groupOverview), the group details settings page and the profile test world (its isWriter treats easy roles as writers): empties the role guard's 'swept by code-health-5' entries |
 
 ## Items
@@ -1755,12 +1755,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-1059 · bug · CI flake: apps/web/app/routes/app/layout/frame.browser.test.tsx: the group menu and the last group names the current gr…
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: a4cdaad54
 
 - 2026-11-28 (Robert Bo Davis): [ci-key 926bfebd2c90] Flaked (passed on its rerun); found by prd/quick-entry-3. First failure: Error: STACK_TRACE_ERROR at new m (http://127.0.0.1:39387/@fs/home/runner/work/caretook.com/caretook.com/node_modules/.pnpm/@vitest+browser@5.1.0_vite@8.3.8_@types+node@24.19.2_esbuild@0.28.2_jiti@2.7.0_tsx@4.23.15__vitest@5.1.0/node_modules/@vitest/browser/dist/locators-GsmO59Q9.js?v=beaca9b8:1:1748) at new h (http://127.0.0.1:39387/@fs/home/runner/work/caretook.com/caretook.com/node_modules/.pnpm/@vitest+browser@5.1.0_vite@8.3.8_@types+node@24.19.2_esbuild@0.28.2_jiti@2.7.0_tsx@4.23.1…
+- 2026-11-28 (slice/fixes-tooling/112): Cause (slice 112, reproduced 5-8/30 under CPU load): the second open came ~55ms after the selection closed the first menu, while it still played its exit; the reopened menu never took focus (focus stayed on body), so Escape went unhandled, the menu stayed open, the page stayed inert and the Caretook tap timed out. The test now waits for the first menu to be gone, focus in the reopened one, and the menu closed after Escape: 30/30 twice under load. Quarantine entry left for risa ci to remove.
 
 ### B-1060 · change · The services' and the API's group-role-name checks onto the role module (careGroupMemberService, careGroupInviteService, careGroupService, groupAdminService, assistantRequestService, calendarSettingService, connectors connect and groupOverview), the group details settings page and the profile test world (its isWriter treats easy roles as writers): empties the role guard's 'swept by code-health-5' entries
 
